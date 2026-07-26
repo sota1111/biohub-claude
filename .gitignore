@@ -1,0 +1,17 @@
+# Competition data — Kaggle data is not redistributable
+/data/
+!/data/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+build/
+dist/
+
+# Submissions / scratch
+submission*.csv
+*.tmp

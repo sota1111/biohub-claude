@@ -1,0 +1,4 @@
+numpy
+scipy
+zarr>=3.0
+pytest

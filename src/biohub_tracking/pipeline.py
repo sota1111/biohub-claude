@@ -17,8 +17,20 @@ from .link import LinkParams, link_centroids
 
 
 def _open_image_array(zarr_path: Path | str):
-    """Open the level-0 array of an OME-NGFF ``*.zarr`` group (falls back to array)."""
-    import zarr
+    """Open the level-0 array of an OME-NGFF ``*.zarr`` group (falls back to array).
+
+    Uses the ``zarr`` library when it is importable, but transparently falls back
+    to the dependency-light :mod:`biohub_tracking.ngff` reader when it is not — a
+    Kaggle Code-competition kernel image may not ship ``zarr`` and runs with no
+    internet (SOT-1984). The fallback reads byte-identical volumes, so the
+    champion produces the same submission either way.
+    """
+    try:
+        import zarr
+    except ImportError:
+        from .ngff import open_ome_ngff_array
+
+        return open_ome_ngff_array(zarr_path)
 
     root = zarr.open(str(zarr_path), mode="r")
     if hasattr(root, "shape") and not hasattr(root, "keys"):

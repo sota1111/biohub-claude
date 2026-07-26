@@ -5,26 +5,104 @@ at the repo root so the promotion state is data, not code. This module reads tha
 config and constructs the :class:`~biohub_tracking.detect.DetectParams` /
 :class:`~biohub_tracking.link.LinkParams` the pipeline runs with, giving later
 stages (e.g. submission building) a single source of truth for "what is champion".
+
+**Exec / kernel compatibility (SOT-1984).** The champion params must be
+resolvable even when the code runs in a stripped environment — inside a Kaggle
+submission kernel, under ``exec()`` with no ``__file__`` bound, or from an
+arbitrary working directory. So config resolution never assumes ``__file__`` is
+defined and falls back, in order, to: an explicit path → the
+``BIOHUB_CHAMPION_CONFIG`` env var → the file next to this module → the current
+working directory → an **embedded copy** of the frozen champion (below). The
+embedded copy is kept byte-for-byte in sync with ``champion/config.json`` by
+``tests/test_exec_compat.py`` so the pipeline still runs with zero filesystem.
 """
 
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 from .detect import DEFAULT_SCALE, DetectParams
 from .link import LinkParams
 
-# Repo root = two levels up from this file (src/biohub_tracking/champion.py).
-_REPO_ROOT = Path(__file__).resolve().parents[2]
-CHAMPION_CONFIG_PATH = _REPO_ROOT / "champion" / "config.json"
+# Frozen champion parameters, embedded so the pipeline runs with no filesystem
+# access (Kaggle kernel / exec()). MUST mirror champion/config.json exactly;
+# tests/test_exec_compat.py asserts they stay identical.
+EMBEDDED_CHAMPION_CONFIG: dict = {
+    "name": "detect-link-v1",
+    "description": (
+        "Classical 3D LoG-style peak detection + optimal nearest-neighbour "
+        "frame linking (division handling disabled). First biohub-claude "
+        "champion (SOT-1983)."
+    ),
+    "scale": [1.625, 0.40625, 0.40625],
+    "detect": {
+        "sigma_zyx": [1.0, 3.0, 3.0],
+        "nms_size_zyx": [2, 5, 5],
+        "threshold_percentile": 99.3,
+        "min_threshold": 0.0,
+    },
+    "link": {
+        "max_distance": 7.0,
+        "allow_division": False,
+        "division_distance": 7.0,
+    },
+}
+
+_CONFIG_ENV_VAR = "BIOHUB_CHAMPION_CONFIG"
+
+
+def _module_relative_config() -> Path | None:
+    """``champion/config.json`` relative to this file, or ``None`` if ``__file__``
+    is not bound (running under ``exec()`` / in a kernel cell)."""
+    try:
+        here = Path(__file__).resolve()
+    except NameError:  # pragma: no cover - only when __file__ is unbound
+        return None
+    return here.parents[2] / "champion" / "config.json"
+
+
+def _candidate_config_paths() -> list[Path]:
+    """Ordered on-disk locations to probe for the champion config."""
+    candidates: list[Path] = []
+    env = os.environ.get(_CONFIG_ENV_VAR)
+    if env:
+        candidates.append(Path(env))
+    module_rel = _module_relative_config()
+    if module_rel is not None:
+        candidates.append(module_rel)
+    # cwd-relative fallbacks: run from the repo root or from champion/.
+    cwd = Path.cwd()
+    candidates.append(cwd / "champion" / "config.json")
+    candidates.append(cwd / "config.json")
+    return candidates
+
+
+# Best-effort static path (may be None under exec()); kept for backwards compat.
+CHAMPION_CONFIG_PATH = _module_relative_config()
 
 
 def load_champion_config(path: Path | str | None = None) -> dict:
-    """Return the champion config dict from ``champion/config.json``."""
-    path = Path(path) if path is not None else CHAMPION_CONFIG_PATH
-    with open(path) as fh:
-        return json.load(fh)
+    """Return the champion config dict.
+
+    Resolution order (exec/kernel-safe): explicit *path* → ``BIOHUB_CHAMPION_CONFIG``
+    env var → the file next to this module → the current working directory → the
+    :data:`EMBEDDED_CHAMPION_CONFIG` fallback. The embedded fallback guarantees a
+    usable champion even with no filesystem (a Kaggle kernel), so this never
+    raises for a missing file.
+    """
+    if path is not None:
+        with open(path) as fh:
+            return json.load(fh)
+    for candidate in _candidate_config_paths():
+        try:
+            with open(candidate) as fh:
+                return json.load(fh)
+        except (OSError, ValueError):
+            continue
+    # No file found anywhere — fall back to the embedded frozen champion.
+    return json.loads(json.dumps(EMBEDDED_CHAMPION_CONFIG))
 
 
 def champion_params(

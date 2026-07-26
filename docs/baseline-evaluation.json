@@ -1,0 +1,228 @@
+{
+  "dataset": "44b6_0113de3b",
+  "note": "Single local GT sample (52 nodes / 50 edges, single lineage, no divisions). Scores are the size-weighted adjusted edge Jaccard (+0.1x division Jaccard); this sample has no GT divisions so the division term is 0 and division handling only adds FP -> disabled.",
+  "screen": [
+    {
+      "threshold_percentile": 99.0,
+      "allow_division": true,
+      "pred_nodes": 13958,
+      "pred_edges": 12973,
+      "edge_tp": 47,
+      "edge_fp": 3,
+      "edge_fn": 3,
+      "edge_jaccard": 0.8868,
+      "adjusted_edge_jaccard": 0.9274,
+      "division_fp": 1,
+      "division_jaccard": 0.0,
+      "score": 0.9274
+    },
+    {
+      "threshold_percentile": 99.0,
+      "allow_division": false,
+      "pred_nodes": 13958,
+      "pred_edges": 12752,
+      "edge_tp": 47,
+      "edge_fp": 2,
+      "edge_fn": 3,
+      "edge_jaccard": 0.9038,
+      "adjusted_edge_jaccard": 0.9452,
+      "division_fp": 0,
+      "division_jaccard": null,
+      "score": 0.9452
+    },
+    {
+      "threshold_percentile": 99.3,
+      "allow_division": true,
+      "pred_nodes": 12269,
+      "pred_edges": 11384,
+      "edge_tp": 47,
+      "edge_fp": 3,
+      "edge_fn": 3,
+      "edge_jaccard": 0.8868,
+      "adjusted_edge_jaccard": 0.9332,
+      "division_fp": 1,
+      "division_jaccard": 0.0,
+      "score": 0.9332
+    },
+    {
+      "threshold_percentile": 99.3,
+      "allow_division": false,
+      "pred_nodes": 12269,
+      "pred_edges": 11193,
+      "edge_tp": 47,
+      "edge_fp": 2,
+      "edge_fn": 3,
+      "edge_jaccard": 0.9038,
+      "adjusted_edge_jaccard": 0.9512,
+      "division_fp": 0,
+      "division_jaccard": null,
+      "score": 0.9512
+    },
+    {
+      "threshold_percentile": 99.5,
+      "allow_division": true,
+      "pred_nodes": 10924,
+      "pred_edges": 10137,
+      "edge_tp": 45,
+      "edge_fp": 5,
+      "edge_fn": 5,
+      "edge_jaccard": 0.8182,
+      "adjusted_edge_jaccard": 0.8653,
+      "division_fp": 3,
+      "division_jaccard": 0.0,
+      "score": 0.8653
+    },
+    {
+      "threshold_percentile": 99.5,
+      "allow_division": false,
+      "pred_nodes": 10924,
+      "pred_edges": 9981,
+      "edge_tp": 45,
+      "edge_fp": 2,
+      "edge_fn": 5,
+      "edge_jaccard": 0.8654,
+      "adjusted_edge_jaccard": 0.9152,
+      "division_fp": 0,
+      "division_jaccard": null,
+      "score": 0.9152
+    },
+    {
+      "threshold_percentile": 99.7,
+      "allow_division": true,
+      "pred_nodes": 9011,
+      "pred_edges": 8294,
+      "edge_tp": 42,
+      "edge_fp": 2,
+      "edge_fn": 8,
+      "edge_jaccard": 0.8077,
+      "adjusted_edge_jaccard": 0.8602,
+      "division_fp": 1,
+      "division_jaccard": 0.0,
+      "score": 0.8602
+    },
+    {
+      "threshold_percentile": 99.7,
+      "allow_division": false,
+      "pred_nodes": 9011,
+      "pred_edges": 8149,
+      "edge_tp": 42,
+      "edge_fp": 1,
+      "edge_fn": 8,
+      "edge_jaccard": 0.8235,
+      "adjusted_edge_jaccard": 0.8771,
+      "division_fp": 0,
+      "division_jaccard": null,
+      "score": 0.8771
+    }
+  ],
+  "confirm_finer_grid_div_off": [
+    {
+      "threshold_percentile": 99.0,
+      "allow_division": false,
+      "pred_nodes": 13958,
+      "pred_edges": 12752,
+      "edge_tp": 47,
+      "edge_fp": 2,
+      "edge_fn": 3,
+      "edge_jaccard": 0.9038,
+      "adjusted_edge_jaccard": 0.9452,
+      "division_fp": 0,
+      "division_jaccard": null,
+      "score": 0.9452
+    },
+    {
+      "threshold_percentile": 99.1,
+      "allow_division": false,
+      "pred_nodes": 13416,
+      "pred_edges": 12225,
+      "edge_tp": 47,
+      "edge_fp": 2,
+      "edge_fn": 3,
+      "edge_jaccard": 0.9038,
+      "adjusted_edge_jaccard": 0.9471,
+      "division_fp": 0,
+      "division_jaccard": null,
+      "score": 0.9471
+    },
+    {
+      "threshold_percentile": 99.2,
+      "allow_division": false,
+      "pred_nodes": 12834,
+      "pred_edges": 11696,
+      "edge_tp": 47,
+      "edge_fp": 2,
+      "edge_fn": 3,
+      "edge_jaccard": 0.9038,
+      "adjusted_edge_jaccard": 0.9492,
+      "division_fp": 0,
+      "division_jaccard": null,
+      "score": 0.9492
+    },
+    {
+      "threshold_percentile": 99.3,
+      "allow_division": false,
+      "pred_nodes": 12269,
+      "pred_edges": 11193,
+      "edge_tp": 47,
+      "edge_fp": 2,
+      "edge_fn": 3,
+      "edge_jaccard": 0.9038,
+      "adjusted_edge_jaccard": 0.9512,
+      "division_fp": 0,
+      "division_jaccard": null,
+      "score": 0.9512
+    },
+    {
+      "threshold_percentile": 99.4,
+      "allow_division": false,
+      "pred_nodes": 11634,
+      "pred_edges": 10614,
+      "edge_tp": 47,
+      "edge_fp": 2,
+      "edge_fn": 3,
+      "edge_jaccard": 0.9038,
+      "adjusted_edge_jaccard": 0.9534,
+      "division_fp": 0,
+      "division_jaccard": null,
+      "score": 0.9534
+    }
+  ],
+  "champion": {
+    "threshold_percentile": 99.3,
+    "allow_division": false,
+    "pred_nodes": 12269,
+    "pred_edges": 11193,
+    "edge_tp": 47,
+    "edge_fp": 2,
+    "edge_fn": 3,
+    "edge_jaccard": 0.9038,
+    "adjusted_edge_jaccard": 0.9512,
+    "division_fp": 0,
+    "division_jaccard": null,
+    "score": 0.9512
+  },
+  "champion_config": {
+    "detect": {
+      "sigma_zyx": [
+        1.0,
+        3.0,
+        3.0
+      ],
+      "nms_size_zyx": [
+        2,
+        5,
+        5
+      ],
+      "threshold_percentile": 99.3,
+      "min_threshold": 0.0
+    },
+    "link": {
+      "max_distance": 7.0,
+      "allow_division": false,
+      "division_distance": 7.0
+    }
+  },
+  "reproducible": true,
+  "gate": "screen->confirm",
+  "promoted": true
+}

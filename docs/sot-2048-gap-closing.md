@@ -35,5 +35,24 @@ reproduced exactly.
 The predeclared gate required adjusted Edge Jaccard to improve without an edge
 FP increase. Neither gap candidate improved the metric, so the candidate code
 was reverted as required by the Issue. The champion remains unchanged with
-consecutive-only linking (effective gap `0`); no config, registry, kernel, or
-Kaggle submission update is warranted.
+consecutive-only linking (effective gap `0`); no config, registry, or kernel
+change is warranted.
+
+## Kaggle submission
+
+Following the review instruction that every evaluated candidate must end with a
+real submission even when it is not promoted, the unchanged champion was rebuilt
+and submitted:
+
+- Kernel: `sota1111/biohub-claude-champion`, version 4
+- Kernel execution: complete
+- Competition submission: `55033776`
+- Submitted at: 2026-07-27 16:30:31 UTC
+- Description: `SOT-2048 non-promotion validation: current champion,
+  gap-closing disabled`
+- Initial competition status: `PENDING` (submission accepted for scoring)
+
+This submission deliberately represents the unchanged champion, not the reverted
+gap-closing candidate. It proves the non-promotion path still produces and
+submits an exec-compatible competition artifact while keeping effective
+`max_frame_gap=0`.

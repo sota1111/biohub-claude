@@ -11,10 +11,12 @@ from .score import (
     evaluate,
     evaluate_datasets,
 )
+from .synthetic_division import SyntheticDivision, inject_synthetic_division
 
 __all__ = [
     "ADJUSTMENT_ALPHA",
     "SCORE_DIVISION_WEIGHT",
+    "SyntheticDivision",
     "DatasetsResult",
     "DivisionCounts",
     "EdgeCounts",
@@ -24,5 +26,6 @@ __all__ = [
     "edge_counts",
     "evaluate",
     "evaluate_datasets",
+    "inject_synthetic_division",
     "score_divisions",
 ]

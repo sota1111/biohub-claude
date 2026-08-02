@@ -57,6 +57,21 @@ class DetectParams:
     a compact blob brighter than its immediate surround). ``None`` reproduces the
     original brightness-threshold detector exactly."""
 
+    mad_k: float | None = None
+    """Optional robust **adaptive** response threshold (SOT-2307). When set, the
+    per-volume cutoff is ``median(response) + mad_k · 1.4826 · MAD(response)`` — a
+    robust z-score above the response's own noise floor — instead of the fixed
+    :attr:`threshold_percentile`. ``1.4826 · MAD`` (median absolute deviation) is an
+    outlier-robust estimate of the response standard deviation, so the threshold
+    tracks each dataset's *own* intensity scale rather than keeping a fixed voxel
+    **fraction**. A fixed percentile keeps the same fraction of voxels regardless of
+    how many real cells a volume actually contains, which massively over-detects
+    sparse datasets (e.g. ``6bba_05b6850b``: the DoG p92 cutoff keeps ~40450 peaks
+    for only ~6362 true cells, so the node-count penalty crushes its adjusted
+    Jaccard to 0.26); an absolute robust cutoff keeps only genuine local-contrast
+    peaks, adapting the detection *count* to signal content instead of volume size.
+    ``None`` preserves the percentile behaviour exactly."""
+
 
 def detect_centroids(
     volume: np.ndarray, params: DetectParams | None = None
@@ -81,10 +96,17 @@ def detect_centroids(
     else:
         response = smoothed
 
-    threshold = max(
-        float(np.percentile(response, params.threshold_percentile)),
-        params.min_threshold,
-    )
+    # Response threshold: a robust per-volume z-score (median + k·1.4826·MAD) when
+    # ``mad_k`` is configured (SOT-2307, adapts the kept-peak *count* to each
+    # dataset's own noise floor), otherwise the fixed percentile cutoff (SOT-2272).
+    if params.mad_k is not None:
+        median = float(np.median(response))
+        mad = float(np.median(np.abs(response - median)))
+        robust_sigma = 1.4826 * mad
+        adaptive_threshold = median + params.mad_k * robust_sigma
+    else:
+        adaptive_threshold = float(np.percentile(response, params.threshold_percentile))
+    threshold = max(adaptive_threshold, params.min_threshold)
 
     footprint = np.ones([2 * s + 1 for s in params.nms_size_zyx], dtype=bool)
     local_max = ndi.maximum_filter(response, footprint=footprint)

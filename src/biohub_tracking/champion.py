@@ -30,14 +30,18 @@ from .link import LinkParams
 # access (Kaggle kernel / exec()). MUST mirror champion/config.json exactly;
 # tests/test_exec_compat.py asserts they stay identical.
 EMBEDDED_CHAMPION_CONFIG: dict = {
-    "name": "detect-link-dog-v2",
+    "name": "detect-link-dog-v3-adaptive",
     "description": (
-        "Difference-of-Gaussians (local-contrast) 3D cell detection + optimal "
-        "nearest-neighbour frame linking (division handling disabled). Second "
-        "biohub-claude champion (SOT-2272): DoG detection recovers dim tracked "
-        "cells that a global intensity threshold misses, lifting the fragmented "
-        "family 44b6_0b24845f from adj 0.044 to 0.662 and the local 2-family "
-        "micro-avg from 0.506 to 0.772."
+        "Difference-of-Gaussians (local-contrast) 3D cell detection with a robust "
+        "per-volume adaptive threshold (median + 3.0*1.4826*MAD of the DoG response) "
+        "+ optimal nearest-neighbour frame linking (division handling disabled). "
+        "Third biohub-claude champion (SOT-2307): replacing the fixed percentile-92 "
+        "cutoff with a robust z-score above each volume's own noise floor adapts the "
+        "detection count to signal content instead of keeping a fixed voxel fraction. "
+        "On the 4-dataset LB holdout this lifts the sparse 6bba_05b6850b family from "
+        "adj 0.262 to 0.502 (pred nodes 40450->13376, pruning spurious detections the "
+        "node-count penalty punished) while holding the 44b6 families (0.7721->0.7716), "
+        "raising the holdout micro-avg from 0.5225 to 0.6232."
     ),
     "scale": [1.625, 0.40625, 0.40625],
     "detect": {
@@ -45,6 +49,7 @@ EMBEDDED_CHAMPION_CONFIG: dict = {
         "background_sigma_zyx": [2.0, 6.0, 6.0],
         "nms_size_zyx": [2, 5, 5],
         "threshold_percentile": 92.0,
+        "mad_k": 3.0,
         "min_threshold": 0.0,
     },
     "link": {
@@ -118,12 +123,14 @@ def champion_params(
     d = config["detect"]
     l = config["link"]
     bg = d.get("background_sigma_zyx")
+    mad_k = d.get("mad_k")
     detect = DetectParams(
         sigma_zyx=tuple(d.get("sigma_zyx", (1.0, 3.0, 3.0))),
         nms_size_zyx=tuple(d.get("nms_size_zyx", (2, 5, 5))),
         threshold_percentile=float(d.get("threshold_percentile", 99.3)),
         min_threshold=float(d.get("min_threshold", 0.0)),
         background_sigma_zyx=tuple(bg) if bg is not None else None,
+        mad_k=None if mad_k is None else float(mad_k),
     )
     link = LinkParams(
         max_distance=float(l.get("max_distance", 7.0)),

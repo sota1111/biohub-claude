@@ -1,11 +1,34 @@
 {
   "schema_version": 1,
-  "champion": "detect-link-dog-v2",
+  "champion": "detect-link-dog-v3-adaptive",
   "agents": {
-    "detect-link-dog-v2": {
+    "detect-link-dog-v3-adaptive": {
       "module": "biohub_tracking.pipeline.run_pipeline",
       "config": "champion/config.json",
       "status": "incumbent",
+      "promotion_gate": "screen->confirm on the SOT-2305 4-dataset LB holdout (44b6x2 + 6bba x2), independent re-score via the real run_pipeline",
+      "evaluation": "experiments/sot2307/confirm_adaptive.json",
+      "metrics": {
+        "datasets": ["44b6_0113de3b", "44b6_0b24845f", "6bba_05b6850b", "6bba_05db0fb1"],
+        "holdout_micro_adj_edge_jaccard": 0.6232,
+        "by_prefix": {"44b6": 0.7716, "6bba": 0.6168},
+        "per_dataset": {
+          "44b6_0113de3b": {"edge_tp": 47, "edge_fp": 2, "edge_fn": 3, "adjusted_edge_jaccard": 0.8814, "pred_nodes": 32147},
+          "44b6_0b24845f": {"edge_tp": 37, "edge_fp": 5, "edge_fn": 12, "adjusted_edge_jaccard": 0.6658, "pred_nodes": 42080},
+          "6bba_05b6850b": {"edge_tp": 619, "edge_fp": 251, "edge_fn": 226, "adjusted_edge_jaccard": 0.5025, "pred_nodes": 13376},
+          "6bba_05db0fb1": {"edge_tp": 963, "edge_fp": 166, "edge_fn": 220, "adjusted_edge_jaccard": 0.7096, "pred_nodes": 73953}
+        },
+        "division_jaccard": null,
+        "score": 0.6232
+      },
+      "reason": "Adaptive robust-intensity threshold (SOT-2307). The DoG-v2 champion kept a fixed percentile (92) of the local-contrast response, i.e. a fixed voxel FRACTION regardless of how many real cells a volume contains; on the sparse 6bba_05b6850b family that predicted 40450 nodes for ~6362 true cells and the node-count penalty crushed its adjusted edge Jaccard to 0.262. Replacing the fixed percentile with a robust per-volume z-score threshold (median + 3.0*1.4826*MAD of the DoG response) tracks each dataset's own noise floor, so the kept-peak COUNT adapts to signal content. On the SOT-2305 4-dataset LB holdout this lifts 6bba_05b6850b from adj 0.262 to 0.502 (pred nodes 40450->13376) while holding both 44b6 families (2-family micro 0.7721->0.7716), raising the holdout micro-avg from 0.5225 to 0.6232 (+0.10). The 6bba_05b6850b matched-edge TP/FP/FN is unchanged (619/251/226) - the whole gain is pruning ~27000 spurious isolated detections the penalty punished, an honest node-count relief not a matching artifact. Screened by cached-candidate sweep (mad_k in {2,3,4} all beat baseline: 0.60/0.62/0.60, a plateau not a spike) and confirmed by an independent re-score through the real run_pipeline. No Kaggle submission.",
+      "issue": "SOT-2307",
+      "supersedes": "detect-link-dog-v2"
+    },
+    "detect-link-dog-v2": {
+      "module": "biohub_tracking.pipeline.run_pipeline",
+      "config": null,
+      "status": "superseded",
       "promotion_gate": "screen->confirm (local Edge/Division Jaccard, 2 GT families)",
       "evaluation": "docs/sot-2272-dog-detection-evaluation.json",
       "metrics": {

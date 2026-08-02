@@ -1,0 +1,485 @@
+{
+  "issue": "SOT-2307",
+  "title": "Screen adaptive robust (median+k*MAD) DoG threshold on the 4-dataset holdout",
+  "generated_utc": "2026-08-02T15:02:57.613954+00:00",
+  "baseline_champion_dog_v2_percentile92": {
+    "holdout_micro_adj": 0.5225,
+    "by_prefix": {
+      "44b6": 0.7721,
+      "6bba": 0.5117
+    },
+    "note": "docs/reanchored-oracle-evaluation.json (SOT-2305)"
+  },
+  "holdout": [
+    "44b6_0113de3b",
+    "44b6_0b24845f",
+    "6bba_05b6850b",
+    "6bba_05db0fb1"
+  ],
+  "detector": "DoG-v2 geometry, threshold = median + mad_k*1.4826*MAD per volume",
+  "sweep": {
+    "k=2.0": {
+      "mad_k": 2.0,
+      "per_dataset": [
+        {
+          "edge_tp": 47,
+          "edge_fp": 2,
+          "edge_fn": 3,
+          "edge_jaccard": 0.9038,
+          "adjusted_edge_jaccard": 0.8559,
+          "pred_nodes": 39427,
+          "n_true": 25755.0,
+          "weight": 52,
+          "name": "44b6_0113de3b",
+          "prefix": "44b6"
+        },
+        {
+          "edge_tp": 38,
+          "edge_fp": 7,
+          "edge_fn": 11,
+          "edge_jaccard": 0.6786,
+          "adjusted_edge_jaccard": 0.6352,
+          "pred_nodes": 53749,
+          "n_true": 32795.0,
+          "weight": 56,
+          "name": "44b6_0b24845f",
+          "prefix": "44b6"
+        },
+        {
+          "edge_tp": 619,
+          "edge_fp": 251,
+          "edge_fn": 226,
+          "edge_jaccard": 0.5648,
+          "adjusted_edge_jaccard": 0.4398,
+          "pred_nodes": 20438,
+          "n_true": 6362.0,
+          "weight": 1096,
+          "name": "6bba_05b6850b",
+          "prefix": "6bba"
+        },
+        {
+          "edge_tp": 990,
+          "edge_fp": 172,
+          "edge_fn": 193,
+          "edge_jaccard": 0.7306,
+          "adjusted_edge_jaccard": 0.7213,
+          "pred_nodes": 78668,
+          "n_true": 69800.0,
+          "weight": 1355,
+          "name": "6bba_05db0fb1",
+          "prefix": "6bba"
+        }
+      ],
+      "by_prefix": {
+        "44b6": 0.7415,
+        "6bba": 0.5954
+      },
+      "holdout_micro": {
+        "n_families": 4,
+        "edge_tp": 1694,
+        "edge_fp": 432,
+        "edge_fn": 433,
+        "micro_edge_jaccard": 0.662,
+        "micro_adj_edge_jaccard": 0.6016,
+        "score": 0.6016
+      }
+    },
+    "k=3.0": {
+      "mad_k": 3.0,
+      "per_dataset": [
+        {
+          "edge_tp": 47,
+          "edge_fp": 2,
+          "edge_fn": 3,
+          "edge_jaccard": 0.9038,
+          "adjusted_edge_jaccard": 0.8814,
+          "pred_nodes": 32147,
+          "n_true": 25755.0,
+          "weight": 52,
+          "name": "44b6_0113de3b",
+          "prefix": "44b6"
+        },
+        {
+          "edge_tp": 37,
+          "edge_fp": 5,
+          "edge_fn": 12,
+          "edge_jaccard": 0.6852,
+          "adjusted_edge_jaccard": 0.6658,
+          "pred_nodes": 42080,
+          "n_true": 32795.0,
+          "weight": 54,
+          "name": "44b6_0b24845f",
+          "prefix": "44b6"
+        },
+        {
+          "edge_tp": 619,
+          "edge_fp": 251,
+          "edge_fn": 226,
+          "edge_jaccard": 0.5648,
+          "adjusted_edge_jaccard": 0.5025,
+          "pred_nodes": 13376,
+          "n_true": 6362.0,
+          "weight": 1096,
+          "name": "6bba_05b6850b",
+          "prefix": "6bba"
+        },
+        {
+          "edge_tp": 963,
+          "edge_fp": 166,
+          "edge_fn": 220,
+          "edge_jaccard": 0.7139,
+          "adjusted_edge_jaccard": 0.7096,
+          "pred_nodes": 73953,
+          "n_true": 69800.0,
+          "weight": 1349,
+          "name": "6bba_05db0fb1",
+          "prefix": "6bba"
+        }
+      ],
+      "by_prefix": {
+        "44b6": 0.7716,
+        "6bba": 0.6168
+      },
+      "holdout_micro": {
+        "n_families": 4,
+        "edge_tp": 1666,
+        "edge_fp": 424,
+        "edge_fn": 461,
+        "micro_edge_jaccard": 0.6531,
+        "micro_adj_edge_jaccard": 0.6232,
+        "score": 0.6232
+      }
+    },
+    "k=4.0": {
+      "mad_k": 4.0,
+      "per_dataset": [
+        {
+          "edge_tp": 47,
+          "edge_fp": 2,
+          "edge_fn": 3,
+          "edge_jaccard": 0.9038,
+          "adjusted_edge_jaccard": 0.8876,
+          "pred_nodes": 30373,
+          "n_true": 25755.0,
+          "weight": 52,
+          "name": "44b6_0113de3b",
+          "prefix": "44b6"
+        },
+        {
+          "edge_tp": 34,
+          "edge_fp": 4,
+          "edge_fn": 15,
+          "edge_jaccard": 0.6415,
+          "adjusted_edge_jaccard": 0.6457,
+          "pred_nodes": 30665,
+          "n_true": 32795.0,
+          "weight": 53,
+          "name": "44b6_0b24845f",
+          "prefix": "44b6"
+        },
+        {
+          "edge_tp": 619,
+          "edge_fp": 251,
+          "edge_fn": 226,
+          "edge_jaccard": 0.5648,
+          "adjusted_edge_jaccard": 0.5215,
+          "pred_nodes": 11236,
+          "n_true": 6362.0,
+          "weight": 1096,
+          "name": "6bba_05b6850b",
+          "prefix": "6bba"
+        },
+        {
+          "edge_tp": 866,
+          "edge_fp": 161,
+          "edge_fn": 317,
+          "edge_jaccard": 0.6443,
+          "adjusted_edge_jaccard": 0.6471,
+          "pred_nodes": 66866,
+          "n_true": 69800.0,
+          "weight": 1344,
+          "name": "6bba_05db0fb1",
+          "prefix": "6bba"
+        }
+      ],
+      "by_prefix": {
+        "44b6": 0.7655,
+        "6bba": 0.5907
+      },
+      "holdout_micro": {
+        "n_families": 4,
+        "edge_tp": 1566,
+        "edge_fp": 418,
+        "edge_fn": 561,
+        "micro_edge_jaccard": 0.6153,
+        "micro_adj_edge_jaccard": 0.5979,
+        "score": 0.5979
+      }
+    },
+    "k=5.0": {
+      "mad_k": 5.0,
+      "per_dataset": [
+        {
+          "edge_tp": 47,
+          "edge_fp": 2,
+          "edge_fn": 3,
+          "edge_jaccard": 0.9038,
+          "adjusted_edge_jaccard": 0.8897,
+          "pred_nodes": 29798,
+          "n_true": 25755.0,
+          "weight": 52,
+          "name": "44b6_0113de3b",
+          "prefix": "44b6"
+        },
+        {
+          "edge_tp": 33,
+          "edge_fp": 4,
+          "edge_fn": 16,
+          "edge_jaccard": 0.6226,
+          "adjusted_edge_jaccard": 0.6438,
+          "pred_nodes": 21645,
+          "n_true": 32795.0,
+          "weight": 53,
+          "name": "44b6_0b24845f",
+          "prefix": "44b6"
+        },
+        {
+          "edge_tp": 619,
+          "edge_fp": 251,
+          "edge_fn": 226,
+          "edge_jaccard": 0.5648,
+          "adjusted_edge_jaccard": 0.5298,
+          "pred_nodes": 10300,
+          "n_true": 6362.0,
+          "weight": 1096,
+          "name": "6bba_05b6850b",
+          "prefix": "6bba"
+        },
+        {
+          "edge_tp": 726,
+          "edge_fp": 149,
+          "edge_fn": 457,
+          "edge_jaccard": 0.545,
+          "adjusted_edge_jaccard": 0.5548,
+          "pred_nodes": 57307,
+          "n_true": 69800.0,
+          "weight": 1332,
+          "name": "6bba_05db0fb1",
+          "prefix": "6bba"
+        }
+      ],
+      "by_prefix": {
+        "44b6": 0.7656,
+        "6bba": 0.5435
+      },
+      "holdout_micro": {
+        "n_families": 4,
+        "edge_tp": 1425,
+        "edge_fp": 406,
+        "edge_fn": 702,
+        "micro_edge_jaccard": 0.5626,
+        "micro_adj_edge_jaccard": 0.5527,
+        "score": 0.5527
+      }
+    },
+    "k=6.0": {
+      "mad_k": 6.0,
+      "per_dataset": [
+        {
+          "edge_tp": 47,
+          "edge_fp": 2,
+          "edge_fn": 3,
+          "edge_jaccard": 0.9038,
+          "adjusted_edge_jaccard": 0.8909,
+          "pred_nodes": 29454,
+          "n_true": 25755.0,
+          "weight": 52,
+          "name": "44b6_0113de3b",
+          "prefix": "44b6"
+        },
+        {
+          "edge_tp": 28,
+          "edge_fp": 4,
+          "edge_fn": 21,
+          "edge_jaccard": 0.5283,
+          "adjusted_edge_jaccard": 0.5572,
+          "pred_nodes": 14836,
+          "n_true": 32795.0,
+          "weight": 53,
+          "name": "44b6_0b24845f",
+          "prefix": "44b6"
+        },
+        {
+          "edge_tp": 619,
+          "edge_fp": 251,
+          "edge_fn": 226,
+          "edge_jaccard": 0.5648,
+          "adjusted_edge_jaccard": 0.5347,
+          "pred_nodes": 9753,
+          "n_true": 6362.0,
+          "weight": 1096,
+          "name": "6bba_05b6850b",
+          "prefix": "6bba"
+        },
+        {
+          "edge_tp": 547,
+          "edge_fp": 137,
+          "edge_fn": 636,
+          "edge_jaccard": 0.4144,
+          "adjusted_edge_jaccard": 0.4279,
+          "pred_nodes": 47127,
+          "n_true": 69800.0,
+          "weight": 1320,
+          "name": "6bba_05db0fb1",
+          "prefix": "6bba"
+        }
+      ],
+      "by_prefix": {
+        "44b6": 0.7225,
+        "6bba": 0.4763
+      },
+      "holdout_micro": {
+        "n_families": 4,
+        "edge_tp": 1241,
+        "edge_fp": 394,
+        "edge_fn": 886,
+        "micro_edge_jaccard": 0.4923,
+        "micro_adj_edge_jaccard": 0.4866,
+        "score": 0.4866
+      }
+    },
+    "k=8.0": {
+      "mad_k": 8.0,
+      "per_dataset": [
+        {
+          "edge_tp": 47,
+          "edge_fp": 2,
+          "edge_fn": 3,
+          "edge_jaccard": 0.9038,
+          "adjusted_edge_jaccard": 0.8923,
+          "pred_nodes": 29050,
+          "n_true": 25755.0,
+          "weight": 52,
+          "name": "44b6_0113de3b",
+          "prefix": "44b6"
+        },
+        {
+          "edge_tp": 5,
+          "edge_fp": 2,
+          "edge_fn": 44,
+          "edge_jaccard": 0.098,
+          "adjusted_edge_jaccard": 0.1057,
+          "pred_nodes": 7050,
+          "n_true": 32795.0,
+          "weight": 51,
+          "name": "44b6_0b24845f",
+          "prefix": "44b6"
+        },
+        {
+          "edge_tp": 619,
+          "edge_fp": 251,
+          "edge_fn": 226,
+          "edge_jaccard": 0.5648,
+          "adjusted_edge_jaccard": 0.5386,
+          "pred_nodes": 9309,
+          "n_true": 6362.0,
+          "weight": 1096,
+          "name": "6bba_05b6850b",
+          "prefix": "6bba"
+        },
+        {
+          "edge_tp": 269,
+          "edge_fp": 101,
+          "edge_fn": 914,
+          "edge_jaccard": 0.2095,
+          "adjusted_edge_jaccard": 0.2217,
+          "pred_nodes": 29062,
+          "n_true": 69800.0,
+          "weight": 1284,
+          "name": "6bba_05db0fb1",
+          "prefix": "6bba"
+        }
+      ],
+      "by_prefix": {
+        "44b6": 0.5028,
+        "6bba": 0.3676
+      },
+      "holdout_micro": {
+        "n_families": 4,
+        "edge_tp": 940,
+        "edge_fp": 356,
+        "edge_fn": 1187,
+        "micro_edge_jaccard": 0.3786,
+        "micro_adj_edge_jaccard": 0.3732,
+        "score": 0.3732
+      }
+    },
+    "k=10.0": {
+      "mad_k": 10.0,
+      "per_dataset": [
+        {
+          "edge_tp": 47,
+          "edge_fp": 2,
+          "edge_fn": 3,
+          "edge_jaccard": 0.9038,
+          "adjusted_edge_jaccard": 0.8932,
+          "pred_nodes": 28795,
+          "n_true": 25755.0,
+          "weight": 52,
+          "name": "44b6_0113de3b",
+          "prefix": "44b6"
+        },
+        {
+          "edge_tp": 0,
+          "edge_fp": 0,
+          "edge_fn": 49,
+          "edge_jaccard": 0.0,
+          "adjusted_edge_jaccard": 0.0,
+          "pred_nodes": 3260,
+          "n_true": 32795.0,
+          "weight": 49,
+          "name": "44b6_0b24845f",
+          "prefix": "44b6"
+        },
+        {
+          "edge_tp": 619,
+          "edge_fp": 250,
+          "edge_fn": 226,
+          "edge_jaccard": 0.5653,
+          "adjusted_edge_jaccard": 0.5405,
+          "pred_nodes": 9148,
+          "n_true": 6362.0,
+          "weight": 1095,
+          "name": "6bba_05b6850b",
+          "prefix": "6bba"
+        },
+        {
+          "edge_tp": 120,
+          "edge_fp": 57,
+          "edge_fn": 1063,
+          "edge_jaccard": 0.0968,
+          "adjusted_edge_jaccard": 0.1043,
+          "pred_nodes": 15793,
+          "n_true": 69800.0,
+          "weight": 1240,
+          "name": "6bba_05db0fb1",
+          "prefix": "6bba"
+        }
+      ],
+      "by_prefix": {
+        "44b6": 0.4599,
+        "6bba": 0.3089
+      },
+      "holdout_micro": {
+        "n_families": 4,
+        "edge_tp": 786,
+        "edge_fp": 309,
+        "edge_fn": 1341,
+        "micro_edge_jaccard": 0.3227,
+        "micro_adj_edge_jaccard": 0.3151,
+        "score": 0.3151
+      }
+    }
+  },
+  "reproducible_note": "Deterministic (no RNG); candidate cache reproduces detect_centroids."
+}

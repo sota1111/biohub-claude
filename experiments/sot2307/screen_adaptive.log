@@ -1,0 +1,52 @@
+caching candidates 44b6_0113de3b ...
+  44b6_0113de3b: 100 timepoints, 203574 candidate peaks
+caching candidates 44b6_0b24845f ...
+  44b6_0b24845f: 100 timepoints, 129549 candidate peaks
+caching candidates 6bba_05b6850b ...
+  6bba_05b6850b: 100 timepoints, 227904 candidate peaks
+caching candidates 6bba_05db0fb1 ...
+  6bba_05db0fb1: 100 timepoints, 123460 candidate peaks
+
+mad_k=2.0: holdout micro-adj=0.6016 by_prefix={ 44b6:0.7415, 6bba:0.5954 }
+    44b6_0113de3b    tp/fp/fn=47/2/3 adj=0.8559 pred_nodes=39427 n_true=25755.0
+    44b6_0b24845f    tp/fp/fn=38/7/11 adj=0.6352 pred_nodes=53749 n_true=32795.0
+    6bba_05b6850b    tp/fp/fn=619/251/226 adj=0.4398 pred_nodes=20438 n_true=6362.0
+    6bba_05db0fb1    tp/fp/fn=990/172/193 adj=0.7213 pred_nodes=78668 n_true=69800.0
+
+mad_k=3.0: holdout micro-adj=0.6232 by_prefix={ 44b6:0.7716, 6bba:0.6168 }
+    44b6_0113de3b    tp/fp/fn=47/2/3 adj=0.8814 pred_nodes=32147 n_true=25755.0
+    44b6_0b24845f    tp/fp/fn=37/5/12 adj=0.6658 pred_nodes=42080 n_true=32795.0
+    6bba_05b6850b    tp/fp/fn=619/251/226 adj=0.5025 pred_nodes=13376 n_true=6362.0
+    6bba_05db0fb1    tp/fp/fn=963/166/220 adj=0.7096 pred_nodes=73953 n_true=69800.0
+
+mad_k=4.0: holdout micro-adj=0.5979 by_prefix={ 44b6:0.7655, 6bba:0.5907 }
+    44b6_0113de3b    tp/fp/fn=47/2/3 adj=0.8876 pred_nodes=30373 n_true=25755.0
+    44b6_0b24845f    tp/fp/fn=34/4/15 adj=0.6457 pred_nodes=30665 n_true=32795.0
+    6bba_05b6850b    tp/fp/fn=619/251/226 adj=0.5215 pred_nodes=11236 n_true=6362.0
+    6bba_05db0fb1    tp/fp/fn=866/161/317 adj=0.6471 pred_nodes=66866 n_true=69800.0
+
+mad_k=5.0: holdout micro-adj=0.5527 by_prefix={ 44b6:0.7656, 6bba:0.5435 }
+    44b6_0113de3b    tp/fp/fn=47/2/3 adj=0.8897 pred_nodes=29798 n_true=25755.0
+    44b6_0b24845f    tp/fp/fn=33/4/16 adj=0.6438 pred_nodes=21645 n_true=32795.0
+    6bba_05b6850b    tp/fp/fn=619/251/226 adj=0.5298 pred_nodes=10300 n_true=6362.0
+    6bba_05db0fb1    tp/fp/fn=726/149/457 adj=0.5548 pred_nodes=57307 n_true=69800.0
+
+mad_k=6.0: holdout micro-adj=0.4866 by_prefix={ 44b6:0.7225, 6bba:0.4763 }
+    44b6_0113de3b    tp/fp/fn=47/2/3 adj=0.8909 pred_nodes=29454 n_true=25755.0
+    44b6_0b24845f    tp/fp/fn=28/4/21 adj=0.5572 pred_nodes=14836 n_true=32795.0
+    6bba_05b6850b    tp/fp/fn=619/251/226 adj=0.5347 pred_nodes=9753 n_true=6362.0
+    6bba_05db0fb1    tp/fp/fn=547/137/636 adj=0.4279 pred_nodes=47127 n_true=69800.0
+
+mad_k=8.0: holdout micro-adj=0.3732 by_prefix={ 44b6:0.5028, 6bba:0.3676 }
+    44b6_0113de3b    tp/fp/fn=47/2/3 adj=0.8923 pred_nodes=29050 n_true=25755.0
+    44b6_0b24845f    tp/fp/fn=5/2/44 adj=0.1057 pred_nodes=7050 n_true=32795.0
+    6bba_05b6850b    tp/fp/fn=619/251/226 adj=0.5386 pred_nodes=9309 n_true=6362.0
+    6bba_05db0fb1    tp/fp/fn=269/101/914 adj=0.2217 pred_nodes=29062 n_true=69800.0
+
+mad_k=10.0: holdout micro-adj=0.3151 by_prefix={ 44b6:0.4599, 6bba:0.3089 }
+    44b6_0113de3b    tp/fp/fn=47/2/3 adj=0.8932 pred_nodes=28795 n_true=25755.0
+    44b6_0b24845f    tp/fp/fn=0/0/49 adj=0.0 pred_nodes=3260 n_true=32795.0
+    6bba_05b6850b    tp/fp/fn=619/250/226 adj=0.5405 pred_nodes=9148 n_true=6362.0
+    6bba_05db0fb1    tp/fp/fn=120/57/1063 adj=0.1043 pred_nodes=15793 n_true=69800.0
+
+wrote /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2307/screen_adaptive.json

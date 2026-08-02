@@ -1,0 +1,204 @@
+{
+  "issue": "SOT-2305",
+  "title": "Re-anchor local oracle to the real 4-dataset Kaggle test set",
+  "generated_utc": "2026-08-02T14:46:03.595951+00:00",
+  "holdout": {
+    "families": [
+      "44b6_0113de3b",
+      "44b6_0b24845f",
+      "6bba_05b6850b",
+      "6bba_05db0fb1"
+    ],
+    "pairing": "test/<name>.zarr image + train/<name>.geff ground truth",
+    "note": "These four families are the exact Kaggle test set. The train split ships GT geff for all four, so this micro-avg is a faithful LB oracle (vs the previous 2-family 44b6-only oracle that hid the 6bba behaviour)."
+  },
+  "public_lb_reference": {
+    "v1_global_threshold": 0.509,
+    "dog_v2": 0.5
+  },
+  "detectors": {
+    "v1_global_threshold": {
+      "label": "v1 global intensity threshold (detect-link-v1, LB 0.509)",
+      "per_dataset": [
+        {
+          "name": "44b6_0113de3b",
+          "prefix": "44b6",
+          "edge_tp": 47,
+          "edge_fp": 2,
+          "edge_fn": 3,
+          "edge_jaccard": 0.9038,
+          "adjusted_edge_jaccard": 0.9512,
+          "pred_nodes": 12269,
+          "n_true": 25755.0,
+          "weight": 52
+        },
+        {
+          "name": "44b6_0b24845f",
+          "prefix": "44b6",
+          "edge_tp": 2,
+          "edge_fp": 1,
+          "edge_fn": 47,
+          "edge_jaccard": 0.04,
+          "adjusted_edge_jaccard": 0.0436,
+          "pred_nodes": 3599,
+          "n_true": 32795.0,
+          "weight": 50
+        },
+        {
+          "name": "6bba_05b6850b",
+          "prefix": "6bba",
+          "edge_tp": 597,
+          "edge_fp": 29,
+          "edge_fn": 248,
+          "edge_jaccard": 0.6831,
+          "adjusted_edge_jaccard": 0.7148,
+          "pred_nodes": 3405,
+          "n_true": 6362.0,
+          "weight": 874
+        },
+        {
+          "name": "6bba_05db0fb1",
+          "prefix": "6bba",
+          "edge_tp": 101,
+          "edge_fp": 26,
+          "edge_fn": 1082,
+          "edge_jaccard": 0.0835,
+          "adjusted_edge_jaccard": 0.0908,
+          "pred_nodes": 8867,
+          "n_true": 69800.0,
+          "weight": 1209
+        }
+      ],
+      "by_prefix": {
+        "44b6": {
+          "n_families": 2,
+          "edge_tp": 49,
+          "edge_fp": 3,
+          "edge_fn": 50,
+          "micro_edge_jaccard": 0.4804,
+          "micro_adj_edge_jaccard": 0.5063,
+          "score": 0.5063
+        },
+        "6bba": {
+          "n_families": 2,
+          "edge_tp": 698,
+          "edge_fp": 55,
+          "edge_fn": 1330,
+          "micro_edge_jaccard": 0.3351,
+          "micro_adj_edge_jaccard": 0.3526,
+          "score": 0.3526
+        }
+      },
+      "legacy_2family_44b6_micro": {
+        "n_families": 2,
+        "edge_tp": 49,
+        "edge_fp": 3,
+        "edge_fn": 50,
+        "micro_edge_jaccard": 0.4804,
+        "micro_adj_edge_jaccard": 0.5063,
+        "score": 0.5063
+      },
+      "holdout_micro": {
+        "n_families": 4,
+        "edge_tp": 747,
+        "edge_fp": 58,
+        "edge_fn": 1380,
+        "micro_edge_jaccard": 0.3419,
+        "micro_adj_edge_jaccard": 0.3598,
+        "score": 0.3598
+      }
+    },
+    "dog_v2": {
+      "label": "DoG-v2 local contrast (detect-link-dog-v2 champion, LB 0.500)",
+      "per_dataset": [
+        {
+          "name": "44b6_0113de3b",
+          "prefix": "44b6",
+          "edge_tp": 47,
+          "edge_fp": 2,
+          "edge_fn": 3,
+          "edge_jaccard": 0.9038,
+          "adjusted_edge_jaccard": 0.8865,
+          "pred_nodes": 30691,
+          "n_true": 25755.0,
+          "weight": 52
+        },
+        {
+          "name": "44b6_0b24845f",
+          "prefix": "44b6",
+          "edge_tp": 38,
+          "edge_fp": 5,
+          "edge_fn": 11,
+          "edge_jaccard": 0.7037,
+          "adjusted_edge_jaccard": 0.662,
+          "pred_nodes": 52213,
+          "n_true": 32795.0,
+          "weight": 54
+        },
+        {
+          "name": "6bba_05b6850b",
+          "prefix": "6bba",
+          "edge_tp": 619,
+          "edge_fp": 251,
+          "edge_fn": 226,
+          "edge_jaccard": 0.5648,
+          "adjusted_edge_jaccard": 0.2622,
+          "pred_nodes": 40450,
+          "n_true": 6362.0,
+          "weight": 1096
+        },
+        {
+          "name": "6bba_05db0fb1",
+          "prefix": "6bba",
+          "edge_tp": 971,
+          "edge_fp": 168,
+          "edge_fn": 212,
+          "edge_jaccard": 0.7187,
+          "adjusted_edge_jaccard": 0.7141,
+          "pred_nodes": 74282,
+          "n_true": 69800.0,
+          "weight": 1351
+        }
+      ],
+      "by_prefix": {
+        "44b6": {
+          "n_families": 2,
+          "edge_tp": 85,
+          "edge_fp": 7,
+          "edge_fn": 14,
+          "micro_edge_jaccard": 0.8019,
+          "micro_adj_edge_jaccard": 0.7721,
+          "score": 0.7721
+        },
+        "6bba": {
+          "n_families": 2,
+          "edge_tp": 1590,
+          "edge_fp": 419,
+          "edge_fn": 438,
+          "micro_edge_jaccard": 0.6498,
+          "micro_adj_edge_jaccard": 0.5117,
+          "score": 0.5117
+        }
+      },
+      "legacy_2family_44b6_micro": {
+        "n_families": 2,
+        "edge_tp": 85,
+        "edge_fp": 7,
+        "edge_fn": 14,
+        "micro_edge_jaccard": 0.8019,
+        "micro_adj_edge_jaccard": 0.7721,
+        "score": 0.7721
+      },
+      "holdout_micro": {
+        "n_families": 4,
+        "edge_tp": 1675,
+        "edge_fp": 426,
+        "edge_fn": 452,
+        "micro_edge_jaccard": 0.6561,
+        "micro_adj_edge_jaccard": 0.5225,
+        "score": 0.5225
+      }
+    }
+  },
+  "reproducible_note": "Pipeline is deterministic (no RNG); re-running reproduces every score."
+}

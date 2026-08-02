@@ -1,0 +1,55 @@
+
+=== v1_global_threshold: v1 global intensity threshold (detect-link-v1, LB 0.509) ===
+  running 44b6_0113de3b ...
+    44b6_0113de3b (44b6): TP/FP/FN=47/2/3 adj=0.9512 pred_nodes=12269
+  running 44b6_0b24845f ...
+    44b6_0b24845f (44b6): TP/FP/FN=2/1/47 adj=0.0436 pred_nodes=3599
+  running 6bba_05b6850b ...
+    6bba_05b6850b (6bba): TP/FP/FN=597/29/248 adj=0.7148 pred_nodes=3405
+  running 6bba_05db0fb1 ...
+    6bba_05db0fb1 (6bba): TP/FP/FN=101/26/1082 adj=0.0908 pred_nodes=8867
+  -> holdout micro-adj = 0.3598
+
+=== dog_v2: DoG-v2 fixed percentile-92 local contrast (detect-link-dog-v2, LB 0.500) ===
+  running 44b6_0113de3b ...
+    44b6_0113de3b (44b6): TP/FP/FN=47/2/3 adj=0.8865 pred_nodes=30691
+  running 44b6_0b24845f ...
+    44b6_0b24845f (44b6): TP/FP/FN=38/5/11 adj=0.662 pred_nodes=52213
+  running 6bba_05b6850b ...
+    6bba_05b6850b (6bba): TP/FP/FN=619/251/226 adj=0.2622 pred_nodes=40450
+  running 6bba_05db0fb1 ...
+    6bba_05db0fb1 (6bba): TP/FP/FN=971/168/212 adj=0.7141 pred_nodes=74282
+  -> holdout micro-adj = 0.5225
+
+=== v3_adaptive: DoG-v3 adaptive median+3*MAD threshold (detect-link-dog-v3-adaptive, current champion) ===
+  running 44b6_0113de3b ...
+    44b6_0113de3b (44b6): TP/FP/FN=47/2/3 adj=0.8814 pred_nodes=32147
+  running 44b6_0b24845f ...
+    44b6_0b24845f (44b6): TP/FP/FN=37/5/12 adj=0.6658 pred_nodes=42080
+  running 6bba_05b6850b ...
+    6bba_05b6850b (6bba): TP/FP/FN=619/251/226 adj=0.5025 pred_nodes=13376
+  running 6bba_05db0fb1 ...
+    6bba_05db0fb1 (6bba): TP/FP/FN=963/166/220 adj=0.7096 pred_nodes=73953
+  -> holdout micro-adj = 0.6232
+
+{
+  "ranking": [
+    {
+      "detector": "v3_adaptive",
+      "holdout_micro_adj": 0.6232
+    },
+    {
+      "detector": "dog_v2",
+      "holdout_micro_adj": 0.5225
+    },
+    {
+      "detector": "v1_global_threshold",
+      "holdout_micro_adj": 0.3598
+    }
+  ],
+  "winner": "v3_adaptive",
+  "decision": "KEEP_CURRENT_CHAMPION",
+  "revert_to_global_threshold": false
+}
+
+wrote /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2306/champion_redecide.json

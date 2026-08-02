@@ -1,0 +1,12 @@
+ss=(1, 2, 2) sl=(2, 6, 6) pct=99.0 recall=27/51 (0.53) avgdet/f=199
+ss=(1, 2, 2) sl=(2, 6, 6) pct=98.0 recall=37/51 (0.73) avgdet/f=283
+ss=(1, 2, 2) sl=(2, 6, 6) pct=95.0 recall=43/51 (0.84) avgdet/f=409
+ss=(1, 2, 2) sl=(2, 6, 6) pct=90.0 recall=47/51 (0.92) avgdet/f=485
+ss=(1, 2, 2) sl=(3, 8, 8) pct=99.0 recall=19/51 (0.37) avgdet/f=165
+ss=(1, 2, 2) sl=(3, 8, 8) pct=98.0 recall=29/51 (0.57) avgdet/f=233
+ss=(1, 2, 2) sl=(3, 8, 8) pct=95.0 recall=37/51 (0.73) avgdet/f=339
+ss=(1, 2, 2) sl=(3, 8, 8) pct=90.0 recall=41/51 (0.80) avgdet/f=407
+ss=(1, 3, 3) sl=(2, 6, 6) pct=99.0 recall=24/51 (0.47) avgdet/f=190
+ss=(1, 3, 3) sl=(2, 6, 6) pct=98.0 recall=31/51 (0.61) avgdet/f=269
+ss=(1, 3, 3) sl=(2, 6, 6) pct=95.0 recall=40/51 (0.78) avgdet/f=389
+ss=(1, 3, 3) sl=(2, 6, 6) pct=90.0 recall=44/51 (0.86) avgdet/f=462

@@ -1,0 +1,7 @@
+ss=(1, 2, 2) sl=(2, 6, 6) pct=92.0 micro=0.7722 clean(adj=0.8865 tp/fp/fn=47/2/3) frag(adj=0.662 tp/fp/fn=38/5/11 nodes=52213) [57s]
+ss=(1, 2, 2) sl=(2, 6, 6) pct=94.0 micro=0.7605 clean(adj=0.8935 tp/fp/fn=47/2/3) frag(adj=0.63 tp/fp/fn=35/4/14 nodes=47865) [57s]
+ss=(1, 2, 2) sl=(2, 6, 6) pct=95.0 micro=0.7554 clean(adj=0.8957 tp/fp/fn=47/2/3) frag(adj=0.6178 tp/fp/fn=34/4/15 nodes=44910) [57s]
+ss=(1, 2, 2) sl=(2, 6, 6) pct=96.0 micro=0.7602 clean(adj=0.898 tp/fp/fn=47/2/3) frag(adj=0.625 tp/fp/fn=34/4/15 nodes=41218) [56s]
+ss=(1, 2, 2) sl=(2, 6, 6) pct=97.0 micro=0.7385 clean(adj=0.9018 tp/fp/fn=47/2/3) frag(adj=0.5782 tp/fp/fn=31/4/18 nodes=36527) [56s]
+ss=(1, 2, 2) sl=(2, 6, 6) pct=93.0 micro=0.7501 clean(adj=0.8917 tp/fp/fn=47/2/3) frag(adj=0.6137 tp/fp/fn=35/5/14 nodes=50241) [56s]
+DONE

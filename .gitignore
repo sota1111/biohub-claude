@@ -15,3 +15,7 @@ dist/
 # Submissions / scratch
 submission*.csv
 *.tmp
+
+# Experiment scratch
+.worktrees/
+experiments/**/*.csv

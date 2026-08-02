@@ -50,7 +50,8 @@ def test_load_champion_config_falls_back_to_embedded(monkeypatch, tmp_path):
     assert cfg == EMBEDDED_CHAMPION_CONFIG
     # And params still build from the fallback.
     detect, link, scale = champion_params(cfg)
-    assert detect.threshold_percentile == 99.3
+    assert detect.threshold_percentile == 92.0
+    assert detect.background_sigma_zyx == (2.0, 6.0, 6.0)
     assert link.allow_division is False
     assert scale == (1.625, 0.40625, 0.40625)
 

@@ -30,17 +30,21 @@ from .link import LinkParams
 # access (Kaggle kernel / exec()). MUST mirror champion/config.json exactly;
 # tests/test_exec_compat.py asserts they stay identical.
 EMBEDDED_CHAMPION_CONFIG: dict = {
-    "name": "detect-link-v1",
+    "name": "detect-link-dog-v2",
     "description": (
-        "Classical 3D LoG-style peak detection + optimal nearest-neighbour "
-        "frame linking (division handling disabled). First biohub-claude "
-        "champion (SOT-1983)."
+        "Difference-of-Gaussians (local-contrast) 3D cell detection + optimal "
+        "nearest-neighbour frame linking (division handling disabled). Second "
+        "biohub-claude champion (SOT-2272): DoG detection recovers dim tracked "
+        "cells that a global intensity threshold misses, lifting the fragmented "
+        "family 44b6_0b24845f from adj 0.044 to 0.662 and the local 2-family "
+        "micro-avg from 0.506 to 0.772."
     ),
     "scale": [1.625, 0.40625, 0.40625],
     "detect": {
-        "sigma_zyx": [1.0, 3.0, 3.0],
+        "sigma_zyx": [1.0, 2.0, 2.0],
+        "background_sigma_zyx": [2.0, 6.0, 6.0],
         "nms_size_zyx": [2, 5, 5],
-        "threshold_percentile": 99.3,
+        "threshold_percentile": 92.0,
         "min_threshold": 0.0,
     },
     "link": {
@@ -113,11 +117,13 @@ def champion_params(
         config = load_champion_config()
     d = config["detect"]
     l = config["link"]
+    bg = d.get("background_sigma_zyx")
     detect = DetectParams(
         sigma_zyx=tuple(d.get("sigma_zyx", (1.0, 3.0, 3.0))),
         nms_size_zyx=tuple(d.get("nms_size_zyx", (2, 5, 5))),
         threshold_percentile=float(d.get("threshold_percentile", 99.3)),
         min_threshold=float(d.get("min_threshold", 0.0)),
+        background_sigma_zyx=tuple(bg) if bg is not None else None,
     )
     link = LinkParams(
         max_distance=float(l.get("max_distance", 7.0)),

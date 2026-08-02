@@ -1,11 +1,32 @@
 {
   "schema_version": 1,
-  "champion": "detect-link-v1",
+  "champion": "detect-link-dog-v2",
   "agents": {
-    "detect-link-v1": {
+    "detect-link-dog-v2": {
       "module": "biohub_tracking.pipeline.run_pipeline",
       "config": "champion/config.json",
       "status": "incumbent",
+      "promotion_gate": "screen->confirm (local Edge/Division Jaccard, 2 GT families)",
+      "evaluation": "docs/sot-2272-dog-detection-evaluation.json",
+      "metrics": {
+        "datasets": ["44b6_0113de3b", "44b6_0b24845f"],
+        "micro_adj_edge_jaccard": 0.7722,
+        "micro_edge_jaccard": 0.8019,
+        "per_dataset": {
+          "44b6_0113de3b": {"edge_tp": 47, "edge_fp": 2, "edge_fn": 3, "adjusted_edge_jaccard": 0.8865},
+          "44b6_0b24845f": {"edge_tp": 38, "edge_fp": 5, "edge_fn": 11, "adjusted_edge_jaccard": 0.662}
+        },
+        "division_jaccard": null,
+        "score": 0.7722
+      },
+      "reason": "Difference-of-Gaussians (local-contrast) detection replaces the global intensity-percentile threshold. The tracked cell in the fragmented family 44b6_0b24845f sits at ~p60 of the smoothed volume, so a brightness threshold never detects it (recall 8-18% at every percentile); DoG detects it as a compact blob brighter than its local surround (recall 92%). This lifts that family from edge adj 0.044 to 0.662 while the clean family keeps its 47/2/3 edges, raising the local 2-family micro-avg from 0.506 to 0.772. The local 2-family micro-avg reproduces the public LB (0.506 vs 0.509), so this is a measured improvement.",
+      "issue": "SOT-2272",
+      "supersedes": "detect-link-v1"
+    },
+    "detect-link-v1": {
+      "module": "biohub_tracking.pipeline.run_pipeline",
+      "config": null,
+      "status": "superseded",
       "promotion_gate": "screen->confirm (local Edge/Division Jaccard)",
       "evaluation": "docs/baseline-evaluation.json",
       "metrics": {
@@ -16,9 +37,10 @@
         "edge_jaccard": 0.9038,
         "adjusted_edge_jaccard": 0.9512,
         "division_jaccard": null,
-        "score": 0.9512
+        "score": 0.9512,
+        "note": "Scored on the single clean GT family only; blind to the fragmented family 44b6_0b24845f, where it scored edge adj 0.044 (consistent with LB 0.509)."
       },
-      "reason": "Classical 3D peak detection (anisotropic Gaussian + NMS + adaptive percentile threshold) plus optimal nearest-neighbour frame linking. Screen->confirm on the single local GT sample; division handling disabled (this sample has no GT divisions, so naive division linking is pure FP).",
+      "reason": "Classical 3D peak detection (anisotropic Gaussian + NMS + adaptive percentile threshold) plus optimal nearest-neighbour frame linking. First champion (SOT-1983); superseded by detect-link-dog-v2 (SOT-2272).",
       "issue": "SOT-1983"
     }
   }

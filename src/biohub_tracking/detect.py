@@ -41,10 +41,21 @@ class DetectParams:
     ``2*size + 1`` along each axis, so this sets the minimum peak separation."""
 
     threshold_percentile: float = 99.5
-    """Keep maxima brighter than this percentile of the smoothed volume."""
+    """Keep maxima brighter than this percentile of the **response** volume (the
+    smoothed volume, or the DoG response when :attr:`background_sigma_zyx` is set)."""
 
     min_threshold: float = 0.0
-    """Absolute floor on the smoothed intensity of a kept maximum."""
+    """Absolute floor on the response of a kept maximum."""
+
+    background_sigma_zyx: tuple[float, float, float] | None = None
+    """Optional Difference-of-Gaussians background sigma (SOT-2272). When set, the
+    detection response is ``gaussian(sigma_zyx) - gaussian(background_sigma_zyx)``
+    instead of the raw smoothed intensity, so peaks are found by **local contrast**
+    rather than absolute brightness. This recovers dim cells that sit well below a
+    global intensity percentile (the tracked cell in ``44b6_0b24845f`` sits at
+    ~p60 of the smoothed volume and is invisible to a brightness threshold, but is
+    a compact blob brighter than its immediate surround). ``None`` reproduces the
+    original brightness-threshold detector exactly."""
 
 
 def detect_centroids(
@@ -62,20 +73,28 @@ def detect_centroids(
     vol = np.asarray(volume, dtype=np.float32)
     smoothed = ndi.gaussian_filter(vol, sigma=params.sigma_zyx)
 
+    # Detection response: raw smoothed intensity, or a Difference-of-Gaussians
+    # (local contrast) response when a background sigma is configured (SOT-2272).
+    if params.background_sigma_zyx is not None:
+        background = ndi.gaussian_filter(vol, sigma=params.background_sigma_zyx)
+        response = smoothed - background
+    else:
+        response = smoothed
+
     threshold = max(
-        float(np.percentile(smoothed, params.threshold_percentile)),
+        float(np.percentile(response, params.threshold_percentile)),
         params.min_threshold,
     )
 
     footprint = np.ones([2 * s + 1 for s in params.nms_size_zyx], dtype=bool)
-    local_max = ndi.maximum_filter(smoothed, footprint=footprint)
-    peak_mask = (smoothed == local_max) & (smoothed > threshold)
+    local_max = ndi.maximum_filter(response, footprint=footprint)
+    peak_mask = (response == local_max) & (response > threshold)
 
     coords = np.argwhere(peak_mask).astype(np.float64)  # (N, 3) z,y,x
     if coords.size == 0:
         return coords.reshape(0, 3)
 
-    intensities = smoothed[peak_mask]
+    intensities = response[peak_mask]
     order = np.argsort(intensities)[::-1]
     return coords[order]
 

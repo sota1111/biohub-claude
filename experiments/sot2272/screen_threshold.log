@@ -1,0 +1,8 @@
+pct= 99.3 micro_adj=0.5063 clean(tp/fp/fn=47/2/3 adj=0.9512) frag(tp/fp/fn=2/1/47 adj=0.0436 nodes=3599) [30s]
+pct= 95.0 micro_adj=0.5098 clean(tp/fp/fn=47/2/3 adj=0.9167) frag(tp/fp/fn=5/3/44 adj=0.1029 nodes=9624) [30s]
+pct= 90.0 micro_adj=0.5052 clean(tp/fp/fn=47/2/3 adj=0.9084) frag(tp/fp/fn=5/3/44 adj=0.102 nodes=12733) [31s]
+pct= 85.0 micro_adj=0.5036 clean(tp/fp/fn=47/2/3 adj=0.9057) frag(tp/fp/fn=5/3/44 adj=0.1015 nodes=14633) [31s]
+pct= 80.0 micro_adj=0.5027 clean(tp/fp/fn=47/2/3 adj=0.9044) frag(tp/fp/fn=5/3/44 adj=0.1011 nodes=16051) [31s]
+pct= 75.0 micro_adj=0.5022 clean(tp/fp/fn=47/2/3 adj=0.9037) frag(tp/fp/fn=5/3/44 adj=0.1007 nodes=17203) [31s]
+pct= 70.0 micro_adj=0.5018 clean(tp/fp/fn=47/2/3 adj=0.9032) frag(tp/fp/fn=5/3/44 adj=0.1004 nodes=18257) [31s]
+DONE

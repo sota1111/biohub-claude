@@ -1,0 +1,56 @@
+{
+  "issue": "SOT-2272",
+  "title": "DoG (local-contrast) detection recovers dim tracked cells",
+  "oracle": {
+    "note": "The local eval over the two GT families (44b6_0113de3b clean + 44b6_0b24845f fragmented) reproduces the public LB, so it is a valid promotion oracle.",
+    "champion_v1_local_micro_adj": 0.5063,
+    "public_lb": 0.509
+  },
+  "root_cause": {
+    "loss_localized_to": "44b6_0b24845f",
+    "champion_v1_per_family": {
+      "44b6_0113de3b": {"edge_tp": 47, "edge_fp": 2, "edge_fn": 3, "adj": 0.9512},
+      "44b6_0b24845f": {"edge_tp": 2, "edge_fp": 1, "edge_fn": 47, "adj": 0.0436}
+    },
+    "finding": "The single tracked cell in 44b6_0b24845f sits at ~p60 of the Gaussian-smoothed volume (raw intensity ~1400-1700 vs frame p99.3 ~2200-2720). A global intensity-percentile threshold never detects it.",
+    "detection_recall_vs_intensity_threshold_frag": {
+      "p99.3": "4/51", "p99.0": "4/51", "p98": "7/51", "p97": "8/51",
+      "p95": "8/51", "p90": "9/51"
+    }
+  },
+  "screen_global_intensity_threshold": {
+    "note": "Lowering the global intensity threshold does not recover the dim family (frag edge TP stuck at <=5) and degrades the clean family via the node-count penalty. Dead end.",
+    "micro_adj_by_pct": {"99.3": 0.5063, "95": 0.5098, "90": 0.5052, "85": 0.5036, "80": 0.5027, "75": 0.5022, "70": 0.5018}
+  },
+  "screen_topk_per_frame": {
+    "note": "Top-K-per-frame (K scaled to N_true/n_frames) best micro 0.525 (frag TP <=7). Marginal.",
+    "micro_adj_by_factor": {"0.5": 0.525, "1.0": 0.5165, "1.5": 0.5124, "2.0": 0.5124}
+  },
+  "screen_dog_detection_recall_frag": {
+    "note": "DoG response = gaussian(sigma_small) - gaussian(sigma_large); NMS peaks above a percentile of the response. sigma in (z,y,x) voxels.",
+    "ss=(1,2,2)_sl=(2,6,6)": {"p99": "27/51", "p98": "37/51", "p95": "43/51", "p90": "47/51"},
+    "ss=(1,2,2)_sl=(3,8,8)": {"p99": "19/51", "p98": "29/51", "p95": "37/51", "p90": "41/51"}
+  },
+  "confirm_dog_full_edge_score": {
+    "note": "Full pipeline (DoG detect + champion linking) scored on both GT families. sigma_small=(1,2,2), sigma_large=(2,6,6), division off, max_distance=7um.",
+    "micro_adj_by_pct": {
+      "90": 0.7380, "92": 0.7722, "93": 0.7501, "94": 0.7605,
+      "95": 0.7554, "96": 0.7602, "97": 0.7385
+    },
+    "chosen_pct": 92.0
+  },
+  "champion_detect_link_dog_v2": {
+    "detect": {"sigma_zyx": [1.0, 2.0, 2.0], "background_sigma_zyx": [2.0, 6.0, 6.0], "nms_size_zyx": [2, 5, 5], "threshold_percentile": 92.0, "min_threshold": 0.0},
+    "link": {"max_distance": 7.0, "allow_division": false, "division_distance": 7.0},
+    "local_micro_adj_edge_jaccard": 0.7722,
+    "local_micro_edge_jaccard": 0.8019,
+    "per_family": {
+      "44b6_0113de3b": {"edge_tp": 47, "edge_fp": 2, "edge_fn": 3, "adj": 0.8865, "pred_nodes": 30691},
+      "44b6_0b24845f": {"edge_tp": 38, "edge_fp": 5, "edge_fn": 11, "adj": 0.662, "pred_nodes": 52213}
+    }
+  },
+  "reproducible": true,
+  "gate": "screen->confirm",
+  "promoted": true,
+  "delta_vs_v1_local_micro": "+0.266 (0.5063 -> 0.7722)"
+}

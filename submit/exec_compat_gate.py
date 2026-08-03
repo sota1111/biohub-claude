@@ -49,10 +49,12 @@ assert "__file__" not in globals(), "exec namespace unexpectedly has __file__"
 
 detect_params, link_params, scale = champion_params()
 
-# Synthetic 2-timepoint (T, Z, Y, X) volume with two bright nuclei that persist
-# across frames, so detection finds cells and linking makes edges.
-rng = np.zeros((2, 8, 32, 32), dtype=np.float32)
-for t in range(2):
+# Synthetic 5-timepoint (T, Z, Y, X) volume with two bright nuclei that persist
+# across frames, so detection finds cells and linking makes edges. Five frames
+# keep each track at 5 nodes so it survives the champion's short-track pruning
+# (min_track_length=4, SOT-2369); a 2-frame smoke volume would be pruned to zero.
+rng = np.zeros((5, 8, 32, 32), dtype=np.float32)
+for t in range(5):
     for (z, y, x) in [(4, 8, 8), (4, 24, 24)]:
         rng[t, z, y, x] = 1000.0
 rng += 1.0  # nonzero floor so the percentile threshold is well-defined

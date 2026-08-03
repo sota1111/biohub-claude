@@ -1,18 +1,27 @@
-# Champion — `detect-link-dog-v3-adaptive`
+# Champion — `detect-link-dog-v4-shorttrack`
 
 The reigning detection + linking configuration for biohub-claude. Established in
 **SOT-1983** (`detect-link-v1`), superseded in **SOT-2272** by `detect-link-dog-v2`
-(local-contrast Difference-of-Gaussians so dim tracked cells are found), and
-superseded in **SOT-2307** by `detect-link-dog-v3-adaptive`, which swaps the fixed
-percentile-92 response cutoff for a **robust per-volume adaptive threshold**
-(`median + 3.0·1.4826·MAD` of the DoG response) so the detection *count* adapts to
-each dataset's own noise floor instead of keeping a fixed voxel fraction. State is
+(local-contrast Difference-of-Gaussians so dim tracked cells are found), superseded
+in **SOT-2307** by `detect-link-dog-v3-adaptive` (robust per-volume `median +
+3.0·1.4826·MAD` threshold so the detection *count* adapts to each dataset's noise
+floor), and superseded in **SOT-2369** by `detect-link-dog-v4-shorttrack`, which
+adds **post-link short-track pruning** (`min_track_length = 4`): after linking, any
+weakly-connected track fragment with fewer than 4 nodes is dropped. A real cell
+persists across many frames, so a detection that never links into a ≥4-node track
+is almost always noise; removing it both relieves the node-count penalty and frees
+GT nodes so the ≤7 µm matching attaches the persistent track instead of a transient
+decoy. Ported from the public frontier lineage tracker's `FILTER_SHORT_TRACKS`
+post-processing (that notebook's 0.913 comes from a GPU pretrained UNet+ILP pipeline
+that cannot run under this repo's numpy/scipy/zarr, CPU, no-internet, no-weights
+kernel — short-track filtering is the one score lever that transfers). State is
 stored declaratively so promotion is data, not code:
 
 - [`config.json`](config.json) — the frozen champion parameters.
 - [`../registry.json`](../registry.json) — champion pointer + headline metrics + gate.
-- [`../docs/ai/sot-2307-adaptive-normalization.md`](../docs/ai/sot-2307-adaptive-normalization.md) — current champion method + screen→confirm writeup.
-- [`../experiments/sot2307/confirm_adaptive.json`](../experiments/sot2307/confirm_adaptive.json) — machine-readable confirm scores.
+- [`../docs/ai/sot-2369-short-track-pruning.md`](../docs/ai/sot-2369-short-track-pruning.md) — current champion method + screen→confirm writeup.
+- [`../experiments/sot2369/confirm_shorttrack.json`](../experiments/sot2369/confirm_shorttrack.json) — machine-readable confirm scores.
+- [`../docs/ai/sot-2307-adaptive-normalization.md`](../docs/ai/sot-2307-adaptive-normalization.md) — prior DoG-v3-adaptive champion writeup.
 - [`../docs/sot-2272-dog-detection.md`](../docs/sot-2272-dog-detection.md) — prior DoG-v2 champion writeup.
 - [`../docs/sot-1983-baseline.md`](../docs/sot-1983-baseline.md) — original v1 baseline.
 
@@ -32,6 +41,13 @@ stored declaratively so promotion is data, not code:
 2. **Linking** (`biohub_tracking.link`) — optimal (Hungarian) nearest-neighbour
    assignment between consecutive frames within 7 µm; division handling
    **disabled** in the champion.
+3. **Short-track pruning** (`biohub_tracking.link`, SOT-2369) — after linking, drop
+   every weakly-connected track fragment with fewer than `min_track_length = 4`
+   nodes. On the SOT-2305 4-dataset LB holdout this improves all four datasets with
+   no regression, lifting the holdout micro-adjusted edge Jaccard 0.6232 → 0.6649
+   (+0.042); on the dense `6bba_05b6850b` family matched-edge TP rises 619 → 651
+   while FP falls 251 → 215 and FN falls 226 → 194, so the gain is genuine matching
+   improvement, not only node-count relief.
 
 ## Reproduce
 
@@ -44,11 +60,12 @@ python -m biohub_tracking.build_submission --test-dir data/test --out submission
 ```
 
 Score over the SOT-2305 **4-dataset LB holdout** (`44b6_0113de3b`, `44b6_0b24845f`,
-`6bba_05b6850b`, `6bba_05db0fb1`): **micro-averaged adjusted edge Jaccard = 0.6232**
-(up from the DoG-v2 incumbent's 0.5225; the 2-family 44b6 micro is held at 0.7716 vs
-0.7721 while the sparse 6bba prefix rises 0.5117→0.6168). Deterministic — no RNG.
-The clean family keeps its 47/2/3 edges; the fragmented family rises from edge adj
-0.044 to 0.662.
+`6bba_05b6850b`, `6bba_05db0fb1`): **micro-averaged adjusted edge Jaccard = 0.6649**
+(up from the DoG-v3-adaptive incumbent's 0.6232; every dataset improves with no
+regression — 44b6 prefix 0.7716→0.7836, 6bba prefix 0.6168→0.6596). Deterministic —
+no RNG. To reproduce the promotion A/B run
+`python experiments/sot2369/screen_shorttrack.py` (min_track_length sweep) and
+`python experiments/sot2369/confirm_shorttrack.py` (end-to-end champion re-score).
 
 ## Promotion rule
 

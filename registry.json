@@ -1,11 +1,34 @@
 {
   "schema_version": 1,
-  "champion": "detect-link-dog-v3-adaptive",
+  "champion": "detect-link-dog-v4-shorttrack",
   "agents": {
-    "detect-link-dog-v3-adaptive": {
+    "detect-link-dog-v4-shorttrack": {
       "module": "biohub_tracking.pipeline.run_pipeline",
       "config": "champion/config.json",
       "status": "incumbent",
+      "promotion_gate": "screen->confirm on the SOT-2305 4-dataset LB holdout (44b6x2 + 6bba x2), independent re-score via the real champion_params()->run_pipeline; require holdout micro-adj improvement AND no per-dataset regression vs the DoG-v3 incumbent",
+      "evaluation": "experiments/sot2369/confirm_shorttrack.json",
+      "metrics": {
+        "datasets": ["44b6_0113de3b", "44b6_0b24845f", "6bba_05b6850b", "6bba_05db0fb1"],
+        "holdout_micro_adj_edge_jaccard": 0.6649,
+        "by_prefix": {"44b6": 0.7836, "6bba": 0.6596},
+        "per_dataset": {
+          "44b6_0113de3b": {"edge_tp": 47, "edge_fp": 2, "edge_fn": 3, "adjusted_edge_jaccard": 0.8895, "pred_nodes": 29844},
+          "44b6_0b24845f": {"edge_tp": 37, "edge_fp": 5, "edge_fn": 12, "adjusted_edge_jaccard": 0.6817, "pred_nodes": 34485},
+          "6bba_05b6850b": {"edge_tp": 651, "edge_fp": 215, "edge_fn": 194, "adjusted_edge_jaccard": 0.5700, "pred_nodes": 10938},
+          "6bba_05db0fb1": {"edge_tp": 973, "edge_fp": 148, "edge_fn": 210, "adjusted_edge_jaccard": 0.7310, "pred_nodes": 69784}
+        },
+        "division_jaccard": null,
+        "score": 0.6649
+      },
+      "reason": "Post-link short-track pruning (min_track_length=4), ported from the public frontier lineage tracker's FILTER_SHORT_TRACKS post-processing. That notebook's headline 0.913 comes from a GPU pretrained UNet-transformer + ILP (tracksdata/pyscipopt/ilpy) pipeline that cannot run under this repo's numpy/scipy/zarr, CPU, no-internet, no-weights kernel; short-track filtering is the one score lever that transfers. A real cell persists across many frames, so a detection that never links into a >=4-node weakly-connected track is almost always noise. Removing those fragments does two things on the sparse light-sheet GT: (1) it relieves the node-count penalty J_adj=J*(1-0.1*(N_pred-N_true)/N_true) by dropping detections the penalty punished, and (2) it FREES GT nodes so the per-timepoint <=7um optimal matching attaches the persistent track instead of a transient decoy that was stealing the match. On the SOT-2305 4-dataset holdout every dataset improves with no regression (adj: 44b6_0113de3b 0.8814->0.8895, 44b6_0b24845f 0.6658->0.6817, 6bba_05b6850b 0.5025->0.5700, 6bba_05db0fb1 0.7096->0.7310) and matched-edge counts genuinely improve on the dense families (6bba_05b6850b TP 619->651, FP 251->215, FN 226->194 - not just a node-count artifact), raising the holdout micro-adj from 0.6232 to 0.6649 (+0.042). Screened by a min_track_length sweep in {1,2,3,4,5}: micro rises monotonically (0.6232/0.6430/0.6602/0.6649/0.6692) but mtl=5 regresses the clean 44b6_0113de3b family (TP 47->45, adj 0.8895->0.8539) by pruning real short tracks, so mtl=4 is the robust no-regression cutoff. Confirmed by an independent re-score through the real champion_params()->run_pipeline. No Kaggle submission gate on promotion.",
+      "issue": "SOT-2369",
+      "supersedes": "detect-link-dog-v3-adaptive"
+    },
+    "detect-link-dog-v3-adaptive": {
+      "module": "biohub_tracking.pipeline.run_pipeline",
+      "config": null,
+      "status": "superseded",
       "promotion_gate": "screen->confirm on the SOT-2305 4-dataset LB holdout (44b6x2 + 6bba x2), independent re-score via the real run_pipeline",
       "evaluation": "experiments/sot2307/confirm_adaptive.json",
       "metrics": {

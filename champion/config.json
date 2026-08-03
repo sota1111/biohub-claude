@@ -1,6 +1,6 @@
 {
-  "name": "detect-link-dog-v3-adaptive",
-  "description": "Difference-of-Gaussians (local-contrast) 3D cell detection with a robust per-volume adaptive threshold (median + 3.0*1.4826*MAD of the DoG response) + optimal nearest-neighbour frame linking (division handling disabled). Third biohub-claude champion (SOT-2307): replacing the fixed percentile-92 cutoff with a robust z-score above each volume's own noise floor adapts the detection count to signal content instead of keeping a fixed voxel fraction. On the 4-dataset LB holdout this lifts the sparse 6bba_05b6850b family from adj 0.262 to 0.502 (pred nodes 40450->13376, pruning spurious detections the node-count penalty punished) while holding the 44b6 families (0.7721->0.7716), raising the holdout micro-avg from 0.5225 to 0.6232.",
+  "name": "detect-link-dog-v4-shorttrack",
+  "description": "DoG-v3 adaptive detection (median + 3.0*1.4826*MAD of the local-contrast response) + optimal nearest-neighbour frame linking, now with post-link short-track pruning (min_track_length=4). Fourth biohub-claude champion (SOT-2369): a detection that never links into a >=4-node track is almost always noise, so pruning those weakly-connected fragments both relieves the node-count penalty AND frees GT nodes so the per-timepoint <=7um matching attaches the persistent track instead of a transient decoy. On the SOT-2305 4-dataset LB holdout every dataset improves with no regression (44b6_0113de3b 0.8814->0.8895, 44b6_0b24845f 0.6658->0.6817, 6bba_05b6850b 0.5025->0.5700 with edge TP 619->651/FP 251->215/FN 226->194, 6bba_05db0fb1 0.7096->0.7310), raising the holdout micro-adj from 0.6232 to 0.6649 (+0.042). min_track_length=5 scored a hair higher on micro (0.6692) but regressed the clean 44b6_0113de3b family (TP 47->45, adj 0.8895->0.8539) by pruning real short tracks, so mtl=4 is chosen for no-per-dataset-regression robustness. Ported from the public frontier lineage tracker's FILTER_SHORT_TRACKS post-processing (that notebook's 0.913 comes from a GPU pretrained UNet+ILP pipeline that cannot run under this repo's numpy/scipy/zarr, CPU, no-internet, no-weights kernel; the short-track filter is the one score lever that transfers).",
   "scale": [1.625, 0.40625, 0.40625],
   "detect": {
     "sigma_zyx": [1.0, 2.0, 2.0],
@@ -13,6 +13,7 @@
   "link": {
     "max_distance": 7.0,
     "allow_division": false,
-    "division_distance": 7.0
+    "division_distance": 7.0,
+    "min_track_length": 4
   }
 }

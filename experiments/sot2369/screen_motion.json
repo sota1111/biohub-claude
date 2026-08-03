@@ -1,0 +1,384 @@
+{
+  "issue": "SOT-2369",
+  "title": "Screen motion-aware linking (constant-velocity) vs memoryless champion linker",
+  "generated_utc": "2026-08-03T12:36:58.991568+00:00",
+  "holdout": [
+    "44b6_0113de3b",
+    "44b6_0b24845f",
+    "6bba_05b6850b",
+    "6bba_05db0fb1"
+  ],
+  "detector": "champion DoG-v3 adaptive mad_k=3.0 (frozen)",
+  "variants": {
+    "incumbent_memoryless": {
+      "per_dataset": [
+        {
+          "name": "44b6_0113de3b",
+          "prefix": "44b6",
+          "edge_tp": 47,
+          "edge_fp": 2,
+          "edge_fn": 3,
+          "edge_jaccard": 0.9038,
+          "adjusted_edge_jaccard": 0.8814,
+          "edge_precision": 0.9592,
+          "edge_recall": 0.94,
+          "pred_nodes": 32147,
+          "weight": 52
+        },
+        {
+          "name": "44b6_0b24845f",
+          "prefix": "44b6",
+          "edge_tp": 37,
+          "edge_fp": 5,
+          "edge_fn": 12,
+          "edge_jaccard": 0.6852,
+          "adjusted_edge_jaccard": 0.6658,
+          "edge_precision": 0.881,
+          "edge_recall": 0.7551,
+          "pred_nodes": 42080,
+          "weight": 54
+        },
+        {
+          "name": "6bba_05b6850b",
+          "prefix": "6bba",
+          "edge_tp": 619,
+          "edge_fp": 251,
+          "edge_fn": 226,
+          "edge_jaccard": 0.5648,
+          "adjusted_edge_jaccard": 0.5025,
+          "edge_precision": 0.7115,
+          "edge_recall": 0.7325,
+          "pred_nodes": 13376,
+          "weight": 1096
+        },
+        {
+          "name": "6bba_05db0fb1",
+          "prefix": "6bba",
+          "edge_tp": 963,
+          "edge_fp": 166,
+          "edge_fn": 220,
+          "edge_jaccard": 0.7139,
+          "adjusted_edge_jaccard": 0.7096,
+          "edge_precision": 0.853,
+          "edge_recall": 0.814,
+          "pred_nodes": 73953,
+          "weight": 1349
+        }
+      ],
+      "by_prefix": {
+        "44b6": 0.7716,
+        "6bba": 0.6168
+      },
+      "holdout_micro": {
+        "edge_tp": 1666,
+        "edge_fp": 424,
+        "edge_fn": 461,
+        "micro_edge_jaccard": 0.6531,
+        "micro_adj_edge_jaccard": 0.6232,
+        "score": 0.6232
+      }
+    },
+    "motion_g0.5_gate_actual": {
+      "per_dataset": [
+        {
+          "name": "44b6_0113de3b",
+          "prefix": "44b6",
+          "edge_tp": 47,
+          "edge_fp": 3,
+          "edge_fn": 3,
+          "edge_jaccard": 0.8868,
+          "adjusted_edge_jaccard": 0.8648,
+          "edge_precision": 0.94,
+          "edge_recall": 0.94,
+          "pred_nodes": 32147,
+          "weight": 53
+        },
+        {
+          "name": "44b6_0b24845f",
+          "prefix": "44b6",
+          "edge_tp": 37,
+          "edge_fp": 4,
+          "edge_fn": 12,
+          "edge_jaccard": 0.6981,
+          "adjusted_edge_jaccard": 0.6783,
+          "edge_precision": 0.9024,
+          "edge_recall": 0.7551,
+          "pred_nodes": 42080,
+          "weight": 53
+        },
+        {
+          "name": "6bba_05b6850b",
+          "prefix": "6bba",
+          "edge_tp": 617,
+          "edge_fp": 255,
+          "edge_fn": 228,
+          "edge_jaccard": 0.5609,
+          "adjusted_edge_jaccard": 0.4991,
+          "edge_precision": 0.7076,
+          "edge_recall": 0.7302,
+          "pred_nodes": 13376,
+          "weight": 1100
+        },
+        {
+          "name": "6bba_05db0fb1",
+          "prefix": "6bba",
+          "edge_tp": 963,
+          "edge_fp": 165,
+          "edge_fn": 220,
+          "edge_jaccard": 0.7144,
+          "adjusted_edge_jaccard": 0.7101,
+          "edge_precision": 0.8537,
+          "edge_recall": 0.814,
+          "pred_nodes": 73953,
+          "weight": 1348
+        }
+      ],
+      "by_prefix": {
+        "44b6": 0.7716,
+        "6bba": 0.6153
+      },
+      "holdout_micro": {
+        "edge_tp": 1664,
+        "edge_fp": 427,
+        "edge_fn": 463,
+        "micro_edge_jaccard": 0.6515,
+        "micro_adj_edge_jaccard": 0.6218,
+        "score": 0.6218
+      }
+    },
+    "motion_g1.0_gate_actual": {
+      "per_dataset": [
+        {
+          "name": "44b6_0113de3b",
+          "prefix": "44b6",
+          "edge_tp": 47,
+          "edge_fp": 3,
+          "edge_fn": 3,
+          "edge_jaccard": 0.8868,
+          "adjusted_edge_jaccard": 0.8648,
+          "edge_precision": 0.94,
+          "edge_recall": 0.94,
+          "pred_nodes": 32147,
+          "weight": 53
+        },
+        {
+          "name": "44b6_0b24845f",
+          "prefix": "44b6",
+          "edge_tp": 37,
+          "edge_fp": 3,
+          "edge_fn": 12,
+          "edge_jaccard": 0.7115,
+          "adjusted_edge_jaccard": 0.6914,
+          "edge_precision": 0.925,
+          "edge_recall": 0.7551,
+          "pred_nodes": 42080,
+          "weight": 52
+        },
+        {
+          "name": "6bba_05b6850b",
+          "prefix": "6bba",
+          "edge_tp": 615,
+          "edge_fp": 259,
+          "edge_fn": 230,
+          "edge_jaccard": 0.5571,
+          "adjusted_edge_jaccard": 0.4956,
+          "edge_precision": 0.7037,
+          "edge_recall": 0.7278,
+          "pred_nodes": 13376,
+          "weight": 1104
+        },
+        {
+          "name": "6bba_05db0fb1",
+          "prefix": "6bba",
+          "edge_tp": 964,
+          "edge_fp": 165,
+          "edge_fn": 219,
+          "edge_jaccard": 0.7151,
+          "adjusted_edge_jaccard": 0.7109,
+          "edge_precision": 0.8539,
+          "edge_recall": 0.8149,
+          "pred_nodes": 73953,
+          "weight": 1348
+        }
+      ],
+      "by_prefix": {
+        "44b6": 0.7789,
+        "6bba": 0.614
+      },
+      "holdout_micro": {
+        "edge_tp": 1663,
+        "edge_fp": 430,
+        "edge_fn": 464,
+        "micro_edge_jaccard": 0.6504,
+        "micro_adj_edge_jaccard": 0.6207,
+        "score": 0.6207
+      }
+    },
+    "motion_g0.5_gate_pred": {
+      "per_dataset": [
+        {
+          "name": "44b6_0113de3b",
+          "prefix": "44b6",
+          "edge_tp": 48,
+          "edge_fp": 2,
+          "edge_fn": 2,
+          "edge_jaccard": 0.9231,
+          "adjusted_edge_jaccard": 0.9002,
+          "edge_precision": 0.96,
+          "edge_recall": 0.96,
+          "pred_nodes": 32147,
+          "weight": 52
+        },
+        {
+          "name": "44b6_0b24845f",
+          "prefix": "44b6",
+          "edge_tp": 37,
+          "edge_fp": 4,
+          "edge_fn": 12,
+          "edge_jaccard": 0.6981,
+          "adjusted_edge_jaccard": 0.6783,
+          "edge_precision": 0.9024,
+          "edge_recall": 0.7551,
+          "pred_nodes": 42080,
+          "weight": 53
+        },
+        {
+          "name": "6bba_05b6850b",
+          "prefix": "6bba",
+          "edge_tp": 612,
+          "edge_fp": 250,
+          "edge_fn": 233,
+          "edge_jaccard": 0.5589,
+          "adjusted_edge_jaccard": 0.4973,
+          "edge_precision": 0.71,
+          "edge_recall": 0.7243,
+          "pred_nodes": 13376,
+          "weight": 1095
+        },
+        {
+          "name": "6bba_05db0fb1",
+          "prefix": "6bba",
+          "edge_tp": 954,
+          "edge_fp": 163,
+          "edge_fn": 229,
+          "edge_jaccard": 0.7088,
+          "adjusted_edge_jaccard": 0.7045,
+          "edge_precision": 0.8541,
+          "edge_recall": 0.8064,
+          "pred_nodes": 73953,
+          "weight": 1346
+        }
+      ],
+      "by_prefix": {
+        "44b6": 0.7882,
+        "6bba": 0.6116
+      },
+      "holdout_micro": {
+        "edge_tp": 1651,
+        "edge_fp": 419,
+        "edge_fn": 476,
+        "micro_edge_jaccard": 0.6485,
+        "micro_adj_edge_jaccard": 0.6188,
+        "score": 0.6188
+      }
+    },
+    "motion_g1.0_gate_pred": {
+      "per_dataset": [
+        {
+          "name": "44b6_0113de3b",
+          "prefix": "44b6",
+          "edge_tp": 48,
+          "edge_fp": 2,
+          "edge_fn": 2,
+          "edge_jaccard": 0.9231,
+          "adjusted_edge_jaccard": 0.9002,
+          "edge_precision": 0.96,
+          "edge_recall": 0.96,
+          "pred_nodes": 32147,
+          "weight": 52
+        },
+        {
+          "name": "44b6_0b24845f",
+          "prefix": "44b6",
+          "edge_tp": 36,
+          "edge_fp": 3,
+          "edge_fn": 13,
+          "edge_jaccard": 0.6923,
+          "adjusted_edge_jaccard": 0.6727,
+          "edge_precision": 0.9231,
+          "edge_recall": 0.7347,
+          "pred_nodes": 42080,
+          "weight": 52
+        },
+        {
+          "name": "6bba_05b6850b",
+          "prefix": "6bba",
+          "edge_tp": 598,
+          "edge_fp": 250,
+          "edge_fn": 247,
+          "edge_jaccard": 0.5461,
+          "adjusted_edge_jaccard": 0.4859,
+          "edge_precision": 0.7052,
+          "edge_recall": 0.7077,
+          "pred_nodes": 13376,
+          "weight": 1095
+        },
+        {
+          "name": "6bba_05db0fb1",
+          "prefix": "6bba",
+          "edge_tp": 931,
+          "edge_fp": 176,
+          "edge_fn": 252,
+          "edge_jaccard": 0.6851,
+          "adjusted_edge_jaccard": 0.681,
+          "edge_precision": 0.841,
+          "edge_recall": 0.787,
+          "pred_nodes": 73953,
+          "weight": 1359
+        }
+      ],
+      "by_prefix": {
+        "44b6": 0.7864,
+        "6bba": 0.5939
+      },
+      "holdout_micro": {
+        "edge_tp": 1613,
+        "edge_fp": 431,
+        "edge_fn": 514,
+        "micro_edge_jaccard": 0.6306,
+        "micro_adj_edge_jaccard": 0.6018,
+        "score": 0.6018
+      }
+    }
+  },
+  "incumbent_score": 0.6232,
+  "ranked": [
+    [
+      "incumbent_memoryless",
+      0.6232
+    ],
+    [
+      "motion_g0.5_gate_actual",
+      0.6218
+    ],
+    [
+      "motion_g1.0_gate_actual",
+      0.6207
+    ],
+    [
+      "motion_g0.5_gate_pred",
+      0.6188
+    ],
+    [
+      "motion_g1.0_gate_pred",
+      0.6018
+    ]
+  ],
+  "best": {
+    "variant": "incumbent_memoryless",
+    "score": 0.6232,
+    "delta_vs_incumbent": 0.0
+  },
+  "verdict": "REJECT",
+  "reproducible_note": "Deterministic detect+link; re-running reproduces every score."
+}

@@ -1,0 +1,76 @@
+{
+  "issue": "SOT-2369",
+  "title": "Confirm short-track champion (min_track_length=4) via the real champion pipeline",
+  "generated_utc": "2026-08-03T12:47:38.020055+00:00",
+  "champion": "detect-link-dog-v4-shorttrack",
+  "holdout": [
+    "44b6_0113de3b",
+    "44b6_0b24845f",
+    "6bba_05b6850b",
+    "6bba_05db0fb1"
+  ],
+  "per_dataset": [
+    {
+      "name": "44b6_0113de3b",
+      "prefix": "44b6",
+      "edge_tp": 47,
+      "edge_fp": 2,
+      "edge_fn": 3,
+      "edge_jaccard": 0.9038,
+      "adjusted_edge_jaccard": 0.8895,
+      "pred_nodes": 29844,
+      "weight": 52,
+      "incumbent_adj": 0.8814,
+      "delta_vs_incumbent": 0.0081
+    },
+    {
+      "name": "44b6_0b24845f",
+      "prefix": "44b6",
+      "edge_tp": 37,
+      "edge_fp": 5,
+      "edge_fn": 12,
+      "edge_jaccard": 0.6852,
+      "adjusted_edge_jaccard": 0.6817,
+      "pred_nodes": 34485,
+      "weight": 54,
+      "incumbent_adj": 0.6658,
+      "delta_vs_incumbent": 0.0159
+    },
+    {
+      "name": "6bba_05b6850b",
+      "prefix": "6bba",
+      "edge_tp": 651,
+      "edge_fp": 215,
+      "edge_fn": 194,
+      "edge_jaccard": 0.6142,
+      "adjusted_edge_jaccard": 0.57,
+      "pred_nodes": 10938,
+      "weight": 1060,
+      "incumbent_adj": 0.5025,
+      "delta_vs_incumbent": 0.0675
+    },
+    {
+      "name": "6bba_05db0fb1",
+      "prefix": "6bba",
+      "edge_tp": 973,
+      "edge_fp": 148,
+      "edge_fn": 210,
+      "edge_jaccard": 0.731,
+      "adjusted_edge_jaccard": 0.731,
+      "pred_nodes": 69784,
+      "weight": 1331,
+      "incumbent_adj": 0.7096,
+      "delta_vs_incumbent": 0.0214
+    }
+  ],
+  "holdout_micro_adj": 0.6649,
+  "by_prefix": {
+    "44b6": 0.7836,
+    "6bba": 0.6596
+  },
+  "incumbent_micro_adj": 0.6232,
+  "delta_micro_adj": 0.0417,
+  "no_per_dataset_regression": true,
+  "verdict": "PROMOTE",
+  "reproducible_note": "Deterministic detect+link via champion_params(); re-running reproduces every score."
+}

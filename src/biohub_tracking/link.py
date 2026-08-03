@@ -42,9 +42,83 @@ class LinkParams:
     division_distance: float = DEFAULT_MAX_DISTANCE
     """Maximum parent->second-daughter distance when ``allow_division`` is set."""
 
+    velocity_gain: float = 0.0
+    """Constant-velocity motion prediction for the assignment (SOT-2369).
+
+    A cell that already has an incoming edge (``t-1 -> t``) carries a velocity
+    ``v = pos(t) - pos(t-1)``. When matching ``t -> t+1`` its predicted position
+    becomes ``pos(t) + velocity_gain * v`` — a **damped** constant-velocity
+    extrapolation ported from the public V40 lineage tracker's motion-aware
+    reassignment (``q_hat = q + 0.5*(q - q_pred)``). The assignment then ranks
+    candidate successors by distance to the *predicted* position, so a moving
+    cell prefers the detection it is drifting toward rather than the closest
+    stationary one. ``0.0`` disables prediction and reproduces the memoryless
+    nearest-neighbour champion **byte-for-byte**."""
+
+    velocity_disp_weight: float = 0.05
+    """Tie-breaker weight on raw (unpredicted) displacement in the motion cost.
+
+    Mirrors the ``0.05 * ||q_j - q_i||`` regulariser in the reference cost, so
+    among motion-consistent candidates the assignment still slightly prefers the
+    physically nearer detection. Only used when ``velocity_gain != 0``."""
+
+    motion_gate_on_prediction: bool = False
+    """Admissibility gate when motion prediction is active.
+
+    ``False`` (default) keeps the feasibility gate on the **actual** scaled
+    distance ``||pos(t) - pos(t+1)|| <= max_distance`` — motion only *re-ranks*
+    within the champion's existing feasible set, so it can never introduce a new
+    long-range edge (pure, low-risk improvement). ``True`` gates on the predicted
+    distance instead, letting a fast, motion-consistent cell link slightly beyond
+    ``max_distance`` in raw terms."""
+
+    min_track_length: int = 1
+    """Drop weakly-connected track fragments with fewer than this many nodes
+    (SOT-2369, ported from the reference tracker's ``FILTER_SHORT_TRACKS``).
+
+    A real cell persists across many frames, so a detection that fails to link
+    into a multi-frame track is almost always noise. After linking, each track is
+    a weakly-connected component; components with ``< min_track_length`` nodes are
+    removed entirely (their nodes and edges). This is decoupled from detection
+    thresholding: it prunes spurious detections *by tracking topology* rather than
+    by intensity. Because a light-sheet volume is annotated sparsely, an
+    over-predicting champion pays a node-count penalty
+    ``J_adj = J·(1 - 0.1·(N_pred - N_true)/N_true)``; dropping isolated singletons
+    (``min_track_length=2``) removes nodes that carry **no** matched edge, so edge
+    TP/FP/FN are untouched while ``N_pred`` falls — a strict adjusted-Jaccard gain
+    whenever the pipeline over-predicts. ``1`` keeps every node (champion
+    behaviour, byte-for-byte)."""
+
+
+def _prune_short_tracks(graph: TrackingGraph, min_nodes: int) -> TrackingGraph:
+    """Drop weakly-connected components smaller than ``min_nodes`` nodes."""
+    if min_nodes <= 1:
+        return graph
+    parent: dict[int, int] = {n: n for n in graph.node_ids()}
+
+    def find(a: int) -> int:
+        root = a
+        while parent[root] != root:
+            root = parent[root]
+        while parent[a] != root:  # path compression
+            parent[a], a = root, parent[a]
+        return root
+
+    for src, dst in graph.edges:
+        parent[find(src)] = find(dst)
+
+    sizes: dict[int, int] = {}
+    for n in graph.node_ids():
+        r = find(n)
+        sizes[r] = sizes.get(r, 0) + 1
+    keep = [n for n in graph.node_ids() if sizes[find(n)] >= min_nodes]
+    return graph.subgraph(keep)
+
 
 def _assign(
-    src: np.ndarray, dst: np.ndarray, scale: np.ndarray, max_distance: float
+    src: np.ndarray, dst: np.ndarray, scale: np.ndarray, max_distance: float,
+    src_pred: np.ndarray | None = None, disp_weight: float = 0.0,
+    gate_on_prediction: bool = False,
 ) -> list[tuple[int, int]]:
     """Optimal one-to-one assignment of ``src`` rows to ``dst`` rows within range.
 
@@ -52,15 +126,29 @@ def _assign(
     ``<= max_distance``. Costs above the threshold are masked to a large finite
     value so the assignment never prefers an out-of-range pair over an in-range
     one, then filtered out after solving.
+
+    When ``src_pred`` is given (constant-velocity predicted source positions),
+    the assignment *cost* is the scaled distance from the **predicted** source to
+    the destination plus ``disp_weight`` times the raw (unpredicted) scaled
+    distance; the feasibility gate uses the predicted distance if
+    ``gate_on_prediction`` else the actual distance.
     """
     if len(src) == 0 or len(dst) == 0:
         return []
     diff = (src[:, None, :] - dst[None, :, :]) * scale
     dist = np.sqrt((diff**2).sum(axis=2))
-    big = max_distance * 1000.0 + dist.max() + 1.0
-    cost = np.where(dist <= max_distance, dist, big)
+    if src_pred is None:
+        gate = dist
+        cost_base = dist
+    else:
+        diff_pred = (src_pred[:, None, :] - dst[None, :, :]) * scale
+        dist_pred = np.sqrt((diff_pred**2).sum(axis=2))
+        gate = dist_pred if gate_on_prediction else dist
+        cost_base = dist_pred + disp_weight * dist
+    big = max_distance * 1000.0 + cost_base.max() + 1.0
+    cost = np.where(gate <= max_distance, cost_base, big)
     rows, cols = linear_sum_assignment(cost)
-    return [(int(r), int(c)) for r, c in zip(rows, cols) if dist[r, c] <= max_distance]
+    return [(int(r), int(c)) for r, c in zip(rows, cols) if gate[r, c] <= max_distance]
 
 
 def link_centroids(
@@ -89,13 +177,35 @@ def link_centroids(
             next_id += 1
         ids_by_t[t] = ids
 
+    # Per-node incoming displacement, indexed by (timepoint, detection-index), so
+    # a matched cell can predict where it is drifting next frame. Populated as
+    # links are made; empty when ``velocity_gain == 0`` (memoryless champion path).
     times = sorted(detections)
+    velocity_by_index: dict[tuple[int, int], np.ndarray] = {}
     for t_a, t_b in zip(times, times[1:]):
         if t_b != t_a + 1:
             continue  # only link consecutive timepoints
         src = detections[t_a]
         dst = detections[t_b]
-        pairs = _assign(src, dst, scale_arr, params.max_distance)
+        if params.velocity_gain and len(src):
+            src_pred = np.array(
+                [
+                    src[i] + params.velocity_gain * velocity_by_index.get((t_a, i), 0.0)
+                    for i in range(len(src))
+                ],
+                dtype=float,
+            )
+            pairs = _assign(
+                src, dst, scale_arr, params.max_distance,
+                src_pred=src_pred, disp_weight=params.velocity_disp_weight,
+                gate_on_prediction=params.motion_gate_on_prediction,
+            )
+        else:
+            pairs = _assign(src, dst, scale_arr, params.max_distance)
+        # Record each child's incoming displacement so it can predict t+1 -> t+2.
+        if params.velocity_gain:
+            for i, j in pairs:
+                velocity_by_index[(t_b, j)] = dst[j] - src[i]
         matched_src = {i for i, _ in pairs}
         matched_dst = {j for _, j in pairs}
         for i, j in pairs:
@@ -118,4 +228,7 @@ def link_centroids(
                     graph.add_edge(ids_by_t[t_a][i], ids_by_t[t_b][j])
                     matched_dst.add(j)
                     break
+
+    if params.min_track_length > 1:
+        graph = _prune_short_tracks(graph, params.min_track_length)
     return graph

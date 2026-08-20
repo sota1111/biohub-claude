@@ -131,6 +131,7 @@ def champion_params(
         config = load_champion_config()
     d = config["detect"]
     l = config["link"]
+    overlay = l.get("division_overlay")
     bg = d.get("background_sigma_zyx")
     mad_k = d.get("mad_k")
     inorm = d.get("intensity_norm")
@@ -200,6 +201,17 @@ def champion_params(
         max_frame_gap=int(l.get("max_frame_gap", 1)),
         gap_distance=float(l.get("gap_distance", 7.0)),
         min_track_length=int(l.get("min_track_length", 1)),
+        division_overlay=(
+            (
+                str(overlay[0]),
+                float(overlay[1]),
+                float(overlay[2]),
+                int(overlay[3]),
+                bool(overlay[4]),
+            )
+            if overlay is not None
+            else None
+        ),
     )
     scale = tuple(config.get("scale", DEFAULT_SCALE))
     return detect, link, scale

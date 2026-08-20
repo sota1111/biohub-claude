@@ -1,0 +1,47 @@
+[detect] 44b6_0113de3b: 30.6s dets=32147
+[detect] 44b6_0b24845f: 30.9s dets=42080
+[detect] 6bba_05b6850b: 31.2s dets=13376
+[detect] 6bba_05db0fb1: 31.4s dets=73953
+[baseline] champion micro_adj=0.6649 div_j=0.0 score=0.6649
+[baseline] per-dataset adj floor: {'44b6_0113de3b': 0.8895, '44b6_0b24845f': 0.6817, '6bba_05b6850b': 0.57, '6bba_05db0fb1': 0.731}
+[variant] md=7.0 ratio=0.0 mdl=2 micro_adj=0.6571 div_j=0.0308 score=0.6602 d=-0.0047 no_reg=False promotable=False
+[variant] md=7.0 ratio=0.0 mdl=3 micro_adj=0.6571 div_j=0.0308 score=0.6602 d=-0.0047 no_reg=False promotable=False
+[variant] md=7.0 ratio=0.0 mdl=4 micro_adj=0.6571 div_j=0.0308 score=0.6602 d=-0.0047 no_reg=False promotable=False
+[variant] md=7.0 ratio=2.0 mdl=2 micro_adj=0.6619 div_j=0.0435 score=0.6662 d=+0.0013 no_reg=False promotable=False
+[variant] md=7.0 ratio=2.0 mdl=3 micro_adj=0.6619 div_j=0.0435 score=0.6662 d=+0.0013 no_reg=False promotable=False
+[variant] md=7.0 ratio=2.0 mdl=4 micro_adj=0.6619 div_j=0.0435 score=0.6662 d=+0.0013 no_reg=False promotable=False
+[variant] md=7.0 ratio=1.5 mdl=2 micro_adj=0.6631 div_j=0.0769 score=0.6708 d=+0.0059 no_reg=False promotable=False
+[variant] md=7.0 ratio=1.5 mdl=3 micro_adj=0.6631 div_j=0.0769 score=0.6708 d=+0.0059 no_reg=False promotable=False
+[variant] md=7.0 ratio=1.5 mdl=4 micro_adj=0.6631 div_j=0.0769 score=0.6708 d=+0.0059 no_reg=False promotable=False
+[variant] md=7.0 ratio=1.0 mdl=2 micro_adj=0.6649 div_j=0.0 score=0.6649 d=+0.0000 no_reg=True promotable=False
+[variant] md=7.0 ratio=1.0 mdl=3 micro_adj=0.6649 div_j=0.0 score=0.6649 d=+0.0000 no_reg=True promotable=False
+[variant] md=7.0 ratio=1.0 mdl=4 micro_adj=0.6649 div_j=0.0 score=0.6649 d=+0.0000 no_reg=True promotable=False
+[variant] md=5.0 ratio=0.0 mdl=2 micro_adj=0.6650 div_j=0.0345 score=0.6684 d=+0.0035 no_reg=False promotable=False
+[variant] md=5.0 ratio=0.0 mdl=3 micro_adj=0.6650 div_j=0.0345 score=0.6684 d=+0.0035 no_reg=False promotable=False
+[variant] md=5.0 ratio=0.0 mdl=4 micro_adj=0.6650 div_j=0.0345 score=0.6684 d=+0.0035 no_reg=False promotable=False
+[variant] md=5.0 ratio=2.0 mdl=2 micro_adj=0.6645 div_j=0.0588 score=0.6704 d=+0.0055 no_reg=False promotable=False
+[variant] md=5.0 ratio=2.0 mdl=3 micro_adj=0.6645 div_j=0.0588 score=0.6704 d=+0.0055 no_reg=False promotable=False
+[variant] md=5.0 ratio=2.0 mdl=4 micro_adj=0.6645 div_j=0.0588 score=0.6704 d=+0.0055 no_reg=False promotable=False
+[variant] md=5.0 ratio=1.5 mdl=2 micro_adj=0.6642 div_j=0.0909 score=0.6733 d=+0.0084 no_reg=False promotable=False
+[variant] md=5.0 ratio=1.5 mdl=3 micro_adj=0.6642 div_j=0.0909 score=0.6733 d=+0.0084 no_reg=False promotable=False
+[variant] md=5.0 ratio=1.5 mdl=4 micro_adj=0.6642 div_j=0.0909 score=0.6733 d=+0.0084 no_reg=False promotable=False
+[variant] md=5.0 ratio=1.0 mdl=2 micro_adj=0.6649 div_j=0.0 score=0.6649 d=+0.0000 no_reg=True promotable=False
+[variant] md=5.0 ratio=1.0 mdl=3 micro_adj=0.6649 div_j=0.0 score=0.6649 d=+0.0000 no_reg=True promotable=False
+[variant] md=5.0 ratio=1.0 mdl=4 micro_adj=0.6649 div_j=0.0 score=0.6649 d=+0.0000 no_reg=True promotable=False
+[variant] md=3.0 ratio=0.0 mdl=2 micro_adj=0.6653 div_j=0.0 score=0.6653 d=+0.0004 no_reg=True promotable=True
+[variant] md=3.0 ratio=0.0 mdl=3 micro_adj=0.6653 div_j=0.0 score=0.6653 d=+0.0004 no_reg=True promotable=True
+[variant] md=3.0 ratio=0.0 mdl=4 micro_adj=0.6653 div_j=0.0 score=0.6653 d=+0.0004 no_reg=True promotable=True
+[variant] md=3.0 ratio=2.0 mdl=2 micro_adj=0.6653 div_j=0.0 score=0.6653 d=+0.0004 no_reg=True promotable=True
+[variant] md=3.0 ratio=2.0 mdl=3 micro_adj=0.6653 div_j=0.0 score=0.6653 d=+0.0004 no_reg=True promotable=True
+[variant] md=3.0 ratio=2.0 mdl=4 micro_adj=0.6653 div_j=0.0 score=0.6653 d=+0.0004 no_reg=True promotable=True
+[variant] md=3.0 ratio=1.5 mdl=2 micro_adj=0.6649 div_j=0.0 score=0.6649 d=+0.0000 no_reg=True promotable=False
+[variant] md=3.0 ratio=1.5 mdl=3 micro_adj=0.6649 div_j=0.0 score=0.6649 d=+0.0000 no_reg=True promotable=False
+[variant] md=3.0 ratio=1.5 mdl=4 micro_adj=0.6649 div_j=0.0 score=0.6649 d=+0.0000 no_reg=True promotable=False
+[variant] md=3.0 ratio=1.0 mdl=2 micro_adj=0.6649 div_j=0.0 score=0.6649 d=+0.0000 no_reg=True promotable=False
+[variant] md=3.0 ratio=1.0 mdl=3 micro_adj=0.6649 div_j=0.0 score=0.6649 d=+0.0000 no_reg=True promotable=False
+[variant] md=3.0 ratio=1.0 mdl=4 micro_adj=0.6649 div_j=0.0 score=0.6649 d=+0.0000 no_reg=True promotable=False
+
+wrote /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2818-division-overlay/screen_overlay.json
+baseline champion score=0.6649 (micro_adj=0.6649, div_j=0.0)
+n_fired=36 n_promotable=6
+BEST PROMOTABLE: md=3.0 ratio=0.0 mdl=2 score=0.6653 (+0.0004) div_j=0.0

@@ -1,0 +1,18 @@
+[detect] 44b6_0113de3b: 27.9s dets=32147
+[detect] 44b6_0b24845f: 28.4s dets=42080
+[detect] 6bba_05b6850b: 28.7s dets=13376
+[detect] 6bba_05db0fb1: 28.5s dets=73953
+[baseline] champion micro_adj=0.6649 score=0.6649
+[variant] mg=2 dist=7.0 mf=1 micro_adj=0.6711 score=0.6711 d=+0.0062 dTP=+47 dFP=+20 dFN=-47 no_reg=False promotable=False
+[variant] mg=2 dist=7.0 mf=3 micro_adj=0.6744 score=0.6744 d=+0.0095 dTP=+25 dFP=-6 dFN=-25 no_reg=False promotable=False
+[variant] mg=2 dist=10.0 mf=1 micro_adj=0.6639 score=0.6639 d=-0.0010 dTP=+48 dFP=+42 dFN=-48 no_reg=False promotable=False
+[variant] mg=2 dist=10.0 mf=3 micro_adj=0.6744 score=0.6744 d=+0.0095 dTP=+30 dFP=-1 dFN=-30 no_reg=False promotable=False
+[variant] mg=3 dist=7.0 mf=1 micro_adj=0.6646 score=0.6646 d=-0.0003 dTP=+57 dFP=+40 dFN=-57 no_reg=False promotable=False
+[variant] mg=3 dist=7.0 mf=3 micro_adj=0.6773 score=0.6773 d=+0.0124 dTP=+37 dFP=-4 dFN=-37 no_reg=False promotable=False
+[variant] mg=3 dist=10.0 mf=1 micro_adj=0.6553 score=0.6553 d=-0.0096 dTP=+64 dFP=+73 dFN=-64 no_reg=False promotable=False
+[variant] mg=3 dist=10.0 mf=3 micro_adj=0.6755 score=0.6755 d=+0.0106 dTP=+43 dFP=+6 dFN=-43 no_reg=False promotable=False
+
+wrote /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2849/screen_gap_recover.json
+baseline champion score=0.6649 (micro_adj=0.6649)
+n_promotable=0
+NO PROMOTABLE variant. Top-by-score: mg=3 dist=7.0 mf=3 score=0.6773 (delta +0.0124) no_reg=False edge_delta={'d_tp': 37, 'd_fp': -4, 'd_fn': -37}

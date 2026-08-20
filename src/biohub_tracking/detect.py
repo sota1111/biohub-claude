@@ -85,6 +85,33 @@ class DetectParams:
     anisotropy stays handled by :attr:`sigma_zyx`. ``None`` feeds the raw volume in
     unchanged (exact reproduction of the pre-SOT-2776 detector)."""
 
+    watershed: tuple[str, float, float, float] | None = None
+    """Optional **watershed nucleus splitting** with h-maxima seeding (SOT-2775).
+
+    The NMS path (steps 2-3 above) reports one centroid per local maximum, so two
+    nuclei whose blurred blobs merge into a single response peak collapse to one
+    detection — the matched-edge FN/FP source on the *dense* ``6bba`` families
+    (``6bba_05b6850b`` adj 0.5700 FN194 / ``6bba_05db0fb1`` adj 0.7310 FN210).
+    When set to ``("hmaxima", h, min_size, min_seed_dist)`` a classical
+    marker-controlled watershed is run *instead of* NMS on the same
+    adaptive-threshold foreground: within each connected foreground component the
+    **extended-maxima transform** (regional maxima of the h-maxima transform,
+    ``scipy.ndimage`` grey reconstruction) yields seeds that survive a prominence
+    of at least ``h`` robust-sigma (so shallow noise maxima do not seed a split),
+    and the component is partitioned into one basin per seed by nearest-seed
+    assignment (an exact seeded Euclidean region split — the marker-controlled
+    watershed's deterministic geometric limit); the centroid of every basin is a
+    detection. This splits fused blobs into their constituent nuclei without
+    needing GPU weights.
+
+    ``h`` is in units of the response's robust sigma (``1.4826·MAD``, exactly the
+    :attr:`mad_k` scale), so the prominence gate means the same thing across the
+    embryo's intensity drift. ``min_size`` is the minimum basin volume in **voxels**
+    and ``min_seed_dist`` the minimum spacing between kept centroids in **voxels**
+    — both suppress over-splitting (drop sub-``min_size`` basins; greedily keep the
+    brightest of any centroids within ``min_seed_dist``). ``None`` runs the original
+    NMS path unchanged (exact reproduction of the pre-SOT-2775 detector)."""
+
 
 def _normalize_intensity(
     vol: np.ndarray, spec: tuple[str, float, float] | None
@@ -109,6 +136,133 @@ def _normalize_intensity(
         out = (vol - lo) / (hi - lo)
         return np.clip(out, 0.0, 1.0).astype(np.float32, copy=False)
     raise ValueError(f"unknown intensity_norm kind: {kind!r}")
+
+
+def _reconstruction_by_dilation(
+    marker: np.ndarray, mask: np.ndarray, structure: np.ndarray
+) -> np.ndarray:
+    """Grayscale morphological reconstruction by dilation (geodesic).
+
+    Iterates ``min(dilate(marker), mask)`` to stability — the classical (slow but
+    exact and deterministic) reconstruction. It is only ever called on a single
+    foreground component's small bounding box, so the iteration count (bounded by
+    the component diameter) is tiny and numpy/scipy-only (Kaggle-kernel safe).
+    """
+    prev = np.minimum(marker, mask)
+    while True:
+        cur = np.minimum(ndi.grey_dilation(prev, footprint=structure), mask)
+        if np.array_equal(cur, prev):
+            return cur
+        prev = cur
+
+
+def _extended_maxima(
+    resp: np.ndarray, h: float, structure: np.ndarray
+) -> np.ndarray:
+    """Boolean seed mask = extended-maxima transform ``EMAX_h(resp)``.
+
+    ``EMAX_h(f) = RMAX(HMAX_h(f))``: the regional maxima of the h-maxima transform,
+    i.e. the maxima of ``resp`` whose prominence (dynamic) is at least ``h``. Shallow
+    noise maxima (prominence ``< h``) are suppressed so they do not seed a spurious
+    split. A component flatter than ``h`` everywhere collapses to a single seed
+    plateau (one detection), so no foreground blob is ever lost.
+    """
+    hmax = _reconstruction_by_dilation(resp - h, resp, structure)
+    rng = float(hmax.max() - hmax.min())
+    if rng <= 0.0:  # fully flat component → the whole thing is one regional max
+        return np.ones(hmax.shape, dtype=bool)
+    eps = rng * 1e-6
+    recon = _reconstruction_by_dilation(hmax - eps, hmax, structure)
+    return (hmax - recon) > (eps * 0.5)
+
+
+def _watershed_centroids(
+    response: np.ndarray,
+    foreground: np.ndarray,
+    h: float,
+    min_size: float,
+    min_seed_dist: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Split fused foreground blobs by marker-controlled watershed (SOT-2775).
+
+    Returns ``(coords, strengths)`` — ``(M, 3)`` basin centroids in ``(z, y, x)``
+    voxel coordinates and the peak response of each basin (for ordering). Operates
+    per connected foreground component within its bounding box so the per-component
+    reconstruction/watershed stays cheap. Deterministic and numpy/scipy-only.
+    """
+    conn = ndi.generate_binary_structure(3, 3)  # 26-connectivity, 3x3x3 ones
+    labels, n = ndi.label(foreground, structure=conn)
+    if n == 0:
+        return np.zeros((0, 3), dtype=np.float64), np.zeros(0, dtype=np.float64)
+    slices = ndi.find_objects(labels)
+
+    coords_out: list[np.ndarray] = []
+    strengths: list[float] = []
+    for comp_id, sl in enumerate(slices, start=1):
+        if sl is None:
+            continue
+        comp_mask = labels[sl] == comp_id
+        sub_resp = response[sl].astype(np.float64)
+        offset = np.array([s.start for s in sl], dtype=np.float64)
+
+        # Seeds: extended maxima (prominence >= h) within the component only. Fill
+        # the bbox's non-component voxels with the component floor (a finite low
+        # value) so the reconstruction sees them as background — they cannot seed a
+        # maximum and are dropped by ``& comp_mask`` — while avoiding non-finite math.
+        floor = float(sub_resp[comp_mask].min())
+        masked = np.where(comp_mask, sub_resp, floor)
+        seeds = _extended_maxima(masked, h, conn) & comp_mask
+        seed_labels, n_seeds = ndi.label(seeds, structure=conn)
+
+        if n_seeds <= 1:
+            # No fusion to split — one detection at the component's brightest voxel.
+            basins = [(comp_mask, float(sub_resp[comp_mask].max()))]
+        else:
+            # Marker-controlled split: assign every foreground voxel to its nearest
+            # seed (an exact Euclidean seeded region partition via the distance
+            # transform's feature indices). For compact nuclei the partition falls
+            # at the geometric midline between the h-maxima seeds — the response
+            # ridge separating the fused blobs — and is fully deterministic (no
+            # RNG, no order-dependent flooding), splitting the component into one
+            # basin per seed.
+            _, (iz, iy, ix) = ndi.distance_transform_edt(
+                seed_labels == 0, return_indices=True
+            )
+            assigned = np.where(comp_mask, seed_labels[iz, iy, ix], 0)
+            basins = []
+            for lbl in range(1, n_seeds + 1):
+                region = assigned == lbl
+                if region.any():
+                    basins.append((region, float(sub_resp[region].max())))
+
+        for region, strength in basins:
+            vol_vox = int(region.sum())
+            if vol_vox < min_size:
+                continue
+            pts = np.argwhere(region).astype(np.float64) + offset
+            coords_out.append(pts.mean(axis=0))
+            strengths.append(strength)
+
+    if not coords_out:
+        return np.zeros((0, 3), dtype=np.float64), np.zeros(0, dtype=np.float64)
+    coords = np.vstack(coords_out)
+    strong = np.asarray(strengths, dtype=np.float64)
+
+    # Order brightest-first, then greedily suppress centroids closer than
+    # ``min_seed_dist`` voxels (over-split control; keeps the brightest).
+    order = np.argsort(strong)[::-1]
+    coords, strong = coords[order], strong[order]
+    if min_seed_dist > 0.0 and len(coords) > 1:
+        keep = np.ones(len(coords), dtype=bool)
+        d2 = min_seed_dist * min_seed_dist
+        for i in range(len(coords)):
+            if not keep[i]:
+                continue
+            diff = coords[i + 1 :] - coords[i]
+            close = (diff * diff).sum(axis=1) <= d2
+            keep[i + 1 :][close & keep[i + 1 :]] = False
+        coords, strong = coords[keep], strong[keep]
+    return coords, strong
 
 
 def detect_centroids(
@@ -146,6 +300,26 @@ def detect_centroids(
     else:
         adaptive_threshold = float(np.percentile(response, params.threshold_percentile))
     threshold = max(adaptive_threshold, params.min_threshold)
+
+    # Watershed splitting path (SOT-2775): replace NMS peak extraction with
+    # marker-controlled watershed over the same adaptive-threshold foreground, so
+    # fused nuclei that share one response peak are split into per-basin centroids.
+    if params.watershed is not None:
+        kind, h_sigma, min_size, min_seed_dist = params.watershed
+        if kind != "hmaxima":
+            raise ValueError(f"unknown watershed kind: {kind!r}")
+        foreground = response > threshold
+        if not foreground.any():
+            return np.zeros((0, 3), dtype=np.float64)
+        # h is in robust-sigma units (1.4826·MAD of the response), so the
+        # prominence gate is comparable across volumes regardless of intensity scale.
+        median = float(np.median(response))
+        mad = float(np.median(np.abs(response - median)))
+        h_abs = float(h_sigma) * 1.4826 * mad
+        coords, _strong = _watershed_centroids(
+            response, foreground, h_abs, float(min_size), float(min_seed_dist)
+        )
+        return coords
 
     footprint = np.ones([2 * s + 1 for s in params.nms_size_zyx], dtype=bool)
     local_max = ndi.maximum_filter(response, footprint=footprint)

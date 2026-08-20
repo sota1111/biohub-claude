@@ -1,0 +1,4 @@
+baseline micro-adj=0.6649 (reproduces 0.6649: True)
+challenger[44b6_0113de3b] adj=0.9105 (matches screen 0.9105: True)
+plumbing: watershed through champion_params OK; champion default None OK
+VERDICT: REJECT  wrote /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2775/confirm_watershed.json

@@ -1,0 +1,6 @@
+{
+  "name": "detect-link-dog-v2",
+  "scale": [1.625, 0.40625, 0.40625],
+  "detect": {"sigma_zyx": [1.0, 2.0, 2.0], "background_sigma_zyx": [2.0, 6.0, 6.0], "nms_size_zyx": [2, 5, 5], "threshold_percentile": 92.0, "min_threshold": 0.0},
+  "link": {"max_distance": 7.0, "allow_division": false, "division_distance": 7.0, "min_track_length": 1}
+}

@@ -50,9 +50,24 @@ def run_pipeline(
     detect_params: DetectParams | None = None,
     link_params: LinkParams | None = None,
     max_t: int | None = None,
+    learned_detector=None,
 ) -> TrackingGraph:
-    """Detect and link one video into a tracking graph."""
+    """Detect and link one video into a tracking graph.
+
+    ``learned_detector`` (SOT-2847) is the default-off receptacle for a torch
+    learned detector: when a :class:`biohub_tracking.learned_detect.LearnedDetector`
+    is passed, detection is routed through it (same ``detect_series`` contract as
+    the classical detector) and the classical detect stage is skipped. ``None`` —
+    the only value the champion ever supplies — takes the classical path below
+    byte-for-byte unchanged.
+    """
     arr = _open_image_array(zarr_path)
+    # Learned-detector path (SOT-2847, off by default): a plugged-in learned
+    # detector produces the same {t: (N, 3)} centroids the classical detector
+    # would, so the linker/scorer/submission stages are untouched.
+    if learned_detector is not None:
+        detections = learned_detector.detect_series(arr, max_t=max_t)
+        return link_centroids(detections, scale=scale, params=link_params)
     # Local appearance descriptors are only needed (and only computed) when the
     # linker's appearance term is active (SOT-2829); the distance-only champion
     # (appearance_weight == 0) takes the unchanged detect-only path byte-for-byte.

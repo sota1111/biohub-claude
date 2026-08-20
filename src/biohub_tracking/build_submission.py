@@ -15,7 +15,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from .champion import champion_params, load_champion_config
+from .champion import champion_params, learned_detector_config, load_champion_config
 from .io import write_submission_csv
 from .pipeline import run_pipeline
 
@@ -33,6 +33,17 @@ def build_submission(
         config = load_champion_config()
     detect_params, link_params, scale = champion_params(config)
 
+    # Learned-detector receptacle (SOT-2847, default-off): a learned detector is
+    # built only when the config carries an enabled ``learned_detector`` block. The
+    # champion config has none, so this is ``None`` and the classical detect path
+    # runs byte-for-byte unchanged.
+    learned_detector = None
+    ld_block = learned_detector_config(config)
+    if ld_block is not None:
+        from .learned_detect import build_learned_detector
+
+        learned_detector = build_learned_detector(ld_block)
+
     videos = sorted(test_dir.glob("*.zarr"))
     if not videos:
         raise FileNotFoundError(f"no *.zarr videos found under {test_dir}")
@@ -46,6 +57,7 @@ def build_submission(
             detect_params=detect_params,
             link_params=link_params,
             max_t=max_t,
+            learned_detector=learned_detector,
         )
         graphs[name] = graph
         if verbose:

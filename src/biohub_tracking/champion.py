@@ -123,6 +123,27 @@ def load_champion_config(path: Path | str | None = None) -> dict:
     return json.loads(json.dumps(EMBEDDED_CHAMPION_CONFIG))
 
 
+def learned_detector_config(config: dict | None = None) -> dict | None:
+    """Return the ``learned_detector`` receptacle block (SOT-2847), or ``None``.
+
+    The learned detector is a **whole-stage** replacement of classical detection,
+    not a :class:`DetectParams` knob, so it is resolved separately from
+    :func:`champion_params` and read by the submission/pipeline layer. The
+    champion config carries no such block, so this returns ``None`` and the
+    classical champion path is byte-for-byte unchanged. Accepts the block either
+    at the config top level or nested under ``detect`` (either placement is
+    honoured); an absent or non-dict value yields ``None``.
+    """
+    if config is None:
+        config = load_champion_config()
+    block = config.get("learned_detector")
+    if block is None:
+        detect = config.get("detect")
+        if isinstance(detect, dict):
+            block = detect.get("learned_detector")
+    return block if isinstance(block, dict) else None
+
+
 def champion_params(
     config: dict | None = None,
 ) -> tuple[DetectParams, LinkParams, tuple[float, float, float]]:

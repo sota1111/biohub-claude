@@ -1,0 +1,15 @@
+{
+  "torch_available": true,
+  "torch_version": "2.5.1+cu121",
+  "cuda_available": true,
+  "device_used": "cuda",
+  "dataset_mount": "/tmp/sot2847-smoke-eny9korr/kaggle_input",
+  "weights_path": "/tmp/sot2847-smoke-eny9korr/kaggle_input/biohub-claude-weights/detector.pt",
+  "weights_bytes": 10450,
+  "resolved_offline": true,
+  "state_dict_bit_exact": true,
+  "forward_ok": true,
+  "num_timepoints": 3,
+  "total_detections": 693,
+  "verdict": "offline attach->load->forward FEASIBLE"
+}

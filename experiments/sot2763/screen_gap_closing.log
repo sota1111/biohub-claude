@@ -1,0 +1,16 @@
+[detect] 44b6_0113de3b: 29.5s dets=32147
+[detect] 44b6_0b24845f: 29.9s dets=42080
+[detect] 6bba_05b6850b: 30.2s dets=13376
+[detect] 6bba_05db0fb1: 29.9s dets=73953
+[baseline] champion micro_adj=0.6649 score=0.6649
+[variant] mfg=2 gd=7.0 micro_adj=0.6509 score=0.6509 d=-0.0140 dTP=-12 dFP=+23 dFN=+12 no_reg=False promotable=False
+[variant] mfg=2 gd=10.0 micro_adj=0.6462 score=0.6462 d=-0.0187 dTP=-17 dFP=+30 dFN=+17 no_reg=False promotable=False
+[variant] mfg=2 gd=14.0 micro_adj=0.6379 score=0.6379 d=-0.0270 dTP=-28 dFP=+41 dFN=+28 no_reg=False promotable=False
+[variant] mfg=3 gd=7.0 micro_adj=0.6461 score=0.6461 d=-0.0188 dTP=-16 dFP=+29 dFN=+16 no_reg=False promotable=False
+[variant] mfg=3 gd=10.0 micro_adj=0.6359 score=0.6359 d=-0.0290 dTP=-30 dFP=+43 dFN=+30 no_reg=False promotable=False
+[variant] mfg=3 gd=14.0 micro_adj=0.6323 score=0.6323 d=-0.0326 dTP=-34 dFP=+45 dFN=+34 no_reg=False promotable=False
+
+wrote /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2763/screen_gap_closing.json
+baseline champion score=0.6649 (micro_adj=0.6649)
+n_promotable=0
+NO PROMOTABLE variant. Top-by-score: mfg=2 gd=7.0 score=0.6509 (delta -0.014) no_reg=False edge_delta={'d_tp': -12, 'd_fp': 23, 'd_fn': 12}

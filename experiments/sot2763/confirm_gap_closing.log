@@ -1,0 +1,4 @@
+baseline champion score=0.6649
+challenger mfg2/gd7 score=0.6509 delta=-0.0140 no_reg=False
+promotable=False
+wrote /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2763/confirm_gap_closing.json

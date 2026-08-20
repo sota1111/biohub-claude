@@ -169,6 +169,38 @@ class DetectParams:
     ``None`` skips the filter entirely — exact byte-identical reproduction of the
     pre-SOT-2793 detector (default-off)."""
 
+    density_gated_split: (
+        tuple[str, float, float, float, float, float] | None
+    ) = None
+    """Optional **density-gated nucleus splitting** (SOT-2775 → SOT-2792).
+
+    The materially-new mechanism that fixes SOT-2775's failure. The global
+    :attr:`watershed` (SOT-2775) applied a marker-controlled split to *every*
+    foreground component and so over-split the **sparse** families — 44b6_0b24845f
+    collapsed 0.6817→0.1079 (REJECTED) because a single global gate that recovers
+    the dense ``6bba`` fused-nucleus FN inevitably shatters isolated sparse nuclei.
+    This knob makes the split fire **only inside locally dense regions**, so sparse
+    families are *structurally unable* to trigger it (their detections are far
+    apart → local density stays below the gate → the NMS centroid is kept
+    verbatim), removing SOT-2775's over-split failure mode by construction rather
+    than by re-tuning it away.
+
+    When set to ``("hmaxima", h, min_size, min_seed_dist, density_thresh,
+    density_window)`` the detector first runs the ordinary NMS path (the champion
+    path) to get candidate centroids, then measures each candidate's **local
+    detection density** = the number of *other* NMS centroids within
+    ``density_window`` voxels (a ``scipy.spatial.cKDTree`` radius count). Only the
+    connected foreground components that contain at least one candidate whose local
+    density is ``>= density_thresh`` are handed to the same marker-controlled
+    watershed as :func:`_watershed_centroids` (``h`` in robust-sigma units,
+    ``min_size`` minimum basin voxels, ``min_seed_dist`` minimum centroid spacing);
+    every other component keeps its original NMS centroid(s) unchanged. When **no**
+    candidate is locally dense the detector returns the NMS centroids byte-for-byte
+    (the sparse no-fire case). Applied on the NMS path only, after any
+    :attr:`blobness_filter`; ignored when the global :attr:`watershed` path is
+    active (that early-returns first). ``None`` runs the plain NMS path unchanged —
+    exact byte-identical reproduction of the pre-SOT-2792 detector (default-off)."""
+
 
 def _hessian_blobness_mask(
     vol: np.ndarray,
@@ -422,6 +454,89 @@ def _watershed_centroids(
     return coords, strong
 
 
+def _local_peak_density(coords: np.ndarray, window: float) -> np.ndarray:
+    """Local detection density per candidate (SOT-2792).
+
+    For each centroid in ``coords`` ``(N, 3)`` (voxel z,y,x), returns the number of
+    *other* centroids within ``window`` voxels (Euclidean), via a
+    ``scipy.spatial.cKDTree`` radius count — deterministic and numpy/scipy-only.
+    A sparse family whose detections are far apart yields all-zeros here, which is
+    exactly why the density gate cannot fire on it (the SOT-2775 sparse-over-split
+    failure is avoided structurally, not by tuning).
+    """
+    if coords.shape[0] == 0:
+        return np.zeros(0, dtype=np.int64)
+    from scipy.spatial import cKDTree
+
+    tree = cKDTree(coords)
+    # query_ball_point counts include the point itself, so subtract one.
+    counts = tree.query_ball_point(coords, r=float(window), return_length=True)
+    return np.asarray(counts, dtype=np.int64) - 1
+
+
+def _density_gated_split_centroids(
+    response: np.ndarray,
+    threshold: float,
+    coords: np.ndarray,
+    spec: tuple[str, float, float, float, float, float],
+) -> tuple[np.ndarray, int]:
+    """Split fused nuclei only inside locally dense regions (SOT-2792).
+
+    ``spec = ("hmaxima", h, min_size, min_seed_dist, density_thresh,
+    density_window)``. ``coords`` are the ordered NMS candidate centroids (integer
+    voxel positions). Returns ``(coords_out, n_components_split)``:
+
+    * measures each candidate's local density (:func:`_local_peak_density`);
+    * marks the connected foreground components (``response > threshold``) that
+      contain at least one candidate with local density ``>= density_thresh``;
+    * runs the marker-controlled watershed (:func:`_watershed_centroids`) on *only*
+      those dense components and keeps the untouched NMS centroids everywhere else.
+
+    When no candidate is locally dense it returns ``coords`` unchanged and
+    ``n_components_split == 0`` (the byte-identical sparse no-fire path).
+    """
+    kind, h_sigma, min_size, min_seed_dist, density_thresh, density_window = spec
+    if kind != "hmaxima":
+        raise ValueError(f"unknown density_gated_split kind: {kind!r}")
+    if coords.shape[0] == 0:
+        return coords, 0
+
+    density = _local_peak_density(coords, float(density_window))
+    dense_candidate = density >= float(density_thresh)
+    if not dense_candidate.any():
+        return coords, 0  # sparse no-fire: identical to the plain NMS path
+
+    conn = ndi.generate_binary_structure(3, 3)  # 26-connectivity
+    foreground = response > threshold
+    labels, _n = ndi.label(foreground, structure=conn)
+    # Every NMS candidate has response > threshold, so it sits in a foreground
+    # component (label >= 1); read the component label under each candidate voxel.
+    ci = np.rint(coords).astype(np.intp)
+    peak_labels = labels[ci[:, 0], ci[:, 1], ci[:, 2]]
+    dense_labels = np.unique(peak_labels[dense_candidate])
+    dense_labels = dense_labels[dense_labels > 0]
+    if dense_labels.size == 0:
+        return coords, 0
+
+    dense_mask = np.isin(labels, dense_labels)
+    median = float(np.median(response))
+    mad = float(np.median(np.abs(response - median)))
+    h_abs = float(h_sigma) * 1.4826 * mad
+    split_coords, _strong = _watershed_centroids(
+        response, dense_mask, h_abs, float(min_size), float(min_seed_dist)
+    )
+
+    # Keep the NMS centroids of the non-dense components verbatim; the dense
+    # components are replaced by their watershed basin centroids.
+    keep_nms = ~np.isin(peak_labels, dense_labels)
+    kept = coords[keep_nms]
+    if split_coords.shape[0]:
+        out = np.vstack([kept, split_coords])
+    else:
+        out = kept
+    return out, int(dense_labels.size)
+
+
 def detect_centroids(
     volume: np.ndarray, params: DetectParams | None = None
 ) -> np.ndarray:
@@ -431,9 +546,24 @@ def detect_centroids(
     coordinates, ordered by descending smoothed intensity (brightest first) so
     that any downstream node-count cap keeps the most confident detections.
     """
+    return detect_centroids_with_meta(volume, params)[0]
+
+
+def detect_centroids_with_meta(
+    volume: np.ndarray, params: DetectParams | None = None
+) -> tuple[np.ndarray, dict]:
+    """Like :func:`detect_centroids` but also returns a small ``meta`` dict.
+
+    ``meta`` currently reports ``split_fired`` — the number of foreground
+    components the density-gated split (SOT-2792) actually re-partitioned (``0``
+    when the knob is off or no region was locally dense, e.g. the sparse-family
+    no-fire ablation). Exposed so a screen can record the fire count per family
+    without re-deriving the detection response.
+    """
     if params is None:
         params = DetectParams()
 
+    meta: dict = {"split_fired": 0}
     vol = np.asarray(volume, dtype=np.float32)
     vol = _normalize_intensity(vol, params.intensity_norm)
 
@@ -472,7 +602,7 @@ def detect_centroids(
             raise ValueError(f"unknown watershed kind: {kind!r}")
         foreground = response > threshold
         if not foreground.any():
-            return np.zeros((0, 3), dtype=np.float64)
+            return np.zeros((0, 3), dtype=np.float64), meta
         # h is in robust-sigma units (1.4826·MAD of the response), so the
         # prominence gate is comparable across volumes regardless of intensity scale.
         median = float(np.median(response))
@@ -481,7 +611,7 @@ def detect_centroids(
         coords, _strong = _watershed_centroids(
             response, foreground, h_abs, float(min_size), float(min_seed_dist)
         )
-        return coords
+        return coords, meta
 
     footprint = np.ones([2 * s + 1 for s in params.nms_size_zyx], dtype=bool)
     local_max = ndi.maximum_filter(response, footprint=footprint)
@@ -489,7 +619,7 @@ def detect_centroids(
 
     coords = np.argwhere(peak_mask).astype(np.float64)  # (N, 3) z,y,x
     if coords.size == 0:
-        return coords.reshape(0, 3)
+        return coords.reshape(0, 3), meta
 
     intensities = response[peak_mask]
     order = np.argsort(intensities)[::-1]
@@ -502,7 +632,16 @@ def detect_centroids(
         keep = _hessian_blobness_mask(vol, coords, params.blobness_filter)
         coords = coords[keep]
 
-    return coords
+    # Density-gated nucleus splitting (SOT-2792): split fused nuclei only inside
+    # locally dense regions, so sparse families are structurally unable to fire
+    # (fixes SOT-2775's global-gate over-split). Off by default → champion path.
+    if params.density_gated_split is not None:
+        coords, split_fired = _density_gated_split_centroids(
+            response, threshold, coords, params.density_gated_split
+        )
+        meta["split_fired"] = split_fired
+
+    return coords, meta
 
 
 def detect_volume_series(

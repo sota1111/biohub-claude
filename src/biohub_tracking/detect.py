@@ -137,6 +137,97 @@ class DetectParams:
     brightest of any centroids within ``min_seed_dist``). ``None`` runs the original
     NMS path unchanged (exact reproduction of the pre-SOT-2775 detector)."""
 
+    blobness_filter: tuple[str, tuple[float, float, float], float, float] | None = None
+    """Optional **Hessian-eigenvalue blobness precision filter** (SOT-2774 → SOT-2793).
+
+    A detection *post-processing* gate: after NMS reports the candidate centroids it
+    prunes any whose local structure is **not blob-like** (membrane / line / noise),
+    to cut the sparse-family over-detection FPs that the node-count penalty punishes
+    (``6bba_05b6850b`` over-detects) *without* re-tuning the response threshold. It is
+    the mechanistic inverse of :attr:`dog_scales_zyx` (SOT-2774, which *adds*
+    detections by a per-voxel scale-union max, REJECTED): here candidates are *removed*
+    by a 3D blob-ness criterion from the HDoG / scale-space detection literature.
+
+    When set to ``("hessian", sigma_zyx, min_blobness, max_anisotropy)`` the volume's
+    **Hessian of Gaussian** (the six 2nd-derivative fields at anisotropic scale
+    ``sigma_zyx``, via ``scipy.ndimage.gaussian_filter`` ``order=`` derivatives) is
+    sampled at each candidate centroid and its three eigenvalues ``λ`` are taken. A
+    candidate survives iff, ordering the eigenvalue **magnitudes** ``a0 ≤ a1 ≤ a2``:
+
+    * **sign** — all three ``λ < 0`` (a bright blob in a dark background is a local
+      intensity maximum in every direction, so every 2nd derivative is negative);
+    * **isotropy** — ``a0 / a2 ≥ min_blobness`` (a *line/tube* has one eigenvalue ≈ 0
+      along its axis, so ``a0/a2 → 0`` and it is dropped);
+    * **planarity** — ``a2 / a1 ≤ max_anisotropy`` (a *plane/membrane* has two
+      eigenvalues ≈ 0 in-plane, so ``a2/a1 → ∞`` and it is dropped).
+
+    ``sigma_zyx`` is the (anisotropic) Gaussian derivative scale — reuse the base
+    detection ``sigma_zyx`` so the Hessian is measured at the nucleus radius. The
+    Hessian fields cost six extra full-volume Gaussian passes but the eigen-decomposition
+    is only over the (few) candidate points, so it is cheap. The gate is applied only
+    on the **NMS** path (the champion path); the watershed path is unaffected.
+    ``None`` skips the filter entirely — exact byte-identical reproduction of the
+    pre-SOT-2793 detector (default-off)."""
+
+
+def _hessian_blobness_mask(
+    vol: np.ndarray,
+    coords: np.ndarray,
+    spec: tuple[str, tuple[float, float, float], float, float],
+) -> np.ndarray:
+    """Boolean keep-mask: which candidate centroids are blob-like (SOT-2793).
+
+    ``spec = ("hessian", sigma_zyx, min_blobness, max_anisotropy)``. Computes the
+    Hessian of Gaussian (six 2nd-derivative fields at ``sigma_zyx``) of ``vol`` and
+    samples it at each (rounded) candidate voxel in ``coords`` ``(N, 3)`` z,y,x. A
+    candidate is kept iff its three Hessian eigenvalues are all negative (bright blob)
+    and, with magnitudes sorted ``a0 ≤ a1 ≤ a2``, ``a0/a2 ≥ min_blobness`` (isotropic,
+    not a line) and ``a2/a1 ≤ max_anisotropy`` (not a plane). Deterministic and
+    numpy/scipy-only (Kaggle-kernel safe). Vectorised over candidates.
+    """
+    kind, sigma_zyx, min_blobness, max_anisotropy = spec
+    if kind != "hessian":
+        raise ValueError(f"unknown blobness_filter kind: {kind!r}")
+    if coords.shape[0] == 0:
+        return np.zeros(0, dtype=bool)
+    sigma = tuple(float(s) for s in sigma_zyx)
+    min_blobness = float(min_blobness)
+    max_anisotropy = float(max_anisotropy)
+
+    # Hessian of Gaussian: the six unique 2nd-derivative fields (axes z=0, y=1, x=2).
+    hzz = ndi.gaussian_filter(vol, sigma, order=(2, 0, 0))
+    hyy = ndi.gaussian_filter(vol, sigma, order=(0, 2, 0))
+    hxx = ndi.gaussian_filter(vol, sigma, order=(0, 0, 2))
+    hzy = ndi.gaussian_filter(vol, sigma, order=(1, 1, 0))
+    hzx = ndi.gaussian_filter(vol, sigma, order=(1, 0, 1))
+    hyx = ndi.gaussian_filter(vol, sigma, order=(0, 1, 1))
+
+    idx = np.rint(coords).astype(np.intp)
+    for a in range(3):
+        idx[:, a] = np.clip(idx[:, a], 0, vol.shape[a] - 1)
+    z, y, x = idx[:, 0], idx[:, 1], idx[:, 2]
+
+    n = coords.shape[0]
+    h = np.empty((n, 3, 3), dtype=np.float64)
+    h[:, 0, 0] = hzz[z, y, x]
+    h[:, 1, 1] = hyy[z, y, x]
+    h[:, 2, 2] = hxx[z, y, x]
+    h[:, 0, 1] = h[:, 1, 0] = hzy[z, y, x]
+    h[:, 0, 2] = h[:, 2, 0] = hzx[z, y, x]
+    h[:, 1, 2] = h[:, 2, 1] = hyx[z, y, x]
+
+    ev = np.linalg.eigvalsh(h)  # (N, 3) ascending
+    all_negative = np.all(ev < 0.0, axis=1)
+    mag = np.sort(np.abs(ev), axis=1)  # (N, 3) magnitudes a0 <= a1 <= a2
+    a0, a1, a2 = mag[:, 0], mag[:, 1], mag[:, 2]
+    isotropy = np.where(a2 > 0.0, a0 / a2, 0.0)
+    planarity = np.where(a1 > 0.0, a2 / a1, np.inf)
+    return (
+        all_negative
+        & (isotropy >= min_blobness)
+        & (planarity <= max_anisotropy)
+    )
+
 
 def _normalize_intensity(
     vol: np.ndarray, spec: tuple[str, float, float] | None
@@ -402,7 +493,16 @@ def detect_centroids(
 
     intensities = response[peak_mask]
     order = np.argsort(intensities)[::-1]
-    return coords[order]
+    coords = coords[order]
+
+    # Hessian-eigenvalue blobness precision filter (SOT-2793): prune non-blob
+    # (membrane/line/noise) candidates as a detection post-processing step. Runs
+    # only when configured, so the champion (blobness_filter=None) is untouched.
+    if params.blobness_filter is not None:
+        keep = _hessian_blobness_mask(vol, coords, params.blobness_filter)
+        coords = coords[keep]
+
+    return coords
 
 
 def detect_volume_series(

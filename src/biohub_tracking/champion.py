@@ -136,6 +136,7 @@ def champion_params(
     inorm = d.get("intensity_norm")
     wshed = d.get("watershed")
     dscales = d.get("dog_scales_zyx")
+    bfilter = d.get("blobness_filter")
     detect = DetectParams(
         sigma_zyx=tuple(d.get("sigma_zyx", (1.0, 3.0, 3.0))),
         nms_size_zyx=tuple(d.get("nms_size_zyx", (2, 5, 5))),
@@ -156,6 +157,16 @@ def champion_params(
         dog_scales_zyx=(
             tuple(tuple(float(v) for v in s) for s in dscales)
             if dscales is not None
+            else None
+        ),
+        blobness_filter=(
+            (
+                str(bfilter[0]),
+                tuple(float(v) for v in bfilter[1]),
+                float(bfilter[2]),
+                float(bfilter[3]),
+            )
+            if bfilter is not None
             else None
         ),
     )

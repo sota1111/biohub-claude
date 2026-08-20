@@ -1,0 +1,25 @@
+[detect] 44b6_0113de3b: 28.1s
+[detect] 44b6_0b24845f: 28.4s
+[detect] 6bba_05b6850b: 28.8s
+[detect] 6bba_05db0fb1: 28.4s
+[baseline] champion micro_adj=0.6649
+[variant] mg=2 dist=7.0 mf=4 micro_adj=0.6750 d=+0.0101 dTP=+22 dFP=-8 dFN=-22 no_reg=False promotable=False
+[variant] mg=2 dist=7.0 mf=5 micro_adj=0.6751 d=+0.0102 dTP=+22 dFP=-8 dFN=-22 no_reg=False promotable=False
+[variant] mg=2 dist=7.0 mf=6 micro_adj=0.6733 d=+0.0084 dTP=+18 dFP=-7 dFN=-18 no_reg=False promotable=False
+[variant] mg=2 dist=7.0 mf=8 micro_adj=0.6743 d=+0.0094 dTP=+18 dFP=-10 dFN=-18 no_reg=False promotable=False
+[variant] mg=2 dist=10.0 mf=4 micro_adj=0.6756 d=+0.0107 dTP=+27 dFP=-4 dFN=-27 no_reg=False promotable=False
+[variant] mg=2 dist=10.0 mf=5 micro_adj=0.6748 d=+0.0099 dTP=+26 dFP=-2 dFN=-26 no_reg=False promotable=False
+[variant] mg=2 dist=10.0 mf=6 micro_adj=0.6729 d=+0.0080 dTP=+23 dFP=+1 dFN=-23 no_reg=False promotable=False
+[variant] mg=2 dist=10.0 mf=8 micro_adj=0.6738 d=+0.0089 dTP=+19 dFP=-7 dFN=-19 no_reg=False promotable=False
+[variant] mg=3 dist=7.0 mf=4 micro_adj=0.6770 d=+0.0121 dTP=+29 dFP=-8 dFN=-29 no_reg=False promotable=False
+[variant] mg=3 dist=7.0 mf=5 micro_adj=0.6773 d=+0.0124 dTP=+29 dFP=-8 dFN=-29 no_reg=False promotable=False
+[variant] mg=3 dist=7.0 mf=6 micro_adj=0.6759 d=+0.0110 dTP=+25 dFP=-8 dFN=-25 no_reg=False promotable=False
+[variant] mg=3 dist=7.0 mf=8 micro_adj=0.6771 d=+0.0122 dTP=+25 dFP=-11 dFN=-25 no_reg=False promotable=False
+[variant] mg=3 dist=10.0 mf=4 micro_adj=0.6769 d=+0.0120 dTP=+34 dFP=-3 dFN=-34 no_reg=False promotable=False
+[variant] mg=3 dist=10.0 mf=5 micro_adj=0.6764 d=+0.0115 dTP=+33 dFP=-1 dFN=-33 no_reg=False promotable=False
+[variant] mg=3 dist=10.0 mf=6 micro_adj=0.6753 d=+0.0104 dTP=+30 dFP=+0 dFN=-30 no_reg=False promotable=False
+[variant] mg=3 dist=10.0 mf=8 micro_adj=0.6769 d=+0.0120 dTP=+26 dFP=-10 dFN=-26 no_reg=False promotable=False
+
+wrote /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2849/refine_gap_recover.json
+n_promotable=0
+NO PROMOTABLE. Top: mg=3 dist=7.0 mf=5 micro=0.6773 (d +0.0124) no_reg=False per={'44b6_0113de3b': 0.8889, '44b6_0b24845f': 0.7174, '6bba_05b6850b': 0.5827, '6bba_05db0fb1': 0.7424}

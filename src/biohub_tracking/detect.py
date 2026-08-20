@@ -85,6 +85,31 @@ class DetectParams:
     anisotropy stays handled by :attr:`sigma_zyx`. ``None`` feeds the raw volume in
     unchanged (exact reproduction of the pre-SOT-2776 detector)."""
 
+    dog_scales_zyx: tuple[tuple[float, float, float], ...] | None = None
+    """Optional **multi-scale scale-space DoG** blob detection (SOT-2774).
+
+    The single-scale DoG (:attr:`background_sigma_zyx`) tunes one blob radius, but
+    real nuclei vary in size across family/timepoint (sparse ``44b6`` vs dense
+    small-nuclei ``6bba``), so one scale both misses large cells and over-splits
+    small ones. When set to a small bank of anisotropic foreground sigmas
+    ``((σz,σy,σx), ...)`` (e.g. ``((0.7,1.4,1.4),(1.0,2.0,2.0),(1.4,2.8,2.8))``) the
+    detector computes a DoG response at each scale and keeps the **per-voxel maximum
+    normalized response across scales** — a scale-space blob detector in the spirit
+    of skimage's ``blob_dog``/``blob_log`` but numpy/scipy-only (no new dependency).
+
+    Each scale's background sigma is the base :attr:`background_sigma_zyx` scaled in
+    proportion to its foreground sigma (using the base ``background/sigma`` ratio, so
+    the middle scale that equals :attr:`sigma_zyx` reproduces the single-scale
+    champion response); :attr:`background_sigma_zyx` must therefore be set. Each
+    scale's DoG is multiplied by a **normalized-LoG scale correction** ``σ̄²`` (the
+    squared geometric-mean sigma, ``prod(σ)^(2/3)``) so responses at different radii
+    are directly comparable — without it the smaller scales, which sit on a steeper
+    intensity gradient, would always dominate the max and defeat the point. The
+    per-voxel argmax scale (which radius fired) is tracked internally. The combined
+    response then feeds the *same* threshold (percentile or :attr:`mad_k` z-score)
+    and NMS / watershed path unchanged. ``None`` runs the single-scale detector
+    exactly (exact reproduction of the pre-SOT-2774 behaviour)."""
+
     watershed: tuple[str, float, float, float] | None = None
     """Optional **watershed nucleus splitting** with h-maxima seeding (SOT-2775).
 
@@ -136,6 +161,47 @@ def _normalize_intensity(
         out = (vol - lo) / (hi - lo)
         return np.clip(out, 0.0, 1.0).astype(np.float32, copy=False)
     raise ValueError(f"unknown intensity_norm kind: {kind!r}")
+
+
+def _multiscale_dog_response(
+    vol: np.ndarray, params: "DetectParams"
+) -> tuple[np.ndarray, np.ndarray]:
+    """Scale-space DoG: per-voxel max normalized response over a sigma bank (SOT-2774).
+
+    Returns ``(response, scale_index)`` — the per-voxel maximum normalized DoG
+    response across :attr:`DetectParams.dog_scales_zyx`, and the index of the scale
+    that fired at each voxel (which blob radius won; held for diagnostics/NMS parity
+    with the single-scale path). Deterministic and numpy/scipy-only.
+
+    Each scale ``σ`` uses a background sigma scaled from ``σ`` by the base
+    ``background_sigma_zyx / sigma_zyx`` ratio, so the bank's middle scale (``== σ``)
+    reproduces the single-scale champion DoG. Each DoG is multiplied by the
+    **normalized-LoG scale correction** ``σ̄² = prod(σ)^(2/3)`` (squared geometric-mean
+    sigma) so responses at different radii are comparable and the fine scales do not
+    trivially dominate the max.
+    """
+    if params.background_sigma_zyx is None:
+        raise ValueError(
+            "dog_scales_zyx requires background_sigma_zyx (the base scale ratio)"
+        )
+    base_sigma = np.asarray(params.sigma_zyx, dtype=np.float64)
+    base_bg = np.asarray(params.background_sigma_zyx, dtype=np.float64)
+    # Elementwise background/foreground ratio from the base params; guard the
+    # (impossible for real configs) zero-sigma axis so the ratio stays finite.
+    ratio = np.where(base_sigma > 0.0, base_bg / np.where(base_sigma > 0.0, base_sigma, 1.0), 1.0)
+
+    responses: list[np.ndarray] = []
+    for scale in params.dog_scales_zyx:
+        s = np.asarray(scale, dtype=np.float64)
+        fg = ndi.gaussian_filter(vol, sigma=tuple(s))
+        bg = ndi.gaussian_filter(vol, sigma=tuple(s * ratio))
+        norm = float(np.prod(s)) ** (2.0 / 3.0)  # σ̄² normalized-LoG scale correction
+        responses.append((fg - bg) * norm)
+
+    stack = np.stack(responses, axis=0)  # (S, Z, Y, X)
+    scale_index = np.argmax(stack, axis=0).astype(np.int16)
+    response = np.max(stack, axis=0)
+    return response, scale_index
 
 
 def _reconstruction_by_dilation(
@@ -279,15 +345,20 @@ def detect_centroids(
 
     vol = np.asarray(volume, dtype=np.float32)
     vol = _normalize_intensity(vol, params.intensity_norm)
-    smoothed = ndi.gaussian_filter(vol, sigma=params.sigma_zyx)
 
-    # Detection response: raw smoothed intensity, or a Difference-of-Gaussians
-    # (local contrast) response when a background sigma is configured (SOT-2272).
-    if params.background_sigma_zyx is not None:
-        background = ndi.gaussian_filter(vol, sigma=params.background_sigma_zyx)
-        response = smoothed - background
+    # Detection response, in precedence order:
+    #   1. multi-scale scale-space DoG (per-voxel max over a sigma bank; SOT-2774),
+    #   2. single-scale Difference-of-Gaussians local contrast (SOT-2272), or
+    #   3. the raw smoothed intensity.
+    if params.dog_scales_zyx is not None:
+        response, _scale_index = _multiscale_dog_response(vol, params)
     else:
-        response = smoothed
+        smoothed = ndi.gaussian_filter(vol, sigma=params.sigma_zyx)
+        if params.background_sigma_zyx is not None:
+            background = ndi.gaussian_filter(vol, sigma=params.background_sigma_zyx)
+            response = smoothed - background
+        else:
+            response = smoothed
 
     # Response threshold: a robust per-volume z-score (median + k·1.4826·MAD) when
     # ``mad_k`` is configured (SOT-2307, adapts the kept-peak *count* to each

@@ -1,0 +1,42 @@
+loaded 44b6_0113de3b
+loaded 44b6_0b24845f
+loaded 6bba_05b6850b
+loaded 6bba_05db0fb1
+
+=== baseline_none (scales=None) ===
+  44b6_0113de3b    tp/fp/fn=47/2/3 adj=0.8895 pred_nodes=29844
+  44b6_0b24845f    tp/fp/fn=37/5/12 adj=0.6817 pred_nodes=34485
+  6bba_05b6850b    tp/fp/fn=651/215/194 adj=0.5700 pred_nodes=10938
+  6bba_05db0fb1    tp/fp/fn=973/148/210 adj=0.7310 pred_nodes=69784
+  -> micro-adj=0.6649 by_lineage={'44b6': 0.7836144701478721, '6bba': 0.6596393906875447}
+
+=== bank3_center (scales=((0.7, 1.4, 1.4), (1.0, 2.0, 2.0), (1.4, 2.8, 2.8))) ===
+  44b6_0113de3b    tp/fp/fn=47/2/3 adj=0.8631 pred_nodes=37358
+  44b6_0b24845f    tp/fp/fn=30/4/19 adj=0.5583 pred_nodes=37282
+  6bba_05b6850b    tp/fp/fn=705/89/140 adj=0.6460 pred_nodes=15532
+  6bba_05db0fb1    tp/fp/fn=948/156/235 adj=0.7119 pred_nodes=65937
+  -> micro-adj=0.6859 by_lineage={'44b6': 0.7092583153475119, '6bba': 0.684835004838526}
+
+=== bank3_fine (scales=((0.6, 1.2, 1.2), (0.85, 1.7, 1.7), (1.1, 2.2, 2.2))) ===
+  44b6_0113de3b    tp/fp/fn=47/2/3 adj=0.8260 pred_nodes=47949
+  44b6_0b24845f    tp/fp/fn=36/2/13 adj=0.6726 pred_nodes=48245
+  6bba_05b6850b    tp/fp/fn=670/173/175 adj=0.4927 pred_nodes=22351
+  6bba_05db0fb1    tp/fp/fn=984/150/199 adj=0.7326 pred_nodes=75108
+  -> micro-adj=0.6338 by_lineage={'44b6': 0.7500374029763668, '6bba': 0.6287249941937806}
+
+=== bank3_coarse (scales=((1.0, 2.0, 2.0), (1.4, 2.8, 2.8), (2.0, 4.0, 4.0))) ===
+  44b6_0113de3b    tp/fp/fn=48/2/2 adj=0.9210 pred_nodes=26330
+  44b6_0b24845f    tp/fp/fn=24/4/25 adj=0.4665 pred_nodes=22915
+  6bba_05b6850b    tp/fp/fn=702/46/143 adj=0.7599 pred_nodes=8618
+  6bba_05db0fb1    tp/fp/fn=801/148/382 adj=0.6213 pred_nodes=47205
+  -> micro-adj=0.6775 by_lineage={'44b6': 0.6915797465789363, '6bba': 0.6768838502273864}
+
+=== bank5_wide (scales=((0.6, 1.2, 1.2), (0.85, 1.7, 1.7), (1.0, 2.0, 2.0), (1.4, 2.8, 2.8), (2.0, 4.0, 4.0))) ===
+  44b6_0113de3b    tp/fp/fn=48/2/2 adj=0.8945 pred_nodes=33736
+  44b6_0b24845f    tp/fp/fn=24/4/25 adj=0.4640 pred_nodes=24734
+  6bba_05b6850b    tp/fp/fn=702/46/143 adj=0.6824 pred_nodes=14877
+  6bba_05db0fb1    tp/fp/fn=812/152/371 adj=0.6254 pred_nodes=50090
+  -> micro-adj=0.6495 by_lineage={'44b6': 0.6771665488410776, '6bba': 0.6482355512797252}
+
+VERDICT: REJECT  incumbent=0.6649  best=None
+wrote /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2774/screen_multiscale.json

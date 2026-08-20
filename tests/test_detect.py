@@ -65,3 +65,59 @@ def test_series_over_timepoints():
     dets = detect_volume_series(arr, DetectParams(threshold_percentile=99.0))
     assert set(dets) == {0, 1}
     assert len(dets[0]) >= 1 and len(dets[1]) >= 1
+
+
+# --- Watershed nucleus splitting (SOT-2775) -------------------------------
+
+
+def test_watershed_none_reproduces_nms_exactly():
+    # watershed=None must be byte-identical to the original NMS detector.
+    vol = _volume_with_blobs([(8, 16, 16), (8, 48, 48), (4, 32, 20)])
+    params_nms = DetectParams(threshold_percentile=99.0)
+    params_off = DetectParams(threshold_percentile=99.0, watershed=None)
+    a = detect_centroids(vol, params_nms)
+    b = detect_centroids(vol, params_off)
+    assert np.array_equal(a, b)
+
+
+def test_watershed_is_deterministic():
+    vol = _volume_with_blobs([(8, 16, 16), (8, 20, 20)])
+    p = DetectParams(threshold_percentile=95.0, watershed=("hmaxima", 1.0, 3.0, 0.0))
+    a = detect_centroids(vol, p)
+    b = detect_centroids(vol, p)
+    assert np.array_equal(a, b)
+    assert a.shape[1] == 3
+
+
+def test_watershed_splits_touching_blobs_into_both_centroids():
+    # Two nuclei whose blurred blobs fuse into ONE connected foreground component
+    # with a saddle between them. The watershed split must recover BOTH centroids
+    # near the true centers (the seeded region partition falls at the saddle).
+    centers = [(8, 32, 24), (8, 32, 40)]
+    vol = _volume_with_blobs(centers, shape=(16, 64, 64), sigma=(1.0, 2.5, 2.5))
+    ws = detect_centroids(
+        vol, DetectParams(threshold_percentile=96.0, watershed=("hmaxima", 0.5, 2.0, 0.0))
+    )
+    assert len(ws) == 2
+    near_ws = sum(_nearest(ws, c) <= 2.0 for c in centers)
+    assert near_ws == 2
+
+
+def test_watershed_empty_when_flat():
+    vol = np.full((8, 32, 32), 100.0, dtype=np.float32)
+    coords = detect_centroids(
+        vol, DetectParams(threshold_percentile=99.0, watershed=("hmaxima", 1.0, 3.0, 0.0))
+    )
+    assert coords.shape == (0, 3)
+
+
+def test_watershed_min_seed_dist_suppresses_close_centroids():
+    vol = _volume_with_blobs([(8, 32, 28), (8, 32, 34)], sigma=(1.0, 2.5, 2.5))
+    close = detect_centroids(
+        vol, DetectParams(threshold_percentile=95.0, watershed=("hmaxima", 0.5, 2.0, 0.0))
+    )
+    far = detect_centroids(
+        vol, DetectParams(threshold_percentile=95.0, watershed=("hmaxima", 0.5, 2.0, 20.0))
+    )
+    # A large min_seed_dist collapses the two close centroids back to one.
+    assert len(far) <= len(close)

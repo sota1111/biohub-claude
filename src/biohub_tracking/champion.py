@@ -134,6 +134,7 @@ def champion_params(
     bg = d.get("background_sigma_zyx")
     mad_k = d.get("mad_k")
     inorm = d.get("intensity_norm")
+    wshed = d.get("watershed")
     detect = DetectParams(
         sigma_zyx=tuple(d.get("sigma_zyx", (1.0, 3.0, 3.0))),
         nms_size_zyx=tuple(d.get("nms_size_zyx", (2, 5, 5))),
@@ -144,6 +145,11 @@ def champion_params(
         intensity_norm=(
             (str(inorm[0]), float(inorm[1]), float(inorm[2]))
             if inorm is not None
+            else None
+        ),
+        watershed=(
+            (str(wshed[0]), float(wshed[1]), float(wshed[2]), float(wshed[3]))
+            if wshed is not None
             else None
         ),
     )

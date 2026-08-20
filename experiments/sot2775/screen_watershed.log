@@ -1,0 +1,21 @@
+loaded 44b6_0113de3b
+loaded 44b6_0b24845f
+loaded 6bba_05b6850b
+loaded 6bba_05db0fb1
+
+=== baseline_none (watershed=None) ===
+  44b6_0113de3b    tp/fp/fn=47/2/3 adj=0.8895 pred_nodes=29844
+  44b6_0b24845f    tp/fp/fn=37/5/12 adj=0.6817 pred_nodes=34485
+  6bba_05b6850b    tp/fp/fn=651/215/194 adj=0.5700 pred_nodes=10938
+  6bba_05db0fb1    tp/fp/fn=973/148/210 adj=0.7310 pred_nodes=69784
+  -> micro-adj=0.6649 by_lineage={'44b6': 0.7836144701478721, '6bba': 0.6596393906875447}
+
+=== ws_h3_ms8_sd4 (watershed=('hmaxima', 3.0, 8.0, 4.0)) ===
+  44b6_0113de3b    tp/fp/fn=48/2/2 adj=0.9105 pred_nodes=29252
+  44b6_0b24845f    tp/fp/fn=6/9/43 adj=0.1079 pred_nodes=18690
+  6bba_05b6850b    tp/fp/fn=678/249/167 adj=0.5836 pred_nodes=10075
+  6bba_05db0fb1    tp/fp/fn=815/215/368 adj=0.5974 pred_nodes=52530
+  -> micro-adj=0.5869 by_lineage={'44b6': 0.48733014746637576, '6bba': 0.5913303732741011}
+
+VERDICT: REJECT  incumbent=0.6649  best=None
+wrote /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2775/screen_watershed.json

@@ -1,0 +1,19 @@
+[detect] 44b6_0113de3b: 29.6s dets=32147
+[detect] 44b6_0b24845f: 30.1s dets=42080
+[detect] 6bba_05b6850b: 30.1s dets=13376
+[detect] 6bba_05db0fb1: 30.2s dets=73953
+[baseline] champion micro_adj=0.6649 score=0.6649
+[weight] w=0.0 micro_adj=0.6649 score=0.6649 d=+0.0000 dTP=+0 dFP=+0 dFN=+0 no_reg=False promotable=False
+[weight] w=0.5 micro_adj=0.6637 score=0.6637 d=-0.0012 dTP=-1 dFP=+3 dFN=+1 no_reg=False promotable=False
+[weight] w=1.0 micro_adj=0.6640 score=0.6640 d=-0.0009 dTP=-1 dFP=+2 dFN=+1 no_reg=False promotable=False
+[weight] w=1.5 micro_adj=0.6646 score=0.6646 d=-0.0003 dTP=+0 dFP=+1 dFN=+0 no_reg=False promotable=False
+[weight] w=2.0 micro_adj=0.6646 score=0.6646 d=-0.0003 dTP=+0 dFP=+1 dFN=+0 no_reg=False promotable=False
+[weight] w=3.0 micro_adj=0.6643 score=0.6643 d=-0.0006 dTP=+0 dFP=+2 dFN=+0 no_reg=False promotable=False
+[weight] w=4.0 micro_adj=0.6647 score=0.6647 d=-0.0002 dTP=+1 dFP=+2 dFN=-1 no_reg=False promotable=False
+[weight] w=6.0 micro_adj=0.6641 score=0.6641 d=-0.0008 dTP=+0 dFP=+3 dFN=+0 no_reg=False promotable=False
+
+wrote /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2829/screen_appearance.json
+baseline champion score=0.6649 (micro_adj=0.6649)
+weight=0 reproduces champion exactly: True
+n_promotable=0
+NO PROMOTABLE variant. Top-by-score: w=0.0 score=0.6649 (delta +0.0) no_reg=False edge_delta={'d_tp': 0, 'd_fp': 0, 'd_fn': 0}

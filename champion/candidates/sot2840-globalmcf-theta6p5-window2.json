@@ -1,0 +1,22 @@
+{
+  "name": "candidate-globalmcf-theta6.5-window2",
+  "description": "SOT-2840 LB-probe CANDIDATE (NOT the live champion). Identical to the reigning detect-link-dog-v4-shorttrack champion (champion/config.json, sha256 42064648...) EXCEPT the linking stage runs SOT-2830's portable global short-window min-cost-flow / birth-death-arc assignment: global_window=2 with finite birth_cost=death_cost=3.25 (theta=birth+death=6.5, the link-acceptance threshold). On the SOT-2817 re-anchored full-metric leak-free CV this raises the micro-adjusted edge Jaccard 0.6649->0.6671 (+0.0022) with 4/4 per-dataset NON-REGRESSION and micro/macro/lineage-macro all up (44b6_0113de3b 0.8895->0.8906, 44b6_0b24845f 0.6817->0.6970, 6bba_05b6850b 0.5700->0.5717, 6bba_05db0fb1 0.7310->0.7339). It is the first non-regressing, all-aggregation-consistent linking candidate in the project, BUT family_mix_sensitive=True (micro<->lineage-macro gap 0.0601 > 0.05 tol; the gain is concentrated on the dominant 6bba lineage weight-share 0.9577), so per the SOT-2817 representativeness guard + SOT-2816 CV-up/LB-down hazard the live champion pointer stays BYTE-FROZEN until a real LB probe (reserve slot, parent resume run) resolves whether the family-mix-sensitive CV gain transfers. This file is a candidate artifact ONLY; the live champion is never flipped to it without LB confirmation.",
+  "scale": [1.625, 0.40625, 0.40625],
+  "detect": {
+    "sigma_zyx": [1.0, 2.0, 2.0],
+    "background_sigma_zyx": [2.0, 6.0, 6.0],
+    "nms_size_zyx": [2, 5, 5],
+    "threshold_percentile": 92.0,
+    "mad_k": 3.0,
+    "min_threshold": 0.0
+  },
+  "link": {
+    "max_distance": 7.0,
+    "allow_division": false,
+    "division_distance": 7.0,
+    "min_track_length": 4,
+    "global_window": 2,
+    "birth_cost": 3.25,
+    "death_cost": 3.25
+  }
+}

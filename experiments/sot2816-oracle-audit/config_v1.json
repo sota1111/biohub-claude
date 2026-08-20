@@ -1,0 +1,6 @@
+{
+  "name": "detect-link-v1",
+  "scale": [1.625, 0.40625, 0.40625],
+  "detect": {"sigma_zyx": [1.0, 3.0, 3.0], "nms_size_zyx": [2, 5, 5], "threshold_percentile": 99.3, "min_threshold": 0.0},
+  "link": {"max_distance": 7.0, "allow_division": false, "division_distance": 7.0, "min_track_length": 1}
+}

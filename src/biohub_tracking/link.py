@@ -207,6 +207,30 @@ class LinkParams:
     reproduces the distance-only champion **byte-for-byte**; it is also inert when
     no descriptors are supplied to :func:`link_centroids`."""
 
+    edge_cost_model: dict | None = None
+    """GT-learned edge-linking cost, embedded logistic model (SOT-2841, default-off).
+
+    The single hand-crafted :attr:`appearance_weight` term (SOT-2829) was a lone,
+    non-learned feature; this is the untried **learned LINKING** axis (``label =
+    edge``): a light logistic classifier fit **leak-free (leave-one-family-out)** on
+    GT *consecutive* edges vs. the feasible non-GT successors of matched sources,
+    over a joint edge-feature vector (scaled distance, appearance-descriptor cosine,
+    and dense-cluster competition cues — rival counts, distance ranks, distance
+    margin; see :data:`biohub_tracking.edge_linker.EDGE_FEATURE_NAMES`). Its learned
+    probability ``p_edge`` enters the assignment cost as ``dist +
+    edge_cost_model.weight * (1 - p_edge)``, so a successor the classifier judges a
+    genuine GT link is preferred among the distance-feasible candidates.
+
+    The dict is the serialized :class:`biohub_tracking.edge_linker.LearnedEdgeCost`
+    (``feature_names``/``mean``/``std``/``coef``/``intercept``/``weight``). As with
+    :attr:`appearance_weight`, the ``<= max_distance`` feasibility gate stays on the
+    **raw scaled distance**, so the term only *re-ranks* the champion's existing
+    feasible set and can never introduce a new long-range (metric-invalid) edge —
+    pure, low-risk disambiguation. ``None`` (default), a model ``weight == 0``, or no
+    supplied ``descriptors`` all drop the term and reproduce the distance-only
+    champion **byte-for-byte** (a strict default-off superset). Inactive on the
+    global-window (SOT-2830) path (which emits distance-only birth/death edges)."""
+
     min_track_length: int = 1
     """Drop weakly-connected track fragments with fewer than this many nodes
     (SOT-2369, ported from the reference tracker's ``FILTER_SHORT_TRACKS``).
@@ -373,6 +397,7 @@ def _assign(
     gate_on_prediction: bool = False,
     src_desc: np.ndarray | None = None, dst_desc: np.ndarray | None = None,
     appearance_weight: float = 0.0,
+    edge_model=None,
 ) -> list[tuple[int, int]]:
     """Optimal one-to-one assignment of ``src`` rows to ``dst`` rows within range.
 
@@ -392,6 +417,11 @@ def _assign(
     **added to the cost only** (SOT-2829); the feasibility gate stays on the scaled
     distance, so appearance re-ranks within the champion's feasible set but never
     admits an out-of-range edge.
+
+    When ``edge_model`` is a :class:`biohub_tracking.edge_linker.LearnedEdgeCost`
+    with descriptors supplied, its GT-learned ``weight * (1 - p_edge)`` penalty
+    (SOT-2841) is likewise **added to the cost only**; the gate stays on the scaled
+    distance, so it re-ranks the feasible set without admitting an out-of-range edge.
     """
     if len(src) == 0 or len(dst) == 0:
         return []
@@ -407,6 +437,15 @@ def _assign(
         cost_base = dist_pred + disp_weight * dist
     if appearance_weight > 0.0 and src_desc is not None and dst_desc is not None:
         cost_base = cost_base + _appearance_cost(src_desc, dst_desc, appearance_weight)
+    if (
+        edge_model is not None
+        and edge_model.weight != 0.0
+        and src_desc is not None
+        and dst_desc is not None
+    ):
+        cost_base = cost_base + edge_model.penalty(
+            dist, src_desc, dst_desc, max_distance
+        )
     big = max_distance * 1000.0 + cost_base.max() + 1.0
     cost = np.where(gate <= max_distance, cost_base, big)
     rows, cols = linear_sum_assignment(cost)
@@ -513,6 +552,17 @@ def link_centroids(
     scale_arr = np.asarray(scale, dtype=float)
     use_appearance = params.appearance_weight > 0.0 and descriptors is not None
 
+    # GT-learned edge-linking cost (SOT-2841): built once from the embedded config.
+    # Inactive (byte-for-byte champion) when no model, weight 0, or no descriptors.
+    edge_model = None
+    use_edge_model = False
+    if params.edge_cost_model is not None and descriptors is not None:
+        from .edge_linker import LearnedEdgeCost
+
+        edge_model = LearnedEdgeCost.from_dict(params.edge_cost_model)
+        use_edge_model = edge_model.weight != 0.0
+    use_desc = use_appearance or use_edge_model
+
     graph = TrackingGraph()
     ids_by_t: dict[int, list[int]] = {}
     next_id = 0
@@ -564,16 +614,18 @@ def link_centroids(
                 src, dst, scale_arr, params.max_distance,
                 src_pred=src_pred, disp_weight=params.velocity_disp_weight,
                 gate_on_prediction=params.motion_gate_on_prediction,
-                src_desc=descriptors[t_a] if use_appearance else None,
-                dst_desc=descriptors[t_b] if use_appearance else None,
+                src_desc=descriptors[t_a] if use_desc else None,
+                dst_desc=descriptors[t_b] if use_desc else None,
                 appearance_weight=params.appearance_weight,
+                edge_model=edge_model if use_edge_model else None,
             )
         else:
             pairs = _assign(
                 src, dst, scale_arr, params.max_distance,
-                src_desc=descriptors[t_a] if use_appearance else None,
-                dst_desc=descriptors[t_b] if use_appearance else None,
+                src_desc=descriptors[t_a] if use_desc else None,
+                dst_desc=descriptors[t_b] if use_desc else None,
                 appearance_weight=params.appearance_weight,
+                edge_model=edge_model if use_edge_model else None,
             )
         # Record each child's incoming displacement so it can predict t+1 -> t+2.
         if params.velocity_gain:

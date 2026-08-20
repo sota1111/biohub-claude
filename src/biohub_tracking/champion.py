@@ -216,6 +216,12 @@ def champion_params(
             float("inf") if l.get("death_cost") is None else float(l["death_cost"])
         ),
         appearance_weight=float(l.get("appearance_weight", 0.0)),
+        # Learned edge-linking cost (SOT-2841): the embedded-coefficient dict passes
+        # through as-is; LinkParams.edge_cost_model=None (absent) keeps the champion
+        # byte-identical.
+        edge_cost_model=(
+            dict(l["edge_cost_model"]) if l.get("edge_cost_model") is not None else None
+        ),
         min_track_length=int(l.get("min_track_length", 1)),
         division_overlay=(
             (

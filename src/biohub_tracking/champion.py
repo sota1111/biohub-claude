@@ -149,6 +149,8 @@ def champion_params(
         velocity_gain=float(l.get("velocity_gain", 0.0)),
         velocity_disp_weight=float(l.get("velocity_disp_weight", 0.05)),
         motion_gate_on_prediction=bool(l.get("motion_gate_on_prediction", False)),
+        max_frame_gap=int(l.get("max_frame_gap", 1)),
+        gap_distance=float(l.get("gap_distance", 7.0)),
         min_track_length=int(l.get("min_track_length", 1)),
     )
     scale = tuple(config.get("scale", DEFAULT_SCALE))

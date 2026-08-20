@@ -95,6 +95,37 @@ class LinkParams:
     distance instead, letting a fast, motion-consistent cell link slightly beyond
     ``max_distance`` in raw terms."""
 
+    max_frame_gap: int = 1
+    """Gap-closing 2nd linking step across missing detections (SOT-2763).
+
+    The frame-to-frame assignment above only links consecutive frames, so a cell
+    that is *missed* in one frame ends its track and its persistence is lost —
+    the dominant source of FN edges. This is the classical Jaqaman/TrackMate
+    second LAP step: after frame-to-frame linking, each track *fragment* terminal
+    (a **tail** = node with no successor) is bridged to a later fragment **head**
+    (node with no predecessor) whose timepoint is ``t + g`` for a frame gap
+    ``2 <= g <= max_frame_gap``, within :attr:`gap_distance` microns, by an
+    optimal min-cost assignment (:func:`_gap_close`). ``1`` disables gap-closing
+    and reproduces the frame-to-frame champion **byte-for-byte**.
+
+    **Interaction with the metric (important).** The competition edge metric keeps
+    only consecutive-frame edges (``t_target - t_source == 1``), so a bridge edge
+    that spans a gap is *dropped* before scoring — it is neither TP nor FP. Its
+    entire value is therefore indirect: gap-closing runs **before**
+    :attr:`min_track_length` pruning, so bridging two real short fragments into one
+    ``>= min_track_length``-node weakly-connected component rescues their internal
+    *consecutive* edges from being pruned (recovering FN edges), at the cost of
+    keeping the bridged nodes (raising ``N_pred`` and the node-count penalty). The
+    net effect is decided empirically on the leak-free CV."""
+
+    gap_distance: float = DEFAULT_MAX_DISTANCE
+    """Maximum tail->head scaled distance (microns) for a gap-closing bridge.
+
+    Only used when :attr:`max_frame_gap` ``> 1``. A single absolute gate (the
+    TrackMate "gap-closing max distance" convention) rather than a per-frame
+    budget, so widening it admits more distant reconnections; tightening it keeps
+    only close, high-confidence bridges to suppress spurious cross-track merges."""
+
     min_track_length: int = 1
     """Drop weakly-connected track fragments with fewer than this many nodes
     (SOT-2369, ported from the reference tracker's ``FILTER_SHORT_TRACKS``).
@@ -136,6 +167,101 @@ def _prune_short_tracks(graph: TrackingGraph, min_nodes: int) -> TrackingGraph:
         sizes[r] = sizes.get(r, 0) + 1
     keep = [n for n in graph.node_ids() if sizes[find(n)] >= min_nodes]
     return graph.subgraph(keep)
+
+
+def _gap_close(
+    graph: TrackingGraph,
+    scale: np.ndarray,
+    max_frame_gap: int,
+    gap_distance: float,
+) -> TrackingGraph:
+    """Bridge track-fragment terminals across missing frames (SOT-2763).
+
+    The classical Jaqaman/TrackMate second LAP step. A **tail** (node with no
+    successor) at timepoint ``t`` is joined to a later fragment **head** (node
+    with no predecessor) at ``t + g`` for a frame gap ``2 <= g <= max_frame_gap``
+    whose scaled tail->head distance is ``<= gap_distance``. The bridge edges are
+    chosen by an **optimal min-cost assignment** (each tail bridges to at most one
+    head and vice versa). All bridges point strictly forward in time, so the graph
+    stays acyclic and no fragment is bridged to itself.
+
+    The assignment is solved per connected component of the feasible-pair
+    bipartite graph. Because ``gap_distance`` and ``max_frame_gap`` are small, the
+    feasible pairs are spatially/temporally local and decompose into many tiny
+    components; a block-diagonal LAP equals the global LAP but each block is small,
+    so this stays tractable on dense volumes (tens of thousands of nodes). Mutates
+    *graph* in place (adds edges) and returns it.
+    """
+    if max_frame_gap <= 1:
+        return graph
+    tails = [n for n in graph.node_ids() if graph.out_degree(n) == 0]
+    heads = [n for n in graph.node_ids() if graph.in_degree(n) == 0]
+    if not tails or not heads:
+        return graph
+
+    heads_by_t: dict[int, list[int]] = {}
+    for h in heads:
+        heads_by_t.setdefault(graph.t(h), []).append(h)
+
+    # Feasible (tail, head, cost) candidates: cost is the scaled tail->head
+    # distance; a candidate is admissible only within the frame-gap and distance
+    # gates. Vectorised over each (tail-time, gap) block of heads.
+    cand: list[tuple[int, int, float]] = []
+    for tail in tails:
+        t0 = graph.t(tail)
+        p0 = graph.position(tail) * scale
+        for g in range(2, max_frame_gap + 1):
+            hs = heads_by_t.get(t0 + g)
+            if not hs:
+                continue
+            hpos = np.array([graph.position(h) for h in hs], dtype=float) * scale
+            dist = np.sqrt(((hpos - p0) ** 2).sum(axis=1))
+            for h, d in zip(hs, dist):
+                if h != tail and d <= gap_distance:
+                    cand.append((tail, h, float(d)))
+    if not cand:
+        return graph
+
+    # Union-find over the feasible-pair bipartite graph (tail/head namespaced so
+    # an isolated node — both a tail and a head — never collides with itself).
+    parent: dict[tuple[str, int], tuple[str, int]] = {}
+
+    def find(x: tuple[str, int]) -> tuple[str, int]:
+        parent.setdefault(x, x)
+        root = x
+        while parent[root] != root:
+            root = parent[root]
+        while parent[x] != root:  # path compression
+            parent[x], x = root, parent[x]
+        return root
+
+    for tail, h, _cost in cand:
+        parent[find(("t", tail))] = find(("h", h))
+
+    comps: dict[tuple[str, int], list[tuple[int, int, float]]] = {}
+    for tail, h, cost in cand:
+        comps.setdefault(find(("t", tail)), []).append((tail, h, cost))
+
+    new_edges: list[tuple[int, int]] = []
+    big = gap_distance * 1000.0 + 1.0
+    for pairs in comps.values():
+        comp_tails = sorted({p[0] for p in pairs})
+        comp_heads = sorted({p[1] for p in pairs})
+        ti = {n: i for i, n in enumerate(comp_tails)}
+        hi = {n: i for i, n in enumerate(comp_heads)}
+        cost = np.full((len(comp_tails), len(comp_heads)), big, dtype=float)
+        for tail, h, c in pairs:
+            r, col = ti[tail], hi[h]
+            if c < cost[r, col]:
+                cost[r, col] = c
+        rows, cols = linear_sum_assignment(cost)
+        for r, col in zip(rows, cols):
+            if cost[r, col] < big:
+                new_edges.append((comp_tails[r], comp_heads[col]))
+
+    for src, dst in new_edges:
+        graph.add_edge(src, dst)
+    return graph
 
 
 def _assign(
@@ -265,6 +391,13 @@ def link_centroids(
                     matched_dst.add(j)
                     break
 
+    # Gap-closing 2nd LAP step runs BEFORE short-track pruning, so bridging real
+    # short fragments into a >= min_track_length component rescues their internal
+    # consecutive edges from the prune (SOT-2763).
+    if params.max_frame_gap > 1:
+        graph = _gap_close(
+            graph, scale_arr, params.max_frame_gap, params.gap_distance
+        )
     if params.min_track_length > 1:
         graph = _prune_short_tracks(graph, params.min_track_length)
     return graph

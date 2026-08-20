@@ -140,6 +140,7 @@ def champion_params(
     bfilter = d.get("blobness_filter")
     dsplit = d.get("density_gated_split")
     lthr = d.get("local_threshold")
+    dscorer = d.get("detect_scorer")
     detect = DetectParams(
         sigma_zyx=tuple(d.get("sigma_zyx", (1.0, 3.0, 3.0))),
         nms_size_zyx=tuple(d.get("nms_size_zyx", (2, 5, 5))),
@@ -189,6 +190,10 @@ def champion_params(
             if lthr is not None
             else None
         ),
+        # Learned detection scorer (SOT-2828): the embedded-coefficient dict passes
+        # through as-is; DetectParams.detect_scorer=None (absent) keeps the champion
+        # byte-identical.
+        detect_scorer=dict(dscorer) if dscorer is not None else None,
     )
     link = LinkParams(
         max_distance=float(l.get("max_distance", 7.0)),

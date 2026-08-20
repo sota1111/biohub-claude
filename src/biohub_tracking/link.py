@@ -141,6 +141,53 @@ class LinkParams:
     division_jaccard`` term without the LAP reassignment that made in-linker
     ``allow_division`` (SOT-2762) regress the edge metric."""
 
+    global_window: int = 1
+    """Short-window global min-cost-flow assignment with explicit birth/death arcs
+    (SOT-2830, portable tracking-by-assignment; arxiv 2004.06375 / 1705.03386).
+
+    ``1`` (default) runs the **unchanged per-frame path** above (memoryless
+    optimal bipartite matching per ``t -> t+1`` transition), so the champion graph
+    is reproduced **byte-for-byte**. ``>= 2`` activates the global assignment path
+    (:func:`_global_link`): the same ``t -> t+1`` *metric-valid* candidate links
+    (never a non-consecutive **bridge** edge — that is what made gap-closing
+    (SOT-2763) forfeit the non-continuous edge metric), but each detection also
+    gets explicit **birth** and **death** arcs (:attr:`birth_cost` /
+    :attr:`death_cost`) so the solver may *refuse* a link and start/end a track
+    instead of greedily attaching every feasible pair. This is the classical
+    network-flow tracker (Zhang 2008) restricted to a short temporal window and to
+    adjacent-frame arcs.
+
+    **Reduction (why the window is a structural knob, not a second lever).** With
+    the champion's pure-distance edge cost and consecutive-only arcs, the window
+    min-cost flow *decouples per transition*: a middle detection's incoming and
+    outgoing links share no flow variable (the birth/death costs are per-node
+    constants, so each transition's assignment-with-outliers is independent). So
+    for this cost model the joint W-frame optimum equals the per-transition
+    optimum, and :func:`_global_link` solves it exactly and efficiently as one
+    assignment-with-birth/death-outliers per transition (:func:`_global_assign`);
+    ``global_window`` only *activates* the birth/death arcs. The value is reserved
+    for a future cross-hop coupling term (velocity/appearance) that would make the
+    window bite; today the effective lever is the birth/death threshold
+    ``theta = birth_cost + death_cost``. ``global_window >= 2`` is incompatible with
+    in-linker ``allow_division`` / gap-closing (``max_frame_gap > 1``); those knobs
+    are ignored on the global path so it emits only ``t -> t+1`` one-to-one edges."""
+
+    birth_cost: float = float("inf")
+    """Cost of a detection *starting* a track (no incoming ``t-1 -> t`` link) on the
+    global path (:attr:`global_window` ``>= 2``). ``inf`` (default) makes every
+    feasible link strictly cheaper than a birth+death, so the global path matches
+    **all** feasible pairs exactly like the per-frame champion. A finite value
+    forms the link-acceptance threshold ``theta = birth_cost + death_cost``: a
+    ``t -> t+1`` pair is linked only when its scaled distance is ``< theta`` (and
+    ``<= max_distance``), so lowering ``theta`` suppresses the marginal
+    long-distance mis-links a greedy per-frame assignment makes to transient
+    detections. Ignored when :attr:`global_window` ``<= 1``."""
+
+    death_cost: float = float("inf")
+    """Cost of a detection *ending* a track (no outgoing ``t -> t+1`` link) on the
+    global path. See :attr:`birth_cost`; the two enter the assignment only through
+    their sum ``theta``. Ignored when :attr:`global_window` ``<= 1``."""
+
     min_track_length: int = 1
     """Drop weakly-connected track fragments with fewer than this many nodes
     (SOT-2369, ported from the reference tracker's ``FILTER_SHORT_TRACKS``).
@@ -315,6 +362,82 @@ def _assign(
     return [(int(r), int(c)) for r, c in zip(rows, cols) if gate[r, c] <= max_distance]
 
 
+def _global_assign(
+    src: np.ndarray, dst: np.ndarray, scale: np.ndarray, max_distance: float,
+    theta: float,
+) -> list[tuple[int, int]]:
+    """One transition of the global min-cost-flow assignment (SOT-2830).
+
+    Solves the assignment-with-**birth/death-outliers** for a single ``t -> t+1``
+    transition: each ``src`` row may link to at most one ``dst`` row (and vice
+    versa) at cost = scaled distance, or stay unlinked — the source *dies*
+    (:attr:`LinkParams.death_cost`) and the destination is *born*
+    (:attr:`LinkParams.birth_cost`). Only ``theta = death_cost + birth_cost``
+    enters, as the link-acceptance threshold: a pair is linked only when it is
+    cheaper than paying both outlier costs, i.e. its scaled distance is
+    ``< theta`` (and ``<= max_distance``).
+
+    This is the exact single-transition min-cost flow (the block flow decouples per
+    transition for a pure-distance cost — see :attr:`LinkParams.global_window`), and
+    it stays a rectangular ``len(src) x len(dst)`` LAP (same size/cost as the
+    per-frame :func:`_assign`, no dummy-padded square blow-up).
+
+    ``theta = inf`` reproduces :func:`_assign` **exactly** (every feasible pair is
+    cheaper than an infinite outlier, so the champion matching is recovered),
+    keeping the global path a strict generalisation of the per-frame champion.
+    """
+    if not np.isfinite(theta):
+        # Infinite outlier cost => every feasible link is worthwhile; this is the
+        # champion's optimal in-range matching, byte-for-byte.
+        return _assign(src, dst, scale, max_distance)
+    if len(src) == 0 or len(dst) == 0:
+        return []
+    diff = (src[:, None, :] - dst[None, :, :]) * scale
+    dist = np.sqrt((diff**2).sum(axis=2))
+    feasible = dist <= max_distance
+    # Profit of a link vs. leaving both endpoints as death+birth is
+    # ``theta - dist`` (> 0 only when dist < theta). Maximise total profit ==
+    # minimise total ``min(dist - theta, 0)``; a forced 0-profit filler pair
+    # (dist >= theta or infeasible) contributes nothing and is dropped below, so
+    # the rectangular LAP still yields the optimal outlier assignment.
+    cost = np.where(feasible, np.minimum(dist - theta, 0.0), 0.0)
+    rows, cols = linear_sum_assignment(cost)
+    return [
+        (int(r), int(c))
+        for r, c in zip(rows, cols)
+        if feasible[r, c] and dist[r, c] < theta
+    ]
+
+
+def _global_link(
+    graph: TrackingGraph,
+    detections: dict[int, np.ndarray],
+    ids_by_t: dict[int, list[int]],
+    scale_arr: np.ndarray,
+    params: LinkParams,
+) -> None:
+    """Global short-window min-cost-flow linking (SOT-2830), in place.
+
+    Adds one-to-one ``t -> t+1`` edges chosen by the birth/death outlier
+    assignment (:func:`_global_assign`) for every consecutive-frame transition, in
+    time-then-source order (so edge insertion order matches the per-frame champion
+    when ``theta == inf``). Emits **only consecutive-frame edges** — no bridge/gap
+    edge (metric-valid) — and does not attach division daughters, so the global
+    path is a clean, metric-continuous generalisation of the per-frame linker whose
+    sole added lever is the birth/death threshold ``theta``.
+    """
+    theta = params.birth_cost + params.death_cost
+    times = sorted(detections)
+    for t_a, t_b in zip(times, times[1:]):
+        if t_b != t_a + 1:
+            continue  # only link consecutive timepoints (no bridge edges)
+        pairs = _global_assign(
+            detections[t_a], detections[t_b], scale_arr, params.max_distance, theta
+        )
+        for i, j in pairs:
+            graph.add_edge(ids_by_t[t_a][i], ids_by_t[t_b][j])
+
+
 def link_centroids(
     detections: dict[int, np.ndarray],
     scale: tuple[float, float, float] = DEFAULT_SCALE,
@@ -340,6 +463,24 @@ def link_centroids(
             ids.append(next_id)
             next_id += 1
         ids_by_t[t] = ids
+
+    # Global short-window min-cost-flow linking (SOT-2830): explicit birth/death
+    # arcs let the solver refuse a marginal link instead of greedily matching every
+    # feasible pair. Only ``t -> t+1`` metric-valid edges are added (no bridges);
+    # in-linker division and gap-closing are inactive on this path. ``global_window
+    # <= 1`` (default) falls through to the unchanged per-frame champion path below,
+    # so the champion graph is byte-for-byte preserved.
+    if params.global_window > 1:
+        _global_link(graph, detections, ids_by_t, scale_arr, params)
+        if params.min_track_length > 1:
+            graph = _prune_short_tracks(graph, params.min_track_length)
+        if params.division_overlay:
+            from .division_overlay import apply_division_overlay
+
+            graph = apply_division_overlay(
+                graph, tuple(scale_arr), params.division_overlay
+            )
+        return graph
 
     # Per-node incoming displacement, indexed by (timepoint, detection-index), so
     # a matched cell can predict where it is drifting next frame. Populated as

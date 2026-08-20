@@ -1,0 +1,229 @@
+{
+  "recordedAt": "2026-08-20T20:13:52Z",
+  "issue": "SOT-2830",
+  "champion_reproduced": true,
+  "champion_reference_micro_adj": 0.6649,
+  "baseline_score": 0.6649,
+  "confirm_variants": [
+    {
+      "theta": 6.5,
+      "global_window": 2,
+      "score": 0.6671,
+      "micro_adj_edge_jaccard": 0.6671,
+      "lineage_macro_adj": 0.7272,
+      "macro_adj_edge_jaccard": 0.7233,
+      "delta_score_vs_champion": 0.0022,
+      "no_per_dataset_regression": true,
+      "family_mix_sensitive": true,
+      "micro_lineage_macro_gap": 0.0601,
+      "per_dataset_adj": {
+        "44b6_0113de3b": 0.8906,
+        "44b6_0b24845f": 0.697,
+        "6bba_05b6850b": 0.5717,
+        "6bba_05db0fb1": 0.7339
+      },
+      "cv": {
+        "micro_adj_edge_jaccard": 0.6671,
+        "micro_edge_jaccard": 0.6843,
+        "macro_adj_edge_jaccard": 0.7233,
+        "lineage_macro_adj": 0.7272,
+        "division_jaccard": 0.0,
+        "division_measurable": true,
+        "division_term": 0.0,
+        "score": 0.6671,
+        "by_lineage": {
+          "44b6": 0.7929,
+          "6bba": 0.6616
+        },
+        "by_lineage_weight_share": {
+          "44b6": 0.0423,
+          "6bba": 0.9577
+        },
+        "representativeness": {
+          "dominant_lineage": "6bba",
+          "dominant_lineage_weight_share": 0.9577,
+          "micro_lineage_macro_gap": 0.0601,
+          "family_mix_sensitive": true,
+          "public_lb_best": 0.624,
+          "cv_public_order_consistent": true,
+          "cv_public_same_magnitude": true
+        },
+        "per_dataset": [
+          {
+            "name": "44b6_0113de3b",
+            "lineage": "44b6",
+            "edge_tp": 47,
+            "edge_fp": 2,
+            "edge_fn": 3,
+            "edge_jaccard": 0.9038,
+            "adjusted_edge_jaccard": 0.8906,
+            "division_tp": 0,
+            "division_fp": 0,
+            "division_fn": 0,
+            "pred_nodes": 29521,
+            "n_true": 25755.0,
+            "weight": 52
+          },
+          {
+            "name": "44b6_0b24845f",
+            "lineage": "44b6",
+            "edge_tp": 37,
+            "edge_fp": 4,
+            "edge_fn": 12,
+            "edge_jaccard": 0.6981,
+            "adjusted_edge_jaccard": 0.697,
+            "division_tp": 0,
+            "division_fp": 0,
+            "division_fn": 0,
+            "pred_nodes": 33323,
+            "n_true": 32795.0,
+            "weight": 53
+          },
+          {
+            "name": "6bba_05b6850b",
+            "lineage": "6bba",
+            "edge_tp": 649,
+            "edge_fp": 214,
+            "edge_fn": 196,
+            "edge_jaccard": 0.6128,
+            "adjusted_edge_jaccard": 0.5717,
+            "division_tp": 0,
+            "division_fp": 0,
+            "division_fn": 0,
+            "pred_nodes": 10633,
+            "n_true": 6362.0,
+            "weight": 1059
+          },
+          {
+            "name": "6bba_05db0fb1",
+            "lineage": "6bba",
+            "edge_tp": 964,
+            "edge_fp": 133,
+            "edge_fn": 219,
+            "edge_jaccard": 0.7325,
+            "adjusted_edge_jaccard": 0.7339,
+            "division_tp": 0,
+            "division_fp": 0,
+            "division_fn": 3,
+            "pred_nodes": 68467,
+            "n_true": 69800.0,
+            "weight": 1316
+          }
+        ]
+      }
+    },
+    {
+      "theta": 6.0,
+      "global_window": 2,
+      "score": 0.6694,
+      "micro_adj_edge_jaccard": 0.6694,
+      "lineage_macro_adj": 0.7289,
+      "macro_adj_edge_jaccard": 0.7252,
+      "delta_score_vs_champion": 0.0045,
+      "no_per_dataset_regression": false,
+      "family_mix_sensitive": true,
+      "micro_lineage_macro_gap": 0.0596,
+      "per_dataset_adj": {
+        "44b6_0113de3b": 0.8915,
+        "44b6_0b24845f": 0.6984,
+        "6bba_05b6850b": 0.5801,
+        "6bba_05db0fb1": 0.7307
+      },
+      "cv": {
+        "micro_adj_edge_jaccard": 0.6694,
+        "micro_edge_jaccard": 0.6858,
+        "macro_adj_edge_jaccard": 0.7252,
+        "lineage_macro_adj": 0.7289,
+        "division_jaccard": 0.0,
+        "division_measurable": true,
+        "division_term": 0.0,
+        "score": 0.6694,
+        "by_lineage": {
+          "44b6": 0.794,
+          "6bba": 0.6638
+        },
+        "by_lineage_weight_share": {
+          "44b6": 0.0427,
+          "6bba": 0.9573
+        },
+        "representativeness": {
+          "dominant_lineage": "6bba",
+          "dominant_lineage_weight_share": 0.9573,
+          "micro_lineage_macro_gap": 0.0596,
+          "family_mix_sensitive": true,
+          "public_lb_best": 0.624,
+          "cv_public_order_consistent": true,
+          "cv_public_same_magnitude": true
+        },
+        "per_dataset": [
+          {
+            "name": "44b6_0113de3b",
+            "lineage": "44b6",
+            "edge_tp": 47,
+            "edge_fp": 2,
+            "edge_fn": 3,
+            "edge_jaccard": 0.9038,
+            "adjusted_edge_jaccard": 0.8915,
+            "division_tp": 0,
+            "division_fp": 0,
+            "division_fn": 0,
+            "pred_nodes": 29263,
+            "n_true": 25755.0,
+            "weight": 52
+          },
+          {
+            "name": "44b6_0b24845f",
+            "lineage": "44b6",
+            "edge_tp": 37,
+            "edge_fp": 4,
+            "edge_fn": 12,
+            "edge_jaccard": 0.6981,
+            "adjusted_edge_jaccard": 0.6984,
+            "division_tp": 0,
+            "division_fp": 0,
+            "division_fn": 0,
+            "pred_nodes": 32662,
+            "n_true": 32795.0,
+            "weight": 53
+          },
+          {
+            "name": "6bba_05b6850b",
+            "lineage": "6bba",
+            "edge_tp": 649,
+            "edge_fp": 201,
+            "edge_fn": 196,
+            "edge_jaccard": 0.6205,
+            "adjusted_edge_jaccard": 0.5801,
+            "division_tp": 0,
+            "division_fp": 0,
+            "division_fn": 0,
+            "pred_nodes": 10496,
+            "n_true": 6362.0,
+            "weight": 1046
+          },
+          {
+            "name": "6bba_05db0fb1",
+            "lineage": "6bba",
+            "edge_tp": 954,
+            "edge_fp": 126,
+            "edge_fn": 229,
+            "edge_jaccard": 0.7288,
+            "adjusted_edge_jaccard": 0.7307,
+            "division_tp": 0,
+            "division_fp": 0,
+            "division_fn": 3,
+            "pred_nodes": 68020,
+            "n_true": 69800.0,
+            "weight": 1309
+          }
+        ]
+      }
+    }
+  ],
+  "cv_promotable": [
+    6.5
+  ],
+  "representative_promotable": [],
+  "decision": "do-not-promote",
+  "decision_note": "theta=6.5/window=2 is CV-promotable (+0.0022, 4/4 non-regression, micro/macro/lineage-macro all up) BUT family_mix_sensitive=True (dominant-6bba micro gain). Per the SOT-2817 representativeness guard and the SOT-2816 CV-up/LB-down hazard, a family-mix-sensitive dominant-lineage CV gain is insufficient to flip the champion pointer without LB validation, which this no-submit cycle cannot perform. Champion kept byte-frozen; candidate handed to the next submission cycle."
+}

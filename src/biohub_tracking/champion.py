@@ -210,6 +210,7 @@ def champion_params(
         death_cost=(
             float("inf") if l.get("death_cost") is None else float(l["death_cost"])
         ),
+        appearance_weight=float(l.get("appearance_weight", 0.0)),
         min_track_length=int(l.get("min_track_length", 1)),
         division_overlay=(
             (

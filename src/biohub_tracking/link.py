@@ -188,6 +188,25 @@ class LinkParams:
     global path. See :attr:`birth_cost`; the two enter the assignment only through
     their sum ``theta``. Ignored when :attr:`global_window` ``<= 1``."""
 
+    appearance_weight: float = 0.0
+    """Local appearance-descriptor similarity term in the frame-to-frame link cost
+    (SOT-2829, portable analog of the official cross-attention appearance linker).
+
+    The champion links ``t -> t+1`` on **scaled centroid distance alone**, so in a
+    dense family (``6bba``) where several plausible successors sit within
+    ``max_distance`` the optimal-distance assignment can attach the wrong, merely
+    nearer neighbour. When ``> 0`` the assignment cost becomes
+    ``dist + appearance_weight * (1 - similarity)`` where ``similarity`` is the
+    cosine of the two detections' standardised local appearance descriptors
+    (:func:`biohub_tracking.detect.patch_descriptors`) mapped to ``[0, 1]``, so a
+    successor that *looks* like the source is preferred among the distance-feasible
+    candidates. The ``<= max_distance`` feasibility gate stays on the **raw scaled
+    distance**, so appearance only *re-ranks* the champion's existing feasible set
+    and can never introduce a new long-range (metric-invalid) edge — a pure,
+    low-risk disambiguation. ``0.0`` (default) drops the term entirely and
+    reproduces the distance-only champion **byte-for-byte**; it is also inert when
+    no descriptors are supplied to :func:`link_centroids`."""
+
     min_track_length: int = 1
     """Drop weakly-connected track fragments with fewer than this many nodes
     (SOT-2369, ported from the reference tracker's ``FILTER_SHORT_TRACKS``).
@@ -326,10 +345,34 @@ def _gap_close(
     return graph
 
 
+def _appearance_cost(
+    src_desc: np.ndarray, dst_desc: np.ndarray, weight: float
+) -> np.ndarray:
+    """``weight * (1 - similarity)`` appearance penalty matrix (SOT-2829).
+
+    ``similarity`` is the cosine of the standardised descriptor vectors mapped to
+    ``[0, 1]`` via ``(1 + cos) / 2``, so the penalty lies in ``[0, weight]`` — a
+    look-alike successor pays ~0, a dissimilar one pays up to ``weight`` microns of
+    extra cost. A zero-norm descriptor (a perfectly flat patch) yields similarity
+    ``0.5`` (neutral), never a divide-by-zero.
+    """
+    sn = np.linalg.norm(src_desc, axis=1)
+    dn = np.linalg.norm(dst_desc, axis=1)
+    denom = sn[:, None] * dn[None, :]
+    dots = src_desc @ dst_desc.T
+    with np.errstate(divide="ignore", invalid="ignore"):
+        cos = np.where(denom > 1e-12, dots / denom, 0.0)
+    cos = np.clip(cos, -1.0, 1.0)
+    similarity = 0.5 * (1.0 + cos)
+    return weight * (1.0 - similarity)
+
+
 def _assign(
     src: np.ndarray, dst: np.ndarray, scale: np.ndarray, max_distance: float,
     src_pred: np.ndarray | None = None, disp_weight: float = 0.0,
     gate_on_prediction: bool = False,
+    src_desc: np.ndarray | None = None, dst_desc: np.ndarray | None = None,
+    appearance_weight: float = 0.0,
 ) -> list[tuple[int, int]]:
     """Optimal one-to-one assignment of ``src`` rows to ``dst`` rows within range.
 
@@ -343,6 +386,12 @@ def _assign(
     the destination plus ``disp_weight`` times the raw (unpredicted) scaled
     distance; the feasibility gate uses the predicted distance if
     ``gate_on_prediction`` else the actual distance.
+
+    When ``appearance_weight > 0`` and per-detection descriptors are supplied, an
+    ``appearance_weight * (1 - similarity)`` term (:func:`_appearance_cost`) is
+    **added to the cost only** (SOT-2829); the feasibility gate stays on the scaled
+    distance, so appearance re-ranks within the champion's feasible set but never
+    admits an out-of-range edge.
     """
     if len(src) == 0 or len(dst) == 0:
         return []
@@ -356,6 +405,8 @@ def _assign(
         dist_pred = np.sqrt((diff_pred**2).sum(axis=2))
         gate = dist_pred if gate_on_prediction else dist
         cost_base = dist_pred + disp_weight * dist
+    if appearance_weight > 0.0 and src_desc is not None and dst_desc is not None:
+        cost_base = cost_base + _appearance_cost(src_desc, dst_desc, appearance_weight)
     big = max_distance * 1000.0 + cost_base.max() + 1.0
     cost = np.where(gate <= max_distance, cost_base, big)
     rows, cols = linear_sum_assignment(cost)
@@ -442,16 +493,25 @@ def link_centroids(
     detections: dict[int, np.ndarray],
     scale: tuple[float, float, float] = DEFAULT_SCALE,
     params: LinkParams | None = None,
+    descriptors: dict[int, np.ndarray] | None = None,
 ) -> TrackingGraph:
     """Link per-timepoint centroids into a :class:`TrackingGraph`.
 
     ``detections`` maps ``timepoint -> (N, 3)`` centroid arrays in **voxel**
     coordinates. Node ids are assigned densely and deterministically (timepoint
     order, then detection order within a timepoint).
+
+    ``descriptors`` (optional) maps ``timepoint -> (N, D)`` local appearance
+    descriptors aligned row-for-row with ``detections`` (from
+    :func:`biohub_tracking.detect.detect_volume_series_with_descriptors`). They are
+    consulted only when ``params.appearance_weight > 0`` (SOT-2829); with the
+    default ``appearance_weight == 0`` or ``descriptors is None`` the linking is the
+    distance-only champion, **byte-for-byte**.
     """
     if params is None:
         params = LinkParams()
     scale_arr = np.asarray(scale, dtype=float)
+    use_appearance = params.appearance_weight > 0.0 and descriptors is not None
 
     graph = TrackingGraph()
     ids_by_t: dict[int, list[int]] = {}
@@ -504,9 +564,17 @@ def link_centroids(
                 src, dst, scale_arr, params.max_distance,
                 src_pred=src_pred, disp_weight=params.velocity_disp_weight,
                 gate_on_prediction=params.motion_gate_on_prediction,
+                src_desc=descriptors[t_a] if use_appearance else None,
+                dst_desc=descriptors[t_b] if use_appearance else None,
+                appearance_weight=params.appearance_weight,
             )
         else:
-            pairs = _assign(src, dst, scale_arr, params.max_distance)
+            pairs = _assign(
+                src, dst, scale_arr, params.max_distance,
+                src_desc=descriptors[t_a] if use_appearance else None,
+                dst_desc=descriptors[t_b] if use_appearance else None,
+                appearance_weight=params.appearance_weight,
+            )
         # Record each child's incoming displacement so it can predict t+1 -> t+2.
         if params.velocity_gain:
             for i, j in pairs:

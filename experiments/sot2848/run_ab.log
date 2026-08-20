@@ -1,0 +1,20 @@
+23:21:28 champion CV (classical DoG+NMS, harness evaluate_cv)...
+23:23:26 champion micro_adj=0.6649 (ref 0.6649)
+23:23:26 learned CV at committed threshold=0.5...
+23:23:42   [44b6_0113de3b] thr=0.5 detections=0 pred_nodes=0 edge_tp=0 fp=0 fn=50 adj=0.0000 (15.6s)
+23:23:57   [44b6_0b24845f] thr=0.5 detections=614 pred_nodes=133 edge_tp=0 fp=0 fn=49 adj=0.0000 (15.4s)
+23:24:13   [6bba_05b6850b] thr=0.5 detections=94 pred_nodes=41 edge_tp=0 fp=0 fn=845 adj=0.0000 (15.5s)
+23:24:28   [6bba_05db0fb1] thr=0.5 detections=13 pred_nodes=0 edge_tp=0 fp=0 fn=1183 adj=0.0000 (15.7s)
+23:24:28 learned micro_adj=0.0
+23:24:28 diagnostic sweep threshold=0.3...
+23:24:44   [44b6_0113de3b] thr=0.3 detections=14827 pred_nodes=13110 edge_tp=41 fp=2 fn=9 adj=0.8272 (15.6s)
+23:25:00   [44b6_0b24845f] thr=0.3 detections=8062 pred_nodes=3809 edge_tp=9 fp=0 fn=40 adj=0.1999 (15.4s)
+23:25:15   [6bba_05b6850b] thr=0.3 detections=493 pred_nodes=327 edge_tp=34 fp=0 fn=811 adj=0.0441 (15.6s)
+23:25:31   [6bba_05db0fb1] thr=0.3 detections=427 pred_nodes=179 edge_tp=0 fp=0 fn=1183 adj=0.0000 (15.8s)
+23:25:31 diagnostic sweep threshold=0.7...
+23:25:47   [44b6_0113de3b] thr=0.7 detections=0 pred_nodes=0 edge_tp=0 fp=0 fn=50 adj=0.0000 (15.6s)
+23:26:02   [44b6_0b24845f] thr=0.7 detections=0 pred_nodes=0 edge_tp=0 fp=0 fn=49 adj=0.0000 (15.4s)
+23:26:17   [6bba_05b6850b] thr=0.7 detections=0 pred_nodes=0 edge_tp=0 fp=0 fn=845 adj=0.0000 (15.5s)
+23:26:33   [6bba_05db0fb1] thr=0.7 detections=0 pred_nodes=0 edge_tp=0 fp=0 fn=1183 adj=0.0000 (15.8s)
+23:26:33 DECISION=REJECT micro_delta=-0.6649 no_regression=False
+23:26:33 wrote experiments/sot2848/screen_learned_ab.json

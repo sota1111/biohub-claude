@@ -212,6 +212,29 @@ class DetectParams:
     scalar per-volume threshold unchanged — exact byte-identical reproduction of
     the pre-SOT-2791 detector (default-off)."""
 
+    detect_scorer: dict | None = None
+    """Optional **GT-learned portable detection scorer** (SOT-2828).
+
+    Every detection *operating-point* lever (multiscale DoG, quantile norm,
+    watershed, density-gated split, local-MAD surface, Hessian-blobness filter)
+    was rejected across cycles 2-5 because a single **global** image criterion
+    cannot separate true nuclei from over-detections on this data. This knob is
+    the untried **supervised** axis: a light classifier learned from the sparse GT
+    that scores each NMS candidate on a *joint* hand-crafted feature vector (DoG
+    response strength, local intensity statistics, Hessian blobness eigen-ratios,
+    neighbour density) and re-ranks / selects them to cut FP without a new global
+    threshold.
+
+    GPU/weights/internet-free: the classifier is a **pure-numpy logistic score**
+    with the fitted coefficients *embedded in the config*, so inference is a single
+    standardize + dot-product + sigmoid that runs unchanged inside the Kaggle
+    submission kernel (no sklearn at inference). The value is the serialized
+    :class:`biohub_tracking.detect_scorer.LearnedScorer` dict (``feature_names`` /
+    ``mean`` / ``std`` / ``coef`` / ``intercept`` / ``select``); it is applied as a
+    detection post-processing keep-mask after any :attr:`blobness_filter` and
+    before :attr:`density_gated_split`. ``None`` skips it entirely — exact
+    byte-identical reproduction of the pre-SOT-2828 detector (default-off)."""
+
     density_gated_split: (
         tuple[str, float, float, float, float, float] | None
     ) = None
@@ -302,6 +325,28 @@ def _hessian_blobness_mask(
         & (isotropy >= min_blobness)
         & (planarity <= max_anisotropy)
     )
+
+
+def _compute_response(vol: np.ndarray, params: "DetectParams") -> np.ndarray:
+    """The detection **response** map for a normalized volume (SOT-2828 factor).
+
+    Extracted verbatim from :func:`detect_centroids_with_meta` so the learned
+    detection scorer (SOT-2828) can recompute the *exact* champion response its
+    features are drawn from, and the champion path keeps a single source of truth
+    (guarded byte-for-byte by ``eval.cv --check-champion`` + the exec-compat test).
+
+    Precedence, unchanged: multi-scale scale-space DoG (SOT-2774) → single-scale
+    Difference-of-Gaussians local contrast (SOT-2272) → raw smoothed intensity.
+    ``vol`` must already be intensity-normalized (:func:`_normalize_intensity`).
+    """
+    if params.dog_scales_zyx is not None:
+        response, _scale_index = _multiscale_dog_response(vol, params)
+        return response
+    smoothed = ndi.gaussian_filter(vol, sigma=params.sigma_zyx)
+    if params.background_sigma_zyx is not None:
+        background = ndi.gaussian_filter(vol, sigma=params.background_sigma_zyx)
+        return smoothed - background
+    return smoothed
 
 
 def _normalize_intensity(
@@ -610,19 +655,11 @@ def detect_centroids_with_meta(
     vol = np.asarray(volume, dtype=np.float32)
     vol = _normalize_intensity(vol, params.intensity_norm)
 
-    # Detection response, in precedence order:
+    # Detection response, in precedence order (see :func:`_compute_response`):
     #   1. multi-scale scale-space DoG (per-voxel max over a sigma bank; SOT-2774),
     #   2. single-scale Difference-of-Gaussians local contrast (SOT-2272), or
     #   3. the raw smoothed intensity.
-    if params.dog_scales_zyx is not None:
-        response, _scale_index = _multiscale_dog_response(vol, params)
-    else:
-        smoothed = ndi.gaussian_filter(vol, sigma=params.sigma_zyx)
-        if params.background_sigma_zyx is not None:
-            background = ndi.gaussian_filter(vol, sigma=params.background_sigma_zyx)
-            response = smoothed - background
-        else:
-            response = smoothed
+    response = _compute_response(vol, params)
 
     # Response threshold: a robust per-volume z-score (median + k·1.4826·MAD) when
     # ``mad_k`` is configured (SOT-2307, adapts the kept-peak *count* to each
@@ -708,6 +745,23 @@ def detect_centroids_with_meta(
     # only when configured, so the champion (blobness_filter=None) is untouched.
     if params.blobness_filter is not None:
         keep = _hessian_blobness_mask(vol, coords, params.blobness_filter)
+        coords = coords[keep]
+
+    # GT-learned detection scorer (SOT-2828): score each surviving candidate on a
+    # joint hand-crafted feature vector with an embedded pure-numpy logistic model
+    # and keep only those the classifier calls a true nucleus. Off by default → the
+    # champion coords are untouched (byte-identical). Applied after blobness, before
+    # the density-gated split, so a promoted scorer composes with either.
+    if params.detect_scorer is not None and coords.shape[0]:
+        from .detect_scorer import LearnedScorer, extract_candidate_features
+
+        scorer = LearnedScorer.from_dict(params.detect_scorer)
+        feats, _names = extract_candidate_features(
+            vol, coords, params, response=response
+        )
+        keep = scorer.keep_mask(feats)
+        meta["scorer_total"] = int(coords.shape[0])
+        meta["scorer_kept"] = int(keep.sum())
         coords = coords[keep]
 
     # Density-gated nucleus splitting (SOT-2792): split fused nuclei only inside

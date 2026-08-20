@@ -1,0 +1,23 @@
+[stage] detect + features (once per family)
+[detect] 44b6_0113de3b: 82.1s dets=32147 pos=54 (0.2%)
+[detect] 44b6_0b24845f: 83.1s dets=42080 pos=51 (0.1%)
+[detect] 6bba_05b6850b: 83.1s dets=13376 pos=1251 (9.4%)
+[detect] 6bba_05db0fb1: 83.7s dets=73953 pos=1609 (2.2%)
+[baseline] champion micro_adj=0.6649 score=0.6649
+[fold] held=44b6_0113de3b prob_gap(pos-neg)=-0.0300
+[fold] held=44b6_0b24845f prob_gap(pos-neg)=-0.0105
+[fold] held=6bba_05b6850b prob_gap(pos-neg)=-0.1045
+[fold] held=6bba_05db0fb1 prob_gap(pos-neg)=+0.0353
+[thr] t=0.00 micro_adj=0.6649 score=0.6649 d=+0.0000 dTP=+0 dFP=+0 dFN=+0 no_reg=False promotable=False
+[thr] t=0.30 micro_adj=0.3034 score=0.3034 d=-0.3615 dTP=-1048 dFP=-220 dFN=+1048 no_reg=False promotable=False
+[thr] t=0.40 micro_adj=0.0968 score=0.0968 d=-0.5681 dTP=-1507 dFP=-327 dFN=+1507 no_reg=False promotable=False
+[thr] t=0.50 micro_adj=0.0399 score=0.0399 d=-0.6250 dTP=-1622 dFP=-361 dFN=+1622 no_reg=False promotable=False
+[thr] t=0.60 micro_adj=0.0390 score=0.0390 d=-0.6259 dTP=-1624 dFP=-363 dFN=+1624 no_reg=False promotable=False
+[thr] t=0.70 micro_adj=0.0352 score=0.0352 d=-0.6297 dTP=-1633 dFP=-364 dFN=+1633 no_reg=False promotable=False
+[thr] t=0.80 micro_adj=0.0050 score=0.0050 d=-0.6599 dTP=-1698 dFP=-370 dFN=+1698 no_reg=False promotable=False
+
+wrote /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2828/screen_detect_scorer.json
+baseline champion score=0.6649
+threshold=0 reproduces champion exactly: True
+n_promotable=0
+NO PROMOTABLE variant. Top-by-score: t=0.0 score=0.6649 (delta +0.0) no_reg=False edge_delta={'d_tp': 0, 'd_fp': 0, 'd_fn': 0}

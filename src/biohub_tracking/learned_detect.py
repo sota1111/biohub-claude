@@ -147,7 +147,83 @@ def _build_arch(arch: str):
         def forward(self, x):  # x: (B, 1, Z, Y, X) -> (B, 1, Z, Y, X) logits
             return self.body(x)
 
-    registry = {"voxel_scorer_v0": VoxelScorerV0}
+    class TemporalUNet3D(nn.Module):
+        """Learned 3D U-Net detection head (SOT-2848), ported from the royerlab
+        public frontier baseline (``models/temporal_unet.py`` /
+        ``train_unet_transformer.py``): an anisotropic encoder-decoder 3D U-Net
+        producing a single-channel per-voxel detection logit, with a
+        squeeze-excitation attention bottleneck.
+
+        Port scope vs the reference
+        ---------------------------
+        The reference ``TemporalUNet3D`` mixes information across a short temporal
+        window with attention before the detection head. This repo's detector
+        contract (:meth:`LearnedDetector.detect_centroids`) is **per single
+        volume** — linking is a separate, fixed champion stage (distance-only
+        bipartite over ``t -> t+1``), and the CV A/B this port feeds swaps *only*
+        detection. So the temporal-attention mixing degenerates to a **bottleneck
+        self-/channel-attention** on the current frame (the SE block below); the
+        cross-frame association the reference folds into the detector is instead
+        carried by the downstream linker. This keeps the port faithful to the
+        learned per-voxel *detection* head — the axis under test (classical DoG+NMS
+        vs a learned heatmap) — without duplicating the linker.
+
+        Anisotropy: ``(Z, Y, X)`` voxels are ``1.625 x 0.40625 x 0.40625`` um and
+        the volume is ``64 x 256 x 256``; pooling is isotropic in index space
+        (``2 x 2 x 2``) over three levels (``Z 64->8``, ``YX 256->32``), matching
+        the reference's index-space downsampling. ``base`` channels kept small so a
+        full-volume forward fits the 12 GB RTX 3080 Ti at inference.
+        """
+
+        def __init__(self, base: int = 16):
+            super().__init__()
+
+            def cbr(ci: int, co: int) -> "nn.Module":
+                return nn.Sequential(
+                    nn.Conv3d(ci, co, 3, padding=1),
+                    nn.InstanceNorm3d(co, affine=True),
+                    nn.ReLU(inplace=True),
+                    nn.Conv3d(co, co, 3, padding=1),
+                    nn.InstanceNorm3d(co, affine=True),
+                    nn.ReLU(inplace=True),
+                )
+
+            self.enc1 = cbr(1, base)
+            self.enc2 = cbr(base, base * 2)
+            self.enc3 = cbr(base * 2, base * 4)
+            self.pool = nn.MaxPool3d(kernel_size=2, stride=2)
+            self.bottleneck = cbr(base * 4, base * 8)
+            # Squeeze-excitation channel attention at the bottleneck (the port's
+            # stand-in for the reference's temporal attention, see docstring).
+            self.se = nn.Sequential(
+                nn.AdaptiveAvgPool3d(1),
+                nn.Conv3d(base * 8, base, 1),
+                nn.ReLU(inplace=True),
+                nn.Conv3d(base, base * 8, 1),
+                nn.Sigmoid(),
+            )
+            self.up3 = nn.ConvTranspose3d(base * 8, base * 4, 2, stride=2)
+            self.dec3 = cbr(base * 8, base * 4)
+            self.up2 = nn.ConvTranspose3d(base * 4, base * 2, 2, stride=2)
+            self.dec2 = cbr(base * 4, base * 2)
+            self.up1 = nn.ConvTranspose3d(base * 2, base, 2, stride=2)
+            self.dec1 = cbr(base * 2, base)
+            self.head = nn.Conv3d(base, 1, 1)
+
+        def forward(self, x):  # (B, 1, Z, Y, X) -> (B, 1, Z, Y, X) logits
+            e1 = self.enc1(x)
+            e2 = self.enc2(self.pool(e1))
+            e3 = self.enc3(self.pool(e2))
+            b = self.bottleneck(self.pool(e3))
+            b = b * self.se(b)
+            import torch as _t
+
+            d3 = self.dec3(_t.cat([self.up3(b), e3], dim=1))
+            d2 = self.dec2(_t.cat([self.up2(d3), e2], dim=1))
+            d1 = self.dec1(_t.cat([self.up1(d2), e1], dim=1))
+            return self.head(d1)
+
+    registry = {"voxel_scorer_v0": VoxelScorerV0, "temporal_unet3d": TemporalUNet3D}
     if arch not in registry:
         raise ValueError(
             f"unknown learned-detector arch {arch!r}; known: {sorted(registry)}"

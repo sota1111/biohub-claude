@@ -1,0 +1,26 @@
+[detect] 44b6_0113de3b: 29.5s dets=32147
+[detect] 44b6_0b24845f: 29.9s dets=42080
+[detect] 6bba_05b6850b: 30.2s dets=13376
+[detect] 6bba_05db0fb1: 30.0s dets=73953
+[baseline] champion micro_adj=0.6649 div_j=0.0 score=0.6649
+[variant] dd=7.0 ratio=0.0 micro_adj=0.6296 div_j=0.0172 score=0.6313 d=-0.0336 no_reg=False promotable=False
+[variant] dd=7.0 ratio=3.0 micro_adj=0.6425 div_j=0.0145 score=0.6439 d=-0.0210 no_reg=False promotable=False
+[variant] dd=7.0 ratio=2.0 micro_adj=0.6511 div_j=0.0256 score=0.6537 d=-0.0112 no_reg=False promotable=False
+[variant] dd=7.0 ratio=1.5 micro_adj=0.6545 div_j=0.04 score=0.6585 d=-0.0064 no_reg=False promotable=False
+[variant] dd=5.0 ratio=0.0 micro_adj=0.6552 div_j=0.0233 score=0.6575 d=-0.0074 no_reg=False promotable=False
+[variant] dd=5.0 ratio=3.0 micro_adj=0.6563 div_j=0.0294 score=0.6593 d=-0.0056 no_reg=False promotable=False
+[variant] dd=5.0 ratio=2.0 micro_adj=0.6581 div_j=0.0435 score=0.6625 d=-0.0024 no_reg=False promotable=False
+[variant] dd=5.0 ratio=1.5 micro_adj=0.6584 div_j=0.0625 score=0.6646 d=-0.0003 no_reg=False promotable=False
+[variant] dd=3.0 ratio=0.0 micro_adj=0.6631 div_j=0.0 score=0.6631 d=-0.0018 no_reg=False promotable=False
+[variant] dd=3.0 ratio=3.0 micro_adj=0.6631 div_j=0.0 score=0.6631 d=-0.0018 no_reg=False promotable=False
+[variant] dd=3.0 ratio=2.0 micro_adj=0.6632 div_j=0.0 score=0.6632 d=-0.0017 no_reg=False promotable=False
+[variant] dd=3.0 ratio=1.5 micro_adj=0.6629 div_j=0.0 score=0.6629 d=-0.0020 no_reg=False promotable=False
+[variant] dd=2.0 ratio=0.0 micro_adj=0.6649 div_j=0.0 score=0.6649 d=-0.0000 no_reg=False promotable=False
+[variant] dd=2.0 ratio=3.0 micro_adj=0.6649 div_j=0.0 score=0.6649 d=-0.0000 no_reg=False promotable=False
+[variant] dd=2.0 ratio=2.0 micro_adj=0.6649 div_j=0.0 score=0.6649 d=-0.0000 no_reg=False promotable=False
+[variant] dd=2.0 ratio=1.5 micro_adj=0.6649 div_j=0.0 score=0.6649 d=-0.0000 no_reg=False promotable=False
+
+wrote /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2762/screen_division.json
+baseline champion score=0.6649 (micro_adj=0.6649, div_j=0.0)
+n_promotable=0
+NO PROMOTABLE variant. Top-by-score: dd=2.0 ratio=0.0 score=0.6649 (delta -0.0) no_reg=False

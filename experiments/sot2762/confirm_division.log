@@ -1,0 +1,4 @@
+baseline champion score=0.6649 div_j=0.0
+challenger dd5/ratio1.5 score=0.6646 div_j=0.0625 delta=-0.0003 no_reg=False
+promotable=False
+wrote /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2762/confirm_division.json

@@ -11,7 +11,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .detect import DEFAULT_SCALE, DetectParams, detect_volume_series
+from .detect import (
+    DEFAULT_SCALE,
+    DetectParams,
+    detect_volume_series,
+    detect_volume_series_with_descriptors,
+)
 from .graph import TrackingGraph
 from .link import LinkParams, link_centroids
 
@@ -48,5 +53,15 @@ def run_pipeline(
 ) -> TrackingGraph:
     """Detect and link one video into a tracking graph."""
     arr = _open_image_array(zarr_path)
+    # Local appearance descriptors are only needed (and only computed) when the
+    # linker's appearance term is active (SOT-2829); the distance-only champion
+    # (appearance_weight == 0) takes the unchanged detect-only path byte-for-byte.
+    if link_params is not None and link_params.appearance_weight > 0.0:
+        detections, descriptors = detect_volume_series_with_descriptors(
+            arr, detect_params, max_t=max_t, scale=scale
+        )
+        return link_centroids(
+            detections, scale=scale, params=link_params, descriptors=descriptors
+        )
     detections = detect_volume_series(arr, detect_params, max_t=max_t)
     return link_centroids(detections, scale=scale, params=link_params)

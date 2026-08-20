@@ -733,3 +733,148 @@ def detect_volume_series(
     """
     n_t = zarr_array.shape[0] if max_t is None else min(max_t, zarr_array.shape[0])
     return {t: detect_centroids(zarr_array[t], params) for t in range(n_t)}
+
+
+# Number of features in a local appearance descriptor (:func:`patch_descriptors`).
+APPEARANCE_DESCRIPTOR_DIM: int = 8
+
+
+def _patch_half_widths(
+    scale: tuple[float, float, float], radius_um: float = 2.0
+) -> tuple[int, int, int]:
+    """Anisotropic patch half-widths (voxels) covering ``radius_um`` microns.
+
+    The competition voxels are ~4x coarser along ``Z`` (``scale`` in microns/voxel),
+    so a physically compact ~2 micron nucleus neighbourhood spans far fewer voxels
+    in ``Z`` than in ``Y``/``X``. Converting a fixed physical radius through the
+    per-axis ``scale`` keeps the descriptor's support roughly isotropic in real
+    space (as the issue asks: 異方性voxelスケール考慮). Clamped to ``[1, 6]`` voxels
+    so the gather stays cheap and never collapses to a single voxel.
+    """
+    return tuple(  # type: ignore[return-value]
+        int(min(6, max(1, round(radius_um / float(s))))) for s in scale
+    )
+
+
+def patch_descriptors(
+    volume: np.ndarray,
+    coords: np.ndarray,
+    scale: tuple[float, float, float] = DEFAULT_SCALE,
+    params: DetectParams | None = None,
+) -> np.ndarray:
+    """Lightweight local appearance descriptors for detected centroids (SOT-2829).
+
+    For each centroid in ``coords`` ``(N, 3)`` (voxel ``z, y, x``) extract a small
+    anisotropic intensity patch from ``volume`` and reduce it to an
+    ``APPEARANCE_DESCRIPTOR_DIM``-vector of normalized statistics — mean, std,
+    the 10/50/90 intensity quantiles, the central value, a centre-vs-surround
+    contrast, and a mean finite-difference gradient magnitude (a coarse texture
+    cue). Pure numpy, deterministic, no RNG — so it runs unchanged in a Kaggle
+    kernel and mirrors the detection stage's own intensity normalisation.
+
+    The patch is drawn from the **same** normalised volume the detector thresholds
+    (``_normalize_intensity`` with ``params.intensity_norm``), so the descriptor is
+    consistent with detection. Border centroids are handled by edge-padding, so no
+    detection is dropped for lying near the volume boundary. Returns ``(N, D)``
+    float; an empty ``coords`` yields ``(0, D)``.
+    """
+    if params is None:
+        params = DetectParams()
+    coords = np.asarray(coords, dtype=np.float64)
+    if coords.size == 0:
+        return np.zeros((0, APPEARANCE_DESCRIPTOR_DIM), dtype=np.float64)
+
+    vol = _normalize_intensity(np.asarray(volume, dtype=np.float32), params.intensity_norm)
+    hz, hy, hx = _patch_half_widths(scale)
+    padded = np.pad(vol, ((hz, hz), (hy, hy), (hx, hx)), mode="edge")
+
+    c = np.rint(coords).astype(np.int64)
+    # Clip centres into the valid (unpadded) index range, then shift into padded
+    # coordinates. Clipping guards against any sub-voxel/out-of-range centroid from
+    # a splitting detector; edge-padding then supplies the surrounding context.
+    cz = np.clip(c[:, 0], 0, vol.shape[0] - 1) + hz
+    cy = np.clip(c[:, 1], 0, vol.shape[1] - 1) + hy
+    cx = np.clip(c[:, 2], 0, vol.shape[2] - 1) + hx
+
+    dz = np.arange(-hz, hz + 1)
+    dy = np.arange(-hy, hy + 1)
+    dx = np.arange(-hx, hx + 1)
+    zz = cz[:, None, None, None] + dz[None, :, None, None]
+    yy = cy[:, None, None, None] + dy[None, None, :, None]
+    xx = cx[:, None, None, None] + dx[None, None, None, :]
+    patches = padded[zz, yy, xx]  # (N, pz, py, px)
+    flat = patches.reshape(len(coords), -1)
+
+    mean = flat.mean(axis=1)
+    std = flat.std(axis=1)
+    q10, q50, q90 = np.quantile(flat, [0.1, 0.5, 0.9], axis=1)
+    center = patches[:, hz, hy, hx]
+    # Centre-vs-surround contrast: how much brighter the nucleus core is than its
+    # local background — a shape/brightness identity cue stable frame-to-frame.
+    contrast = center - mean
+    # Mean absolute finite-difference gradient over the patch: a coarse texture
+    # magnitude (flat vs. structured neighbourhood).
+    grad = np.zeros(len(coords), dtype=np.float64)
+    denom = 0
+    for axis in (1, 2, 3):
+        if patches.shape[axis] >= 2:
+            d = np.abs(np.diff(patches, axis=axis))
+            grad += d.reshape(len(coords), -1).mean(axis=1)
+            denom += 1
+    if denom:
+        grad /= denom
+
+    return np.stack([mean, std, q10, q50, q90, center, contrast, grad], axis=1)
+
+
+def _standardize_descriptors(
+    descriptors: dict[int, np.ndarray],
+) -> dict[int, np.ndarray]:
+    """Per-dimension z-standardise descriptors across a whole video.
+
+    Appearance similarity is compared *within* the video (t -> t+1 links), so
+    standardising each feature by the video-global mean/std makes the feature
+    dimensions commensurable (a mean-intensity unit and a gradient unit otherwise
+    differ by orders of magnitude, and a raw cosine would be dominated by the
+    largest-scale feature). A near-constant dimension (std ~ 0) is left centred at
+    zero. Deterministic; returns a new dict with the same keys/shapes.
+    """
+    all_rows = [d for d in descriptors.values() if len(d)]
+    if not all_rows:
+        return {t: np.asarray(d, dtype=np.float64) for t, d in descriptors.items()}
+    stacked = np.concatenate(all_rows, axis=0)
+    mu = stacked.mean(axis=0)
+    sigma = stacked.std(axis=0)
+    sigma = np.where(sigma > 1e-9, sigma, 1.0)
+    return {
+        t: ((np.asarray(d, dtype=np.float64) - mu) / sigma)
+        if len(d)
+        else np.asarray(d, dtype=np.float64).reshape(0, len(mu))
+        for t, d in descriptors.items()
+    }
+
+
+def detect_volume_series_with_descriptors(
+    zarr_array,
+    params: DetectParams | None = None,
+    max_t: int | None = None,
+    scale: tuple[float, float, float] = DEFAULT_SCALE,
+) -> tuple[dict[int, np.ndarray], dict[int, np.ndarray]]:
+    """Detect centroids *and* their local appearance descriptors per timepoint.
+
+    Returns ``(detections, descriptors)`` where ``detections`` is identical to
+    :func:`detect_volume_series` (so the centroids — and therefore any downstream
+    distance-only linking — are byte-for-byte unchanged) and ``descriptors`` maps
+    ``t -> (N, D)`` video-standardised appearance vectors aligned row-for-row with
+    ``detections[t]`` (SOT-2829). Used only by appearance-augmented linking; the
+    distance-only champion never calls this.
+    """
+    n_t = zarr_array.shape[0] if max_t is None else min(max_t, zarr_array.shape[0])
+    detections: dict[int, np.ndarray] = {}
+    descriptors: dict[int, np.ndarray] = {}
+    for t in range(n_t):
+        vol = zarr_array[t]
+        coords = detect_centroids(vol, params)
+        detections[t] = coords
+        descriptors[t] = patch_descriptors(vol, coords, scale=scale, params=params)
+    return detections, _standardize_descriptors(descriptors)

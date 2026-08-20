@@ -1,0 +1,128 @@
+{
+  "recordedAt": "2026-08-20T19:06:07Z",
+  "issue": "SOT-2818",
+  "step": "confirm + promotion decision",
+  "cv_source": "biohub_tracking.eval.cv (SOT-2761 leak-free 4-family holdout, SOT-2817 full-metric re-anchor)",
+  "baseline_champion_score": 0.6649,
+  "baseline_champion_micro_adj": 0.6649,
+  "n_variants": 36,
+  "n_fired": 36,
+  "n_promotable": 6,
+  "decision": "DO-NOT-PROMOTE (keep division_overlay default-OFF; champion byte-invariant)",
+  "rationale": [
+    "Objective was to recover the metric's abandoned 0.1*division_jaccard term. NO per-family-edge-non-regressing variant recovers any division TP: every 'promotable' variant has division_jaccard=0.0 (the axis objective is NOT met).",
+    "Variants that DO recover a real division TP (div_j up to 0.0909, best combined +0.0084) all REGRESS the sibling dense family 6bba_05b6850b (adj 0.5700->0.5685) because that family has 0 GT divisions, so every added second-daughter fork there is a pure division/edge FP. This is the SAME failure mode SOT-2762 was rejected for, now reproduced through the non-destructive overlay mechanism (new evidence: even without touching the LAP linking assignment, added 2nd-daughter edges spray FP on the dense zero-division family).",
+    "The only non-regressing gain (md=3.0 variants, +0.0004 combined) comes purely from incidental EDGE-TP recovery (6bba_05b6850b edge tp 651->652) with division_jaccard=0.0 (division term still forfeited, plus 1 division FP). It does not fulfil the axis objective and is a FAMILY-MIX-SENSITIVE micro hair-gain (micro<->lineage-macro gap 0.0565 > 0.05 tol; representativeness_report family_mix_sensitive=True), i.e. exactly the dominant-lineage hair-gain the SOT-2817 guard flags as insufficient evidence. Promoting a +0.06%% family-mix-sensitive micro delta risks repeating the SOT-2816 CV-up / LB-down hazard.",
+    "Therefore: keep the overlay implemented but default-OFF; do not update champion/config.json or registry; champion CV stays 0.6649 byte-for-byte (screen baseline reproduced it exactly with the new code path)."
+  ],
+  "key_rows": {
+    "best_promotable_but_div_zero": {
+      "max_distance": 3.0,
+      "sibling_ratio": 0.0,
+      "min_daughter_len": 2,
+      "score": 0.6653,
+      "delta_score_vs_champion": 0.0004,
+      "division_jaccard": 0.0,
+      "no_per_dataset_regression": true,
+      "per_dataset_adj": {
+        "44b6_0113de3b": 0.8895,
+        "44b6_0b24845f": 0.6817,
+        "6bba_05b6850b": 0.5709,
+        "6bba_05db0fb1": 0.731
+      },
+      "edge_by_dataset": {
+        "44b6_0113de3b": {
+          "tp": 47,
+          "fp": 2,
+          "fn": 3
+        },
+        "44b6_0b24845f": {
+          "tp": 37,
+          "fp": 5,
+          "fn": 12
+        },
+        "6bba_05b6850b": {
+          "tp": 652,
+          "fp": 215,
+          "fn": 193
+        },
+        "6bba_05db0fb1": {
+          "tp": 973,
+          "fp": 148,
+          "fn": 210
+        }
+      },
+      "division_by_dataset": {
+        "44b6_0113de3b": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0
+        },
+        "44b6_0b24845f": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0
+        },
+        "6bba_05b6850b": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 0
+        },
+        "6bba_05db0fb1": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 3
+        }
+      }
+    },
+    "max_div_recovery_but_regresses": {
+      "max_distance": 5.0,
+      "sibling_ratio": 1.5,
+      "min_daughter_len": 2,
+      "score": 0.6733,
+      "delta_score_vs_champion": 0.0084,
+      "division_jaccard": 0.0909,
+      "no_per_dataset_regression": false,
+      "per_dataset_adj": {
+        "44b6_0113de3b": 0.8895,
+        "44b6_0b24845f": 0.6817,
+        "6bba_05b6850b": 0.5685,
+        "6bba_05db0fb1": 0.7312
+      },
+      "division_by_dataset": {
+        "44b6_0113de3b": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0
+        },
+        "44b6_0b24845f": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0
+        },
+        "6bba_05b6850b": {
+          "tp": 0,
+          "fp": 7,
+          "fn": 0
+        },
+        "6bba_05db0fb1": {
+          "tp": 1,
+          "fp": 1,
+          "fn": 2
+        }
+      }
+    },
+    "strict_symmetric_no_fire": {
+      "max_distance": 7.0,
+      "sibling_ratio": 1.0,
+      "min_daughter_len": 2,
+      "score": 0.6649,
+      "delta_score_vs_champion": 0.0,
+      "division_jaccard": 0.0,
+      "no_per_dataset_regression": true
+    }
+  },
+  "byte_identity_off": "screen baseline (champion config, overlay absent -> division_overlay=None) reproduced micro_adj=0.6649 / score=0.6649 exactly with the new champion.py/link.py code path; pytest 121 passed incl. test_division_overlay off-is-no-op.",
+  "champion_config_changed": false,
+  "submitted": false
+}

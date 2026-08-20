@@ -1,0 +1,141 @@
+"""Unit tests for the non-destructive division overlay (SOT-2818).
+
+Pure / data-free: the overlay is a deterministic transform of a
+:class:`~biohub_tracking.graph.TrackingGraph`, so every case is a hand-built
+graph — no competition data required.
+"""
+
+from __future__ import annotations
+
+import numpy as np
+
+from biohub_tracking.division_overlay import apply_division_overlay
+from biohub_tracking.eval import division_counts
+from biohub_tracking.graph import TrackingGraph
+from biohub_tracking.link import LinkParams, link_centroids
+
+SCALE = (1.0, 1.0, 1.0)
+# ("kind", max_distance, sibling_ratio, min_daughter_len, require_parent_track)
+DEFAULT = ("nearest-head", 7.0, 2.0, 2, True)
+
+
+def _division_scenario() -> TrackingGraph:
+    """Parent track P0->P1->P2 splitting into two persistent daughters at t=3.
+
+    The champion (one-to-one linker) attaches P2 to the primary daughter chain
+    (y=-1) and leaves the second daughter chain (y=+1) as an unlinked head — the
+    exact shape the overlay is meant to re-attach.
+    """
+    nodes = {
+        0: (0, 0, 0, 0),   # P0
+        1: (1, 0, 0, 0),   # P1
+        2: (2, 0, 0, 0),   # P2 (parent: has predecessor, one successor)
+        3: (3, 0, -1, 0),  # primary daughter head (linked)
+        4: (4, 0, -1, 0),
+        5: (5, 0, -1, 0),
+        6: (3, 0, 1, 0),   # second daughter head (dropped by the linker)
+        7: (4, 0, 1, 0),
+        8: (5, 0, 1, 0),
+    }
+    edges = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (6, 7), (7, 8)]
+    return TrackingGraph.from_lists(nodes, edges)
+
+
+def test_off_is_a_no_op_byte_for_byte() -> None:
+    g = _division_scenario()
+    before_nodes = dict(g.coords)
+    before_edges = list(g.edges)
+    out = apply_division_overlay(g, SCALE, None)
+    assert out is g
+    assert out.coords == before_nodes
+    assert out.edges == before_edges
+    # An empty tuple disables it too.
+    apply_division_overlay(g, SCALE, ())
+    assert g.edges == before_edges
+
+
+def test_overlay_reattaches_dropped_daughter_and_makes_a_fork() -> None:
+    g = _division_scenario()
+    apply_division_overlay(g, SCALE, DEFAULT)
+    # Exactly one edge added: the parent's dropped second daughter.
+    assert (2, 6) in g.edges
+    assert g.out_degree(2) == 2
+    assert g.dividing_nodes() == [2]
+    # Non-destructive: no node added/removed, primary edge preserved.
+    assert g.num_nodes == 9
+    assert (2, 3) in g.edges
+
+
+def test_recovered_fork_scores_a_division_tp() -> None:
+    g = _division_scenario()
+    apply_division_overlay(g, SCALE, DEFAULT)
+    # Self-score: the recovered strongly-connected fork is a division TP, and the
+    # champion (pre-overlay) graph misses it entirely.
+    assert division_counts(g, g) == (1, 0, 0)
+    assert division_counts(_division_scenario(), g) == (0, 1, 0)
+
+
+def test_sibling_ratio_gate_rejects_a_far_second_daughter() -> None:
+    g = _division_scenario()
+    # Move the second-daughter head far from the parent relative to the primary
+    # (d1 = 1 µm, d2 = 4 µm): ratio 2.0 rejects it.
+    for nid, (t, z, y, x) in list(g.coords.items()):
+        if nid in (6, 7, 8):
+            g.coords[nid] = (t, z, 4.0, x)
+    apply_division_overlay(g, SCALE, ("nearest-head", 7.0, 2.0, 2, True))
+    assert g.out_degree(2) == 1  # no fork
+    assert g.dividing_nodes() == []
+
+
+def test_min_daughter_len_gate_rejects_a_transient_head() -> None:
+    g = _division_scenario()
+    # Truncate the second daughter to a single node (no successor) -> length 1.
+    g = g.subgraph([n for n in g.node_ids() if n not in (7, 8)])
+    apply_division_overlay(g, SCALE, ("nearest-head", 7.0, 2.0, 2, True))
+    assert g.out_degree(2) == 1  # transient head is not a credible daughter
+
+
+def test_require_parent_track_rejects_a_rootless_parent() -> None:
+    g = _division_scenario()
+    # Drop the parent's incoming edges so P2 starts its own track.
+    g = g.subgraph([n for n in g.node_ids() if n not in (0, 1)])
+    apply_division_overlay(g, SCALE, ("nearest-head", 7.0, 2.0, 2, True))
+    assert g.out_degree(2) == 1  # a track-start parent cannot divide
+    # ...but allowing rootless parents re-enables it.
+    g2 = _division_scenario().subgraph(
+        [n for n in _division_scenario().node_ids() if n not in (0, 1)]
+    )
+    apply_division_overlay(g2, SCALE, ("nearest-head", 7.0, 2.0, 2, False))
+    assert g2.out_degree(2) == 2
+
+
+def test_each_head_consumed_by_at_most_one_parent() -> None:
+    # Two candidate parents at t=1, each with a primary daughter chain, and ONE
+    # shared head at t=2 between them: the head must attach to exactly one parent.
+    g = TrackingGraph.from_lists(
+        {
+            0: (0, 0, -2, 0), 1: (1, 0, -2, 0),      # parent A: 0->1
+            2: (2, 0, -2, 0), 3: (3, 0, -2, 0),      # A primary chain 1->2->3
+            4: (0, 0, 2, 0), 5: (1, 0, 2, 0),        # parent B: 4->5
+            6: (2, 0, 2, 0), 7: (3, 0, 2, 0),        # B primary chain 5->6->7
+            8: (2, 0, 0, 0), 9: (3, 0, 0, 0),        # shared head at y=0
+        },
+        [(0, 1), (1, 2), (2, 3), (4, 5), (5, 6), (6, 7), (8, 9)],
+    )
+    apply_division_overlay(g, SCALE, ("nearest-head", 7.0, 0.0, 2, True))
+    consumers = [p for p in (1, 5) if (p, 8) in g.edges]
+    assert len(consumers) == 1  # head 8 attached to exactly one parent
+
+
+def test_link_centroids_default_leaves_overlay_off() -> None:
+    # A tiny two-frame detection set; default LinkParams must not divide.
+    dets = {
+        0: np.array([[0.0, 0.0, 0.0]]),
+        1: np.array([[0.0, 0.0, 0.0], [0.0, 3.0, 0.0]]),
+    }
+    g_default = link_centroids(dets, scale=SCALE, params=LinkParams())
+    g_explicit_off = link_centroids(
+        dets, scale=SCALE, params=LinkParams(division_overlay=None)
+    )
+    assert g_default.edges == g_explicit_off.edges
+    assert LinkParams().division_overlay is None

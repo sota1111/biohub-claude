@@ -126,6 +126,21 @@ class LinkParams:
     budget, so widening it admits more distant reconnections; tightening it keeps
     only close, high-confidence bridges to suppress spurious cross-track merges."""
 
+    division_overlay: tuple | None = None
+    """Non-destructive division-event overlay (SOT-2818), applied *after* linking.
+
+    ``None`` (default) disables the overlay and reproduces the champion graph
+    **byte-for-byte**. When set it is
+    ``(kind, max_distance, sibling_ratio, min_daughter_len, require_parent_track)``
+    (see :mod:`biohub_tracking.division_overlay`): a pure post-processing pass that
+    re-attaches the *second* daughter the one-to-one linker dropped at a real
+    division — adding ``parent -> nearby-persistent-head`` edges only, never moving
+    the primary assignment, adding a node, or deleting an edge. It runs last (after
+    :attr:`min_track_length` pruning) so daughter-lineage persistence is measured on
+    the final graph. It is the score lever that recovers the metric's ``0.1 ·
+    division_jaccard`` term without the LAP reassignment that made in-linker
+    ``allow_division`` (SOT-2762) regress the edge metric."""
+
     min_track_length: int = 1
     """Drop weakly-connected track fragments with fewer than this many nodes
     (SOT-2369, ported from the reference tracker's ``FILTER_SHORT_TRACKS``).
@@ -400,4 +415,11 @@ def link_centroids(
         )
     if params.min_track_length > 1:
         graph = _prune_short_tracks(graph, params.min_track_length)
+    # Non-destructive division overlay runs LAST, on the final pruned graph, so it
+    # only adds second-daughter edges and never perturbs the linking assignment
+    # (SOT-2818). ``None`` → champion graph unchanged, byte-for-byte.
+    if params.division_overlay:
+        from .division_overlay import apply_division_overlay
+
+        graph = apply_division_overlay(graph, tuple(scale_arr), params.division_overlay)
     return graph

@@ -169,6 +169,49 @@ class DetectParams:
     ``None`` skips the filter entirely — exact byte-identical reproduction of the
     pre-SOT-2793 detector (default-off)."""
 
+    local_threshold: tuple[str, tuple[int, int, int], float] | None = None
+    """Optional **local-adaptive MAD threshold surface** (SOT-2791).
+
+    The champion keeps NMS peaks brighter than a **single per-volume** cutoff
+    (``median(response) + mad_k·1.4826·MAD``, :attr:`mad_k`). Under the embryo's
+    strong brightness drift a single global operating point cannot serve both dense
+    and dim regions: lowering it globally over-detects the bright/dense areas
+    (node-count penalty), keeping it high drops the dim-region cells (matched-edge
+    FN). SOT-2776's *global* quantile normalization tried to remove the drift by an
+    equal whole-volume transform and failed (dynamic-range compression). This knob
+    instead replaces the scalar cutoff with a **spatially-varying threshold
+    surface** so each region is gated against its *own* local noise floor — a dim
+    region gets a locally lower threshold without lowering the threshold anywhere
+    else.
+
+    When set to ``(kind, window_zyx, k)`` the detector computes, on the same
+    detection ``response`` map, a local z-score surface ``thr(x) = local_center(x) +
+    k·local_scale(x)`` over an anisotropic ``window_zyx`` voxel box, and the NMS
+    local-maxima gate (step 3) keeps a peak iff ``response > thr(x)`` at its voxel
+    instead of the scalar cutoff. Brightest-first ordering is unchanged and the
+    surface is floored by :attr:`min_threshold`. ``window_zyx`` should be several
+    nuclei wide so the surface tracks the slow background drift, not individual
+    cells. Two ``kind`` s trade robustness against cost:
+
+    * ``"mean"`` — a **fast separable Niblack-style** surface: ``local_center`` is
+      the windowed mean (``scipy.ndimage.uniform_filter``) and ``local_scale`` the
+      windowed std. Separable (~O(1) per voxel), so it is **Kaggle-kernel-viable**
+      (numpy/scipy only, ~0.08 s/volume). On a DoG response signal is sparse over a
+      near-zero-median background, so a wide window is background-dominated and the
+      mean/std track the local noise floor. This is the promotion-path kind.
+    * ``"mad"`` — the **exact robust** surface: ``local_center`` is the windowed
+      median and ``local_scale = 1.4826·`` windowed MAD (two
+      ``scipy.ndimage.median_filter`` passes). Most faithful to the per-volume
+      champion cutoff but a true rank filter (~O(window) per voxel, hundreds of
+      seconds/volume at production size), so it is for small-volume analysis /
+      reference only — **not** the kernel.
+
+    Applied on the **NMS path only** (the champion path), gating the same peaks
+    before any :attr:`blobness_filter` / density gate; ignored when the global
+    :attr:`watershed` path is active (that early-returns first). ``None`` uses the
+    scalar per-volume threshold unchanged — exact byte-identical reproduction of
+    the pre-SOT-2791 detector (default-off)."""
+
     density_gated_split: (
         tuple[str, float, float, float, float, float] | None
     ) = None
@@ -613,9 +656,44 @@ def detect_centroids_with_meta(
         )
         return coords, meta
 
+    # Local-adaptive MAD threshold surface (SOT-2791): replace the scalar per-volume
+    # cutoff with a spatially-varying robust z-score surface so a dim region is gated
+    # against its own local noise floor (dim-cell FN recovery) without lowering the
+    # threshold globally. None → the scalar ``threshold`` gate, byte-identical.
+    peak_gate: float | np.ndarray = threshold
+    if params.local_threshold is not None:
+        kind, window_zyx, k = params.local_threshold
+        window = tuple(int(w) for w in window_zyx)
+        if kind == "mad":
+            # Exact local robust statistics: local median + 1.4826·local MAD. Most
+            # faithful to the per-volume champion cutoff, but ``median_filter`` is a
+            # true rank filter (~O(window) per voxel), so it is feasible only for
+            # small volumes / offline analysis — NOT the Kaggle kernel.
+            local_center = ndi.median_filter(response, size=window, mode="nearest")
+            local_scale = 1.4826 * ndi.median_filter(
+                np.abs(response - local_center), size=window, mode="nearest"
+            )
+        elif kind == "mean":
+            # Fast separable Niblack-style surface: local mean + k·local std. The
+            # ``uniform_filter`` is separable (~O(1) per voxel, ~400× faster than the
+            # exact rank filter), so this is the kernel-viable approximation of the
+            # robust surface. On a DoG response the signal is sparse over a
+            # near-zero-median background, so a window several nuclei wide is
+            # background-dominated and the mean/std track the local noise floor.
+            local_center = ndi.uniform_filter(response, size=window, mode="nearest")
+            local_var = (
+                ndi.uniform_filter(response * response, size=window, mode="nearest")
+                - local_center * local_center
+            )
+            local_scale = np.sqrt(np.maximum(local_var, 0.0))
+        else:
+            raise ValueError(f"unknown local_threshold kind: {kind!r}")
+        surface = local_center + float(k) * local_scale
+        peak_gate = np.maximum(surface, params.min_threshold)
+
     footprint = np.ones([2 * s + 1 for s in params.nms_size_zyx], dtype=bool)
     local_max = ndi.maximum_filter(response, footprint=footprint)
-    peak_mask = (response == local_max) & (response > threshold)
+    peak_mask = (response == local_max) & (response > peak_gate)
 
     coords = np.argwhere(peak_mask).astype(np.float64)  # (N, 3) z,y,x
     if coords.size == 0:

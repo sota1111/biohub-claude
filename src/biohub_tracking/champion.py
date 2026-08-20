@@ -133,6 +133,7 @@ def champion_params(
     l = config["link"]
     bg = d.get("background_sigma_zyx")
     mad_k = d.get("mad_k")
+    inorm = d.get("intensity_norm")
     detect = DetectParams(
         sigma_zyx=tuple(d.get("sigma_zyx", (1.0, 3.0, 3.0))),
         nms_size_zyx=tuple(d.get("nms_size_zyx", (2, 5, 5))),
@@ -140,6 +141,11 @@ def champion_params(
         min_threshold=float(d.get("min_threshold", 0.0)),
         background_sigma_zyx=tuple(bg) if bg is not None else None,
         mad_k=None if mad_k is None else float(mad_k),
+        intensity_norm=(
+            (str(inorm[0]), float(inorm[1]), float(inorm[2]))
+            if inorm is not None
+            else None
+        ),
     )
     link = LinkParams(
         max_distance=float(l.get("max_distance", 7.0)),

@@ -72,6 +72,44 @@ class DetectParams:
     peaks, adapting the detection *count* to signal content instead of volume size.
     ``None`` preserves the percentile behaviour exactly."""
 
+    intensity_norm: tuple[str, float, float] | None = None
+    """Optional **per-volume robust quantile** intensity normalization applied to
+    the raw volume *before* any Gaussian smoothing (SOT-2776). When set to
+    ``("quantile", plow, phigh)`` the volume is clipped to its own ``[plow, phigh]``
+    percentile band and linearly rescaled to ``[0, 1]`` — the classical
+    contrast-stretch royerlab's public baseline runs before detection. It puts
+    every timepoint's intensities on a common ``[0, 1]`` scale so the per-volume
+    threshold (percentile or MAD z-score) means the same thing across the strong
+    brightness drift of the developing embryo, recovering dim family/timepoint
+    cells that a raw-intensity cutoff drops. Only the *intensity* is normalized;
+    anisotropy stays handled by :attr:`sigma_zyx`. ``None`` feeds the raw volume in
+    unchanged (exact reproduction of the pre-SOT-2776 detector)."""
+
+
+def _normalize_intensity(
+    vol: np.ndarray, spec: tuple[str, float, float] | None
+) -> np.ndarray:
+    """Apply the configured per-volume intensity normalization (SOT-2776).
+
+    ``spec is None`` returns ``vol`` unchanged (exact reproduction). For
+    ``("quantile", plow, phigh)`` the volume is clipped to its own ``[plow, phigh]``
+    percentile band and linearly rescaled to ``[0, 1]``. Deterministic and
+    numpy-only, so it runs unchanged inside a Kaggle kernel. A degenerate volume
+    (constant band, ``hi <= lo``) is returned unchanged to avoid a divide-by-zero.
+    """
+    if spec is None:
+        return vol
+    kind = spec[0]
+    if kind == "quantile":
+        plow, phigh = float(spec[1]), float(spec[2])
+        lo = float(np.percentile(vol, plow))
+        hi = float(np.percentile(vol, phigh))
+        if not hi > lo:  # constant/degenerate band — leave untouched
+            return vol
+        out = (vol - lo) / (hi - lo)
+        return np.clip(out, 0.0, 1.0).astype(np.float32, copy=False)
+    raise ValueError(f"unknown intensity_norm kind: {kind!r}")
+
 
 def detect_centroids(
     volume: np.ndarray, params: DetectParams | None = None
@@ -86,6 +124,7 @@ def detect_centroids(
         params = DetectParams()
 
     vol = np.asarray(volume, dtype=np.float32)
+    vol = _normalize_intensity(vol, params.intensity_norm)
     smoothed = ndi.gaussian_filter(vol, sigma=params.sigma_zyx)
 
     # Detection response: raw smoothed intensity, or a Difference-of-Gaussians

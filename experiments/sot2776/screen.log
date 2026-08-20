@@ -1,0 +1,49 @@
+loaded 44b6_0113de3b
+loaded 44b6_0b24845f
+loaded 6bba_05b6850b
+loaded 6bba_05db0fb1
+
+=== baseline_none (norm=None) ===
+  44b6_0113de3b    tp/fp/fn=47/2/3 adj=0.8895 pred_nodes=29844
+  44b6_0b24845f    tp/fp/fn=37/5/12 adj=0.6817 pred_nodes=34485
+  6bba_05b6850b    tp/fp/fn=651/215/194 adj=0.5700 pred_nodes=10938
+  6bba_05db0fb1    tp/fp/fn=973/148/210 adj=0.7310 pred_nodes=69784
+  -> micro-adj=0.6649 by_lineage={'44b6': 0.7836144701478721, '6bba': 0.6596393906875447}
+
+=== q_p1_p99 (norm=('quantile', 1.0, 99.0)) ===
+  44b6_0113de3b    tp/fp/fn=44/10/6 adj=0.7143 pred_nodes=32430
+  44b6_0b24845f    tp/fp/fn=35/6/14 adj=0.6326 pred_nodes=34759
+  6bba_05b6850b    tp/fp/fn=528/307/317 adj=0.4096 pred_nodes=13123
+  6bba_05db0fb1    tp/fp/fn=975/137/208 adj=0.7374 pred_nodes=70947
+  -> micro-adj=0.5887 by_lineage={'44b6': 0.6752176850637812, '6bba': 0.5846627846603685}
+
+=== q_p0.5_p99.5 (norm=('quantile', 0.5, 99.5)) ===
+  44b6_0113de3b    tp/fp/fn=47/2/3 adj=0.8857 pred_nodes=30919
+  44b6_0b24845f    tp/fp/fn=37/5/12 adj=0.6809 pred_nodes=34869
+  6bba_05b6850b    tp/fp/fn=582/283/263 adj=0.4674 pred_nodes=12352
+  6bba_05db0fb1    tp/fp/fn=970/147/213 adj=0.7287 pred_nodes=70422
+  -> micro-adj=0.6159 by_lineage={'44b6': 0.781355043946997, '6bba': 0.6087626919601502}
+
+=== q_p2_p98 (norm=('quantile', 2.0, 98.0)) ===
+  44b6_0113de3b    tp/fp/fn=35/24/15 adj=0.4567 pred_nodes=34638
+  44b6_0b24845f    tp/fp/fn=34/9/15 adj=0.5840 pred_nodes=34029
+  6bba_05b6850b    tp/fp/fn=461/315/384 adj=0.3481 pred_nodes=14257
+  6bba_05db0fb1    tp/fp/fn=963/151/220 adj=0.7197 pred_nodes=71947
+  -> micro-adj=0.5451 by_lineage={'44b6': 0.5126128955011857, '6bba': 0.5468442388899584}
+
+=== q_p1_p99.9 (norm=('quantile', 1.0, 99.9)) ===
+  44b6_0113de3b    tp/fp/fn=47/2/3 adj=0.8890 pred_nodes=29973
+  44b6_0b24845f    tp/fp/fn=37/5/12 adj=0.6813 pred_nodes=34640
+  6bba_05b6850b    tp/fp/fn=636/235/209 adj=0.5423 pred_nodes=11394
+  6bba_05db0fb1    tp/fp/fn=971/149/212 adj=0.7289 pred_nodes=69898
+  -> micro-adj=0.6511 by_lineage={'44b6': 0.7832274089983302, '6bba': 0.6453397551459256}
+
+=== q_p5_p95 (norm=('quantile', 5.0, 95.0)) ===
+  44b6_0113de3b    tp/fp/fn=35/22/15 adj=0.4628 pred_nodes=38116
+  44b6_0b24845f    tp/fp/fn=34/8/15 adj=0.5994 pred_nodes=31210
+  6bba_05b6850b    tp/fp/fn=338/195/507 adj=0.2703 pred_nodes=17065
+  6bba_05db0fb1    tp/fp/fn=940/151/243 adj=0.7028 pred_nodes=71674
+  -> micro-adj=0.5138 by_lineage={'44b6': 0.5231357680943539, '6bba': 0.5133165261996666}
+
+VERDICT: REJECT  incumbent=0.6649  best=None
+wrote /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2776/screen_quantile_norm.json

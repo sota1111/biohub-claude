@@ -1,0 +1,25 @@
+[detect] 44b6_0113de3b: 29.6s dets=32147
+[detect] 44b6_0b24845f: 29.9s dets=42080
+[detect] 6bba_05b6850b: 30.2s dets=13376
+[detect] 6bba_05db0fb1: 30.0s dets=73953
+[baseline] champion micro_adj=0.6649 score=0.6649
+[theta] theta=inf w=2 micro_adj=0.6649 score=0.6649 d=+0.0000 dTP=+0 dFP=+0 dFN=+0 no_reg=False promotable=False
+[theta] theta=6.5 w=2 micro_adj=0.6671 score=0.6671 d=+0.0022 dTP=-11 dFP=-17 dFN=+11 no_reg=True promotable=True
+[theta] theta=6.0 w=2 micro_adj=0.6694 score=0.6694 d=+0.0045 dTP=-21 dFP=-37 dFN=+21 no_reg=False promotable=False
+[theta] theta=5.5 w=2 micro_adj=0.6689 score=0.6689 d=+0.0040 dTP=-38 dFP=-56 dFN=+38 no_reg=False promotable=False
+[theta] theta=5.0 w=2 micro_adj=0.6610 score=0.6610 d=-0.0039 dTP=-76 dFP=-76 dFN=+76 no_reg=False promotable=False
+[theta] theta=4.5 w=2 micro_adj=0.6547 score=0.6547 d=-0.0102 dTP=-114 dFP=-102 dFN=+114 no_reg=False promotable=False
+[theta] theta=4.0 w=2 micro_adj=0.6439 score=0.6439 d=-0.0210 dTP=-167 dFP=-131 dFN=+167 no_reg=False promotable=False
+[theta] theta=3.5 w=2 micro_adj=0.6095 score=0.6095 d=-0.0554 dTP=-268 dFP=-144 dFN=+268 no_reg=False promotable=False
+[theta] theta=3.0 w=2 micro_adj=0.5661 score=0.5661 d=-0.0988 dTP=-409 dFP=-186 dFN=+409 no_reg=False promotable=False
+[winchk] theta=5.0 w=2 micro_adj=0.6610 score=0.6610 edge_delta={'d_tp': -76, 'd_fp': -76, 'd_fn': 76}
+[winchk] theta=5.0 w=3 micro_adj=0.6610 score=0.6610 edge_delta={'d_tp': -76, 'd_fp': -76, 'd_fn': 76}
+[winchk] theta=4.0 w=2 micro_adj=0.6439 score=0.6439 edge_delta={'d_tp': -167, 'd_fp': -131, 'd_fn': 167}
+[winchk] theta=4.0 w=3 micro_adj=0.6439 score=0.6439 edge_delta={'d_tp': -167, 'd_fp': -131, 'd_fn': 167}
+
+wrote /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2830/screen_global_mcf.json
+baseline champion score=0.6649 (micro_adj=0.6649)
+theta=inf reproduces champion exactly: True
+window_invariant: True
+n_promotable=1
+BEST PROMOTABLE: theta=6.5 w=2 score=0.6671 (+0.0022) edge_delta={'d_tp': -11, 'd_fp': -17, 'd_fn': 11}

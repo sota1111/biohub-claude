@@ -1,0 +1,6 @@
+[champion] CV micro_adj=0.6649 score=0.6649 reproduced=True
+[confirm] theta=6.5 score=0.6671 d=+0.0022 no_reg=True family_mix_sensitive=True gap=0.0601
+[confirm] theta=6.0 score=0.6694 d=+0.0045 no_reg=False family_mix_sensitive=True gap=0.0596
+
+wrote /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2830/confirm_global_mcf.json
+champion_reproduced=True decision=do-not-promote

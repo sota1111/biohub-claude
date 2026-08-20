@@ -97,3 +97,102 @@ def test_only_links_consecutive_timepoints():
     dets = {0: np.array([[0.0, 0.0, 0.0]]), 2: np.array([[0.0, 0.0, 0.0]])}
     g = link_centroids(dets, scale=ISO, params=LinkParams(max_distance=5.0))
     assert g.num_edges == 0  # t=0 and t=2 are not consecutive
+
+
+# --- SOT-2830: global short-window min-cost-flow linking with birth/death arcs ---
+
+def _sorted_edges(g):
+    return sorted(g.edges)
+
+
+def test_global_window_default_is_per_frame_byte_invariant():
+    # global_window defaults to 1 => the per-frame champion path is unchanged.
+    dets = {
+        0: np.array([[0.0, 0.0, 0.0], [0.0, 0.0, 10.0]]),
+        1: np.array([[0.0, 0.0, 1.0], [0.0, 0.0, 11.0]]),
+        2: np.array([[0.0, 0.0, 2.0], [0.0, 0.0, 12.0]]),
+    }
+    base = link_centroids(dets, scale=ISO, params=LinkParams(max_distance=3.0))
+    dflt = LinkParams(max_distance=3.0)
+    assert dflt.global_window == 1
+    assert dflt.birth_cost == float("inf") and dflt.death_cost == float("inf")
+    # explicit global_window=1 must be identical to the default path
+    g1 = link_centroids(dets, scale=ISO, params=LinkParams(max_distance=3.0, global_window=1))
+    assert _sorted_edges(g1) == _sorted_edges(base)
+
+
+def test_global_window_infinite_theta_reproduces_champion_edges():
+    # global path with birth/death = inf (theta = inf) must reproduce the per-frame
+    # champion matching exactly, edge-for-edge and in the same insertion order.
+    dets = {
+        0: np.array([[0.0, 0.0, 0.0], [0.0, 0.0, 10.0]]),
+        1: np.array([[0.0, 0.0, 1.0], [0.0, 0.0, 11.0]]),
+        2: np.array([[0.0, 0.0, 2.0], [0.0, 0.0, 12.0]]),
+    }
+    champ = link_centroids(dets, scale=ISO, params=LinkParams(max_distance=3.0))
+    glob = link_centroids(
+        dets, scale=ISO,
+        params=LinkParams(max_distance=3.0, global_window=2),  # birth=death=inf
+    )
+    assert glob.edges == champ.edges  # exact list equality (order preserved)
+
+
+def test_global_birth_death_threshold_suppresses_marginal_link():
+    # one source, one dest at scaled distance 3 (<= max_distance=5).
+    dets = {0: np.array([[0.0, 0.0, 0.0]]), 1: np.array([[0.0, 0.0, 3.0]])}
+    # theta = birth+death = 4.0 > 3 => link kept
+    g_keep = link_centroids(
+        dets, scale=ISO,
+        params=LinkParams(max_distance=5.0, global_window=2, birth_cost=2.0, death_cost=2.0),
+    )
+    assert g_keep.num_edges == 1
+    # theta = 2.0 < 3 => marginal link refused (source dies / dest is born)
+    g_drop = link_centroids(
+        dets, scale=ISO,
+        params=LinkParams(max_distance=5.0, global_window=2, birth_cost=1.0, death_cost=1.0),
+    )
+    assert g_drop.num_edges == 0
+    assert g_drop.num_nodes == 2  # both detections still kept as isolated nodes
+
+
+def test_global_threshold_frees_dest_for_nearer_source():
+    # far source at x=0 (d=4) and near source at x=3 (d=1) both want dest x=4.
+    dets = {
+        0: np.array([[0.0, 0.0, 0.0], [0.0, 0.0, 3.0]]),
+        1: np.array([[0.0, 0.0, 4.0]]),
+    }
+    # theta=3 (birth=death=1.5): near link d=1 (<3) kept, far source d=4 unlinked.
+    g = link_centroids(
+        dets, scale=ISO,
+        params=LinkParams(max_distance=6.0, global_window=2, birth_cost=1.5, death_cost=1.5),
+    )
+    assert g.num_edges == 1
+    src = g.edges[0][0]
+    assert abs(g.position(src)[2] - 3.0) < 1e-9  # the nearer source won
+
+
+def test_global_window_output_invariant_to_window_size():
+    # for the pure-distance cost model the block flow decouples per transition, so
+    # window=2 and window=3 must produce identical graphs (no cross-hop coupling,
+    # and no bridge edges leaking across the wider window).
+    dets = {
+        0: np.array([[0.0, 0.0, 0.0], [0.0, 0.0, 10.0]]),
+        1: np.array([[0.0, 0.0, 1.5], [0.0, 0.0, 11.0]]),
+        2: np.array([[0.0, 0.0, 3.0], [0.0, 0.0, 12.0]]),
+        3: np.array([[0.0, 0.0, 4.0], [0.0, 0.0, 13.0]]),
+    }
+    p2 = LinkParams(max_distance=4.0, global_window=2, birth_cost=2.0, death_cost=2.0)
+    p3 = LinkParams(max_distance=4.0, global_window=3, birth_cost=2.0, death_cost=2.0)
+    g2 = link_centroids(dets, scale=ISO, params=p2)
+    g3 = link_centroids(dets, scale=ISO, params=p3)
+    assert _sorted_edges(g2) == _sorted_edges(g3)
+
+
+def test_global_path_emits_only_consecutive_edges():
+    # a gap at t=1: t=0 and t=2 must never be bridged on the global path.
+    dets = {0: np.array([[0.0, 0.0, 0.0]]), 2: np.array([[0.0, 0.0, 0.0]])}
+    g = link_centroids(
+        dets, scale=ISO,
+        params=LinkParams(max_distance=5.0, global_window=3, birth_cost=10.0, death_cost=10.0),
+    )
+    assert g.num_edges == 0

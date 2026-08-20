@@ -200,6 +200,16 @@ def champion_params(
         motion_gate_on_prediction=bool(l.get("motion_gate_on_prediction", False)),
         max_frame_gap=int(l.get("max_frame_gap", 1)),
         gap_distance=float(l.get("gap_distance", 7.0)),
+        global_window=int(l.get("global_window", 1)),
+        # birth/death arc costs (SOT-2830); JSON cannot hold inf, so an absent or
+        # null value means "unbounded" (never refuse a feasible link => the global
+        # path reproduces the per-frame champion matching).
+        birth_cost=(
+            float("inf") if l.get("birth_cost") is None else float(l["birth_cost"])
+        ),
+        death_cost=(
+            float("inf") if l.get("death_cost") is None else float(l["death_cost"])
+        ),
         min_track_length=int(l.get("min_track_length", 1)),
         division_overlay=(
             (

@@ -1,0 +1,63 @@
+{
+  "issue": "SOT-2817",
+  "source": "experiments/sot2816-oracle-audit/lineage_cv_rescore.json",
+  "configs": [
+    {
+      "name": "detect-link-v1",
+      "reanchored_score": 0.3598,
+      "micro_adj": 0.3598,
+      "macro_adj": 0.4501,
+      "lineage_macro_adj": 0.4295,
+      "division_measurable": true,
+      "division_term": 0.0,
+      "family_mix_sensitive": true,
+      "public_lb": 0.509
+    },
+    {
+      "name": "detect-link-dog-v2",
+      "reanchored_score": 0.5225,
+      "micro_adj": 0.5225,
+      "macro_adj": 0.6312,
+      "lineage_macro_adj": 0.6419,
+      "division_measurable": true,
+      "division_term": 0.0,
+      "family_mix_sensitive": true,
+      "public_lb": null
+    },
+    {
+      "name": "detect-link-dog-v3-adaptive",
+      "reanchored_score": 0.6232,
+      "micro_adj": 0.6232,
+      "macro_adj": 0.6898,
+      "lineage_macro_adj": 0.6942,
+      "division_measurable": true,
+      "division_term": 0.0,
+      "family_mix_sensitive": true,
+      "public_lb": null
+    },
+    {
+      "name": "detect-link-dog-v4-shorttrack",
+      "reanchored_score": 0.6649,
+      "micro_adj": 0.6649,
+      "macro_adj": 0.718,
+      "lineage_macro_adj": 0.7216,
+      "division_measurable": true,
+      "division_term": 0.0,
+      "family_mix_sensitive": true,
+      "public_lb": 0.624
+    }
+  ],
+  "cv_lb_order_consistent_on_submitted": true,
+  "submitted_points": [
+    {
+      "name": "detect-link-v1",
+      "reanchored_score": 0.3598,
+      "public_lb": 0.509
+    },
+    {
+      "name": "detect-link-dog-v4-shorttrack",
+      "reanchored_score": 0.6649,
+      "public_lb": 0.624
+    }
+  ]
+}

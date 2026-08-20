@@ -8,6 +8,7 @@ from .cv import (
     aggregate,
     cv_result_to_dict,
     evaluate_cv,
+    representativeness_report,
     score_family,
 )
 from .division_metric import DivisionCounts, division_counts, score_divisions
@@ -33,6 +34,7 @@ __all__ = [
     "aggregate",
     "cv_result_to_dict",
     "evaluate_cv",
+    "representativeness_report",
     "score_family",
     "SyntheticDivision",
     "DatasetsResult",

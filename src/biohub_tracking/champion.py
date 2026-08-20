@@ -137,6 +137,7 @@ def champion_params(
     wshed = d.get("watershed")
     dscales = d.get("dog_scales_zyx")
     bfilter = d.get("blobness_filter")
+    dsplit = d.get("density_gated_split")
     detect = DetectParams(
         sigma_zyx=tuple(d.get("sigma_zyx", (1.0, 3.0, 3.0))),
         nms_size_zyx=tuple(d.get("nms_size_zyx", (2, 5, 5))),
@@ -167,6 +168,18 @@ def champion_params(
                 float(bfilter[3]),
             )
             if bfilter is not None
+            else None
+        ),
+        density_gated_split=(
+            (
+                str(dsplit[0]),
+                float(dsplit[1]),
+                float(dsplit[2]),
+                float(dsplit[3]),
+                float(dsplit[4]),
+                float(dsplit[5]),
+            )
+            if dsplit is not None
             else None
         ),
     )

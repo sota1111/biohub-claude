@@ -12,7 +12,12 @@ Given per-timepoint centroids (from :mod:`biohub_tracking.detect`), build a
   detection that lies within ``division_distance`` microns of an already-matched
   ``t`` parent is attached as that parent's *second* child, encoding a ``1 -> 2``
   split. A parent gains at most one extra child, so out-degree is capped at two,
-  matching the competition's division definition.
+  matching the competition's division definition. Two **over-split suppressors**
+  keep spurious forks in check on dense volumes (SOT-2762): ``division_distance``
+  can be tightened below ``max_distance``, and ``division_max_sibling_ratio``
+  gates the second daughter on being roughly balanced with the primary daughter
+  (a real mitotic split yields two daughters symmetric about the parent, so a
+  detection much farther than the assigned child is not a plausible sibling).
 
 The routine is deterministic and mirrors the competition's own micron-space,
 optimal-assignment matching, so offline scores track the leaderboard metric.
@@ -40,7 +45,25 @@ class LinkParams:
     """Whether to attach a second daughter to a matched parent (``1 -> 2``)."""
 
     division_distance: float = DEFAULT_MAX_DISTANCE
-    """Maximum parent->second-daughter distance when ``allow_division`` is set."""
+    """Maximum parent->second-daughter distance when ``allow_division`` is set.
+
+    An over-split suppressor: tightening this below :attr:`max_distance` restricts
+    divisions to close, high-confidence sibling pairs, so a dense volume does not
+    spray spurious forks (each of which is a division FP and, when its extra edge
+    is evaluable, an edge FP too)."""
+
+    division_max_sibling_ratio: float = 0.0
+    """Sibling-balance over-split gate for divisions (SOT-2762).
+
+    A real mitotic split produces two daughters roughly equidistant from the
+    parent's last position. When ``> 0``, a leftover ``t+1`` detection is attached
+    as a parent's second daughter only if its scaled parent-distance ``d2`` is
+    ``<= division_max_sibling_ratio * d1``, where ``d1`` is the scaled distance
+    from that parent to its *primary* (one-to-one assigned) daughter. This rejects
+    attaching a distant unrelated detection as a fake sibling, the dominant
+    over-split failure mode on the dense ``6bba`` families. ``0.0`` disables the
+    gate (any leftover within ``division_distance`` may divide — the pre-SOT-2762
+    behaviour, byte-for-byte)."""
 
     velocity_gain: float = 0.0
     """Constant-velocity motion prediction for the assignment (SOT-2369).
@@ -213,8 +236,17 @@ def link_centroids(
 
         if not params.allow_division or len(src) == 0:
             continue
+        # Scaled distance from each matched parent to its primary (assigned)
+        # daughter, for the sibling-balance over-split gate.
+        primary_dist: dict[int, float] = {}
+        if params.division_max_sibling_ratio > 0.0:
+            for i, j in pairs:
+                primary_dist[i] = float(
+                    np.sqrt((((src[i] - dst[j]) * scale_arr) ** 2).sum())
+                )
         # Attach each leftover t+1 detection to its nearest matched parent as a
-        # second daughter, if within division_distance.
+        # second daughter, if within division_distance (and, when the sibling
+        # ratio gate is on, balanced against that parent's primary daughter).
         parent_pos = src * scale_arr
         for j in range(len(dst)):
             if j in matched_dst:
@@ -225,6 +257,10 @@ def link_centroids(
                 if d[i] > params.division_distance:
                     break
                 if i in matched_src and graph.out_degree(ids_by_t[t_a][i]) < 2:
+                    if params.division_max_sibling_ratio > 0.0 and (
+                        d[i] > params.division_max_sibling_ratio * primary_dist.get(i, 0.0)
+                    ):
+                        continue  # sibling too far vs primary daughter → not a split
                     graph.add_edge(ids_by_t[t_a][i], ids_by_t[t_b][j])
                     matched_dst.add(j)
                     break

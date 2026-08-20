@@ -56,6 +56,43 @@ def test_division_attaches_second_daughter_when_enabled():
     assert g_off.out_degree(parent) == 1  # no division when disabled
 
 
+def test_sibling_ratio_gate_suppresses_unbalanced_division():
+    # parent at x=0; primary daughter at x=0.5 (d1=0.5), leftover at x=3.0 (d2=3.0)
+    dets = {
+        0: np.array([[0.0, 0.0, 0.0]]),
+        1: np.array([[0.0, 0.0, 0.5], [0.0, 0.0, 3.0]]),
+    }
+    parent0 = 0
+    # Gate OFF (ratio=0): the unbalanced leftover still divides (out-degree 2).
+    g_off = link_centroids(
+        dets, scale=ISO,
+        params=LinkParams(max_distance=5.0, allow_division=True,
+                          division_distance=5.0, division_max_sibling_ratio=0.0),
+    )
+    assert g_off.out_degree(parent0) == 2
+    # Gate ON (ratio=2.0): d2=3.0 > 2.0*d1=1.0 → sibling rejected, no fork.
+    g_on = link_centroids(
+        dets, scale=ISO,
+        params=LinkParams(max_distance=5.0, allow_division=True,
+                          division_distance=5.0, division_max_sibling_ratio=2.0),
+    )
+    assert g_on.out_degree(parent0) == 1
+
+
+def test_sibling_ratio_gate_keeps_balanced_division():
+    # symmetric split: two daughters at +/-0.5 (d1=d2=0.5) — a real division shape
+    dets = {
+        0: np.array([[0.0, 0.0, 0.0]]),
+        1: np.array([[0.0, 0.0, 0.5], [0.0, 0.0, -0.5]]),
+    }
+    g = link_centroids(
+        dets, scale=ISO,
+        params=LinkParams(max_distance=2.0, allow_division=True,
+                          division_distance=2.0, division_max_sibling_ratio=2.0),
+    )
+    assert g.out_degree(0) == 2  # balanced sibling passes the gate
+
+
 def test_only_links_consecutive_timepoints():
     dets = {0: np.array([[0.0, 0.0, 0.0]]), 2: np.array([[0.0, 0.0, 0.0]])}
     g = link_centroids(dets, scale=ISO, params=LinkParams(max_distance=5.0))

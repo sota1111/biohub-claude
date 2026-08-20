@@ -145,6 +145,7 @@ def champion_params(
         max_distance=float(l.get("max_distance", 7.0)),
         allow_division=bool(l.get("allow_division", False)),
         division_distance=float(l.get("division_distance", 7.0)),
+        division_max_sibling_ratio=float(l.get("division_max_sibling_ratio", 0.0)),
         velocity_gain=float(l.get("velocity_gain", 0.0)),
         velocity_disp_weight=float(l.get("velocity_disp_weight", 0.05)),
         motion_gate_on_prediction=bool(l.get("motion_gate_on_prediction", False)),

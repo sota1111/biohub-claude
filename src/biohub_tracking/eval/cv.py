@@ -39,9 +39,10 @@ competition data. Only :func:`evaluate_cv` touches disk, and only when the real
 from __future__ import annotations
 
 import math
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, NamedTuple
+from typing import NamedTuple
 
 from ..graph import TrackingGraph
 from ..matching import DEFAULT_MAX_DISTANCE
@@ -318,7 +319,11 @@ def evaluate_cv(
     """
     # Local imports: these pull in champion/pipeline/io (and zarr) which are not
     # needed for the pure aggregation path the unit tests exercise.
-    from ..champion import champion_params, load_champion_config
+    from ..champion import (
+        champion_params,
+        learned_detector_config,
+        load_champion_config,
+    )
     from ..io import geff_estimated_num_nodes, geff_scale, load_geff
 
     if repo_root is None:
@@ -332,9 +337,23 @@ def evaluate_cv(
     if predictor is None:
         from ..pipeline import run_pipeline
 
-        def predictor(image, scale, detect_params, link_params):  # noqa: ANN001
+        # Learned-detector receptacle (SOT-2847, default-off): built only for a
+        # config that carries an enabled ``learned_detector`` block, so the
+        # champion CV path is unchanged (learned_detector stays None).
+        learned_detector = None
+        ld_block = learned_detector_config(config)
+        if ld_block is not None:
+            from ..learned_detect import build_learned_detector
+
+            learned_detector = build_learned_detector(ld_block)
+
+        def predictor(image, scale, detect_params, link_params):
             return run_pipeline(
-                image, scale=scale, detect_params=detect_params, link_params=link_params
+                image,
+                scale=scale,
+                detect_params=detect_params,
+                link_params=link_params,
+                learned_detector=learned_detector,
             )
 
     rows: list[FamilyResult] = []

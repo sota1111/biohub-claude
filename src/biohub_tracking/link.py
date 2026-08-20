@@ -126,6 +126,51 @@ class LinkParams:
     budget, so widening it admits more distant reconnections; tightening it keeps
     only close, high-confidence bridges to suppress spurious cross-track merges."""
 
+    gap_recover: bool = False
+    """Node-interpolation gap recovery on missing detection frames (SOT-2849).
+
+    ``False`` (default) reproduces the champion graph **byte-for-byte**. When set,
+    after frame-to-frame linking, a track-fragment **tail** at ``t`` is reconnected
+    to a later fragment **head** at ``t + g`` (``2 <= g <= gap_recover_max_gap``,
+    within :attr:`gap_recover_distance` microns) by inserting **interpolated
+    detection nodes** at each missing frame ``t+1 .. t+g-1`` (linear interpolation
+    of the voxel centroid between tail and head) wired as a chain of *consecutive*
+    edges ``tail -> interp -> ... -> head`` (:func:`_gap_recover`).
+
+    **Why this is distinct from gap-closing (SOT-2763).** ``max_frame_gap`` added a
+    single *non-consecutive* bridge edge, which the competition edge metric drops
+    (``t_target - t_source == 1`` only) — so that mechanism could never recover an
+    FN edge and was rejected. Node interpolation instead produces only consecutive
+    edges, which ARE scored; an interpolated node landing within the ``<= 7 µm``
+    per-timepoint match radius of the true (missed-detection) GT node recovers a
+    real FN edge (the ``pilkwang`` "gap recovery" mechanism). Runs **before**
+    :attr:`min_track_length` pruning, so a recovered bridge can also lift two real
+    short fragments into one surviving ``>= min_track_length`` component. The net
+    effect (FN recovery vs. interpolated-node FP / node-count penalty) is decided
+    empirically on the leak-free CV."""
+
+    gap_recover_max_gap: int = 2
+    """Maximum frame gap a :attr:`gap_recover` bridge may span (``>= 2``).
+
+    ``g`` missing frames insert ``g - 1`` interpolated nodes. Only used when
+    :attr:`gap_recover` is set; ``2`` bridges a single missing frame."""
+
+    gap_recover_distance: float = DEFAULT_MAX_DISTANCE
+    """Maximum tail->head scaled distance (microns) for a :attr:`gap_recover` bridge.
+
+    A single absolute gate (the TrackMate gap-closing-max-distance convention).
+    Only used when :attr:`gap_recover` is set."""
+
+    gap_recover_min_frag: int = 1
+    """Minimum weakly-connected fragment size at each :attr:`gap_recover` terminal.
+
+    Both the tail's and the head's fragment must contain ``>= gap_recover_min_frag``
+    nodes to be eligible for a bridge. ``1`` (default) admits any terminal; a larger
+    value refuses to reconnect (and resurrect through the prune) the short noise
+    fragments the champion's :attr:`min_track_length` prune is designed to remove —
+    the node-resurrection failure mode that sank gap-closing (SOT-2763). Only used
+    when :attr:`gap_recover` is set."""
+
     division_overlay: tuple | None = None
     """Non-destructive division-event overlay (SOT-2818), applied *after* linking.
 
@@ -366,6 +411,151 @@ def _gap_close(
 
     for src, dst in new_edges:
         graph.add_edge(src, dst)
+    return graph
+
+
+def _component_sizes(graph: TrackingGraph) -> dict[int, int]:
+    """Weakly-connected component size for every node id (union-find over edges)."""
+    parent: dict[int, int] = {n: n for n in graph.node_ids()}
+
+    def find(a: int) -> int:
+        root = a
+        while parent[root] != root:
+            root = parent[root]
+        while parent[a] != root:  # path compression
+            parent[a], a = root, parent[a]
+        return root
+
+    for src, dst in graph.edges:
+        parent[find(src)] = find(dst)
+    sizes: dict[int, int] = {}
+    for n in graph.node_ids():
+        sizes[find(n)] = sizes.get(find(n), 0) + 1
+    return {n: sizes[find(n)] for n in graph.node_ids()}
+
+
+def _gap_recover(
+    graph: TrackingGraph,
+    scale: np.ndarray,
+    max_gap: int,
+    distance: float,
+    min_frag: int,
+) -> TrackingGraph:
+    """Node-interpolation gap recovery across missing detection frames (SOT-2849).
+
+    Distinct from :func:`_gap_close` (SOT-2763), which added a single
+    *non-consecutive* bridge edge that the competition edge metric drops. Here,
+    when a track-fragment tail at ``t`` is reconnected to a later fragment head at
+    ``t + g`` (``2 <= g <= max_gap``) within ``distance`` microns, we **insert
+    interpolated detection nodes** at each missing frame ``t+1 .. t+g-1`` (linear
+    interpolation of the voxel centroid between tail and head) and wire them into a
+    chain of *consecutive* edges ``tail -> interp -> ... -> head``. Those
+    consecutive edges ARE scored, and an interpolated node that lands within the
+    ``<= 7 µm`` per-timepoint match radius of the true (missed-detection) GT node
+    recovers a real FN edge.
+
+    ``min_frag`` gates eligibility on the weakly-connected fragment size at each
+    terminal (both the tail's and the head's fragment must have ``>= min_frag``
+    nodes), to avoid resurrecting the short noise fragments the champion's
+    ``min_track_length`` prune is designed to remove (the SOT-2763 failure mode).
+    Bridges are chosen by an optimal min-cost assignment (each tail bridges to at
+    most one head and vice versa). Mutates *graph* in place and returns it.
+    """
+    if max_gap <= 1:
+        return graph
+    tails = [n for n in graph.node_ids() if graph.out_degree(n) == 0]
+    heads = [n for n in graph.node_ids() if graph.in_degree(n) == 0]
+    if not tails or not heads:
+        return graph
+
+    if min_frag > 1:
+        comp_size = _component_sizes(graph)
+        tails = [n for n in tails if comp_size.get(n, 1) >= min_frag]
+        heads = [n for n in heads if comp_size.get(n, 1) >= min_frag]
+        if not tails or not heads:
+            return graph
+
+    heads_by_t: dict[int, list[int]] = {}
+    for h in heads:
+        heads_by_t.setdefault(graph.t(h), []).append(h)
+
+    # Feasible (tail, head, gap, cost) candidates within the frame-gap and distance
+    # gates; cost is the scaled tail->head distance.
+    cand: list[tuple[int, int, int, float]] = []
+    for tail in tails:
+        t0 = graph.t(tail)
+        p0 = graph.position(tail) * scale
+        for g in range(2, max_gap + 1):
+            hs = heads_by_t.get(t0 + g)
+            if not hs:
+                continue
+            hpos = np.array([graph.position(h) for h in hs], dtype=float) * scale
+            dist = np.sqrt(((hpos - p0) ** 2).sum(axis=1))
+            for h, d in zip(hs, dist):
+                if h != tail and d <= distance:
+                    cand.append((tail, h, g, float(d)))
+    if not cand:
+        return graph
+
+    # Union-find over the feasible-pair bipartite graph (tail/head namespaced), then
+    # solve the min-cost assignment per connected component (block-diagonal == global
+    # LAP; each block is small because the gates are spatially/temporally local).
+    parent: dict[tuple[str, int], tuple[str, int]] = {}
+
+    def find(x: tuple[str, int]) -> tuple[str, int]:
+        parent.setdefault(x, x)
+        root = x
+        while parent[root] != root:
+            root = parent[root]
+        while parent[x] != root:  # path compression
+            parent[x], x = root, parent[x]
+        return root
+
+    for tail, h, _g, _c in cand:
+        parent[find(("t", tail))] = find(("h", h))
+
+    comps: dict[tuple[str, int], list[tuple[int, int, int, float]]] = {}
+    for tail, h, g, c in cand:
+        comps.setdefault(find(("t", tail)), []).append((tail, h, g, c))
+
+    big = distance * 1000.0 + 1.0
+    chosen: list[tuple[int, int, int]] = []  # (tail, head, gap)
+    for pairs in comps.values():
+        comp_tails = sorted({p[0] for p in pairs})
+        comp_heads = sorted({p[1] for p in pairs})
+        ti = {n: i for i, n in enumerate(comp_tails)}
+        hi = {n: i for i, n in enumerate(comp_heads)}
+        cost = np.full((len(comp_tails), len(comp_heads)), big, dtype=float)
+        gap_of: dict[tuple[int, int], int] = {}
+        for tail, h, g, c in pairs:
+            r, col = ti[tail], hi[h]
+            if c < cost[r, col]:
+                cost[r, col] = c
+                gap_of[(r, col)] = g
+        rows, cols = linear_sum_assignment(cost)
+        for r, col in zip(rows, cols):
+            if cost[r, col] < big:
+                chosen.append((comp_tails[r], comp_heads[col], gap_of[(r, col)]))
+    if not chosen:
+        return graph
+
+    # Insert interpolated nodes (fresh ids) and wire the consecutive chain.
+    next_id = max(graph.node_ids()) + 1
+    for tail, head, g in chosen:
+        t0 = graph.t(tail)
+        p_tail = graph.position(tail)  # voxel coords
+        p_head = graph.position(head)
+        prev = tail
+        for step in range(1, g):
+            frac = step / g
+            pos = p_tail + frac * (p_head - p_tail)
+            graph.add_node(
+                next_id, float(t0 + step), float(pos[0]), float(pos[1]), float(pos[2])
+            )
+            graph.add_edge(prev, next_id)
+            prev = next_id
+            next_id += 1
+        graph.add_edge(prev, head)
     return graph
 
 
@@ -673,6 +863,18 @@ def link_centroids(
     if params.max_frame_gap > 1:
         graph = _gap_close(
             graph, scale_arr, params.max_frame_gap, params.gap_distance
+        )
+    # Node-interpolation gap recovery (SOT-2849) also runs BEFORE pruning: it inserts
+    # interpolated nodes on missing frames so the recovered path is *consecutive*
+    # edges the metric scores (unlike the SOT-2763 bridge), and a recovered bridge
+    # can lift two real short fragments into one surviving component.
+    if params.gap_recover:
+        graph = _gap_recover(
+            graph,
+            scale_arr,
+            params.gap_recover_max_gap,
+            params.gap_recover_distance,
+            params.gap_recover_min_frag,
         )
     if params.min_track_length > 1:
         graph = _prune_short_tracks(graph, params.min_track_length)

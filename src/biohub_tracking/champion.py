@@ -226,6 +226,12 @@ def champion_params(
         motion_gate_on_prediction=bool(l.get("motion_gate_on_prediction", False)),
         max_frame_gap=int(l.get("max_frame_gap", 1)),
         gap_distance=float(l.get("gap_distance", 7.0)),
+        # Node-interpolation gap recovery (SOT-2849); absent keys keep the champion
+        # byte-identical (gap_recover default off).
+        gap_recover=bool(l.get("gap_recover", False)),
+        gap_recover_max_gap=int(l.get("gap_recover_max_gap", 2)),
+        gap_recover_distance=float(l.get("gap_recover_distance", 7.0)),
+        gap_recover_min_frag=int(l.get("gap_recover_min_frag", 1)),
         global_window=int(l.get("global_window", 1)),
         # birth/death arc costs (SOT-2830); JSON cannot hold inf, so an absent or
         # null value means "unbounded" (never refuse a feasible link => the global

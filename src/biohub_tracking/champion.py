@@ -138,6 +138,7 @@ def champion_params(
     dscales = d.get("dog_scales_zyx")
     bfilter = d.get("blobness_filter")
     dsplit = d.get("density_gated_split")
+    lthr = d.get("local_threshold")
     detect = DetectParams(
         sigma_zyx=tuple(d.get("sigma_zyx", (1.0, 3.0, 3.0))),
         nms_size_zyx=tuple(d.get("nms_size_zyx", (2, 5, 5))),
@@ -180,6 +181,11 @@ def champion_params(
                 float(dsplit[5]),
             )
             if dsplit is not None
+            else None
+        ),
+        local_threshold=(
+            (str(lthr[0]), tuple(int(v) for v in lthr[1]), float(lthr[2]))
+            if lthr is not None
             else None
         ),
     )

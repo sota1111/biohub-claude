@@ -1,0 +1,13 @@
+[base] 44b6_0113de3b nodes=30022 forks=0 resp_sampled=30022
+[base] 44b6_0b24845f nodes=34818 forks=0 resp_sampled=34818
+[base] 6bba_05b6850b nodes=11039 forks=0 resp_sampled=11039
+[base] 6bba_05db0fb1 nodes=69961 forks=0 resp_sampled=69961
+[champion] micro_adj=0.676 score=0.676 div_jaccard=0.0
+[cand] geom_str0.8: div_tp=0 div_fp=7 score=0.6754 (dScore -0.0006, dMicro -0.0006) edge_fp 350->355 no_edge_reg=False promote=False
+[cand] geom_str0.6: div_tp=0 div_fp=4 score=0.6756 (dScore -0.0004, dMicro -0.0004) edge_fp 350->353 no_edge_reg=False promote=False
+[cand] sig_str0.8_p0.6_d0.5: div_tp=0 div_fp=4 score=0.6756 (dScore -0.0004, dMicro -0.0004) edge_fp 350->353 no_edge_reg=False promote=False
+[cand] sig_str0.7_p0.7_d0.6: div_tp=0 div_fp=0 score=0.676 (dScore +0.0000, dMicro +0.0000) edge_fp 350->350 no_edge_reg=True promote=False
+[cand] sig_str0.6_p0.8_d0.7: div_tp=0 div_fp=0 score=0.676 (dScore +0.0000, dMicro +0.0000) edge_fp 350->350 no_edge_reg=True promote=False
+[cand] sig_str0.5_p0.85_d0.8: div_tp=0 div_fp=0 score=0.676 (dScore +0.0000, dMicro +0.0000) edge_fp 350->350 no_edge_reg=True promote=False
+wrote /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2932/ab_split_signature.json
+VERDICT=REJECTED

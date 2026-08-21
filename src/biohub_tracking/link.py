@@ -352,6 +352,85 @@ class LinkParams:
     :attr:`max_distance` (SOT-2870). Bounds the expansion so a spurious motion
     prediction can never admit an arbitrarily far (metric-invalid) edge."""
 
+    window_assoc: int = 1
+    """Portable Trackastra-style windowed global association (SOT-2871, default-off).
+
+    ``1`` (default, absent key) runs the **unchanged per-frame champion path**, so
+    the champion graph is reproduced **byte-for-byte**. ``>= 2`` activates a
+    *motion-coupled windowed LAP chain* (:func:`_window_link`): the ``t -> t+1``
+    assignment is solved on **motion-predicted** source positions whose predicted
+    displacement blends the SOT-2864 global motion field with a **carried velocity**
+    running-averaged over the previous ``window_assoc - 1`` transitions of the
+    window. That carried velocity is what makes the window *bite* — a middle
+    detection's outgoing link cost depends on the incoming link the window chose one
+    frame earlier (a cross-hop coupling the SOT-2830 pure-distance min-cost-flow
+    provably lacks, so its window decoupled). It is Trackastra's (arXiv:2405.15700)
+    short sliding-window association ported portably: **numpy/scipy only** (a LAP
+    chain with birth/death outlier arcs — :func:`_window_assign`), no torch /
+    attention / pretrained weights / cv2.
+
+    **Distinct from prior linking axes.** Unlike static gap-closing (SOT-2763,
+    rejected: the metric drops the non-consecutive bridge edge) and node-interp
+    gap-recovery (SOT-2849, rejected: family-mix sensitive), this touches only the
+    primary consecutive ``t -> t+1`` link and emits only metric-scored consecutive
+    edges. Unlike the SOT-2830 global min-cost-flow (``global_window``, +0.0022 and
+    family-mix sensitive — its cost decoupled per transition), the motion carry
+    couples adjacent transitions so the window is a genuine joint reasoning step.
+    Unlike the memoryless-cell ``velocity_gain`` (SOT-2369), the carried velocity is
+    re-derived from *the window's own chosen links* and blended with the global
+    field, so even a history-less cell inherits neighbourhood motion.
+
+    ``window_assoc >= 2`` supersedes / is incompatible with ``global_window`` (they
+    are mutually exclusive global paths); in-linker division on this path is governed
+    by :attr:`window_parental_softmax`, and gap-closing knobs are ignored (only
+    consecutive edges are emitted)."""
+
+    window_theta: float = float("inf")
+    """Link-acceptance threshold on the windowed path (SOT-2871). Birth+death outlier
+    cost sum: a ``t -> t+1`` pair is linked only when its **effective** (motion-
+    predicted + optional appearance/edge) cost is ``< window_theta`` (and its gate
+    distance is ``<= max_distance``). ``inf`` (default) accepts every feasible pair,
+    so with motion off the windowed path reproduces the per-frame champion matching
+    exactly. Lowering it lets the solver *refuse* a marginal link and start/end a
+    track instead (the classical network-flow outlier). Ignored when
+    :attr:`window_assoc` ``<= 1``."""
+
+    window_carry_weight: float = 0.5
+    """Blend weight on the carried window velocity vs the SOT-2864 global motion
+    field in the windowed predicted displacement (SOT-2871). For a source with a
+    window history the predicted displacement is ``window_carry_weight * carried +
+    (1 - window_carry_weight) * field``; a history-less source uses the field alone.
+    ``0.0`` collapses to the pure SOT-2864 motion field (the window stops biting);
+    ``1.0`` trusts the carried trajectory only. Ignored when :attr:`window_assoc`
+    ``<= 1`` or :attr:`motion_gain` ``== 0``."""
+
+    window_parental_softmax: bool = False
+    """Parental-softmax division constraint within the window (SOT-2871, default-off).
+
+    Trackastra's parental softmax normalises each parent's association mass over its
+    candidate children so a parent's total child-association is ``<= 1`` (one parent,
+    possibly two children, never a spurious spray of forks). Here, when
+    :attr:`allow_division` is set, a leftover ``t+1`` detection is attached to a
+    matched parent as a **second daughter** only if its softmax association share
+    (``softmax(-scaled_dist / window_softmax_temp)`` over that parent's feasible
+    children within :attr:`division_distance`) is ``>= window_softmax_min_share`` —
+    so the parent's mass is genuinely *shared* between two comparable daughters (a
+    balanced mitotic split), not leaked to a distant unrelated detection (a division
+    FP). ``False`` (default) or :attr:`allow_division` off adds no fork. Only used on
+    the :attr:`window_assoc` ``>= 2`` path."""
+
+    window_softmax_min_share: float = 0.3
+    """Minimum parental-softmax association share to admit a second daughter
+    (SOT-2871). Higher = stricter (a candidate sibling must carry more of the
+    parent's normalised association mass, suppressing more division FPs). Only used
+    when :attr:`window_parental_softmax` and :attr:`allow_division` are set."""
+
+    window_softmax_temp: float = 1.0
+    """Softmax temperature (scaled microns) for the parental-softmax shares
+    (SOT-2871). Smaller = sharper (mass concentrates on the nearest child, so a
+    second daughter rarely clears :attr:`window_softmax_min_share`); larger =
+    flatter. Only used when :attr:`window_parental_softmax` is set."""
+
     min_track_length: int = 1
     """Drop weakly-connected track fragments with fewer than this many nodes
     (SOT-2369, ported from the reference tracker's ``FILTER_SHORT_TRACKS``).
@@ -873,6 +952,204 @@ def _global_link(
             graph.add_edge(ids_by_t[t_a][i], ids_by_t[t_b][j])
 
 
+def _window_assign(
+    src: np.ndarray, dst: np.ndarray, scale: np.ndarray, max_distance: float,
+    theta: float,
+    src_pred: np.ndarray | None = None, disp_weight: float = 0.0,
+    gate_on_prediction: bool = False,
+    src_desc: np.ndarray | None = None, dst_desc: np.ndarray | None = None,
+    appearance_weight: float = 0.0, edge_model=None,
+) -> list[tuple[int, int]]:
+    """One windowed-association transition: motion-predicted LAP with birth/death
+    outliers (SOT-2871).
+
+    Combines the SOT-2864 predicted-position cost (``src_pred``) with the SOT-2830
+    birth/death link-acceptance threshold ``theta``: a pair is linked only when its
+    **effective** cost (predicted-position distance ``+ disp_weight * raw`` plus any
+    appearance/edge-model penalty) is ``< theta`` and its gate distance is
+    ``<= max_distance``. With ``theta = inf``, ``src_pred = None`` and no penalty
+    terms this is **byte-identical** to :func:`_assign` (the champion path), so the
+    windowed path is a strict generalisation.
+    """
+    if len(src) == 0 or len(dst) == 0:
+        return []
+    diff = (src[:, None, :] - dst[None, :, :]) * scale
+    dist = np.sqrt((diff**2).sum(axis=2))
+    dist_pred: np.ndarray | None = None
+    if src_pred is None:
+        gate = dist
+        cost_base = dist
+    else:
+        diff_pred = (src_pred[:, None, :] - dst[None, :, :]) * scale
+        dist_pred = np.sqrt((diff_pred**2).sum(axis=2))
+        gate = dist_pred if gate_on_prediction else dist
+        cost_base = dist_pred + disp_weight * dist
+    has_desc = src_desc is not None and dst_desc is not None
+    if appearance_weight > 0.0 and has_desc:
+        cost_base = cost_base + _appearance_cost(src_desc, dst_desc, appearance_weight)
+    if edge_model is not None and edge_model.weight != 0.0 and has_desc:
+        cost_base = cost_base + edge_model.penalty(
+            dist, src_desc, dst_desc, max_distance, dist_pred=dist_pred
+        )
+
+    feasible = gate <= max_distance
+    if np.isfinite(theta):
+        # Birth/death acceptance: refuse a link costlier than the outlier sum, so a
+        # source may die / a destination be born instead of taking a marginal edge.
+        feasible = feasible & (cost_base < theta)
+
+    big = max_distance * 1000.0 + float(cost_base.max()) + 1.0
+    cost = np.where(feasible, cost_base, big)
+    rows, cols = linear_sum_assignment(cost)
+    return [(int(r), int(c)) for r, c in zip(rows, cols) if bool(feasible[r, c])]
+
+
+def _parental_softmax_divide(
+    graph: TrackingGraph,
+    ids_a: list[int],
+    ids_b: list[int],
+    src: np.ndarray,
+    dst: np.ndarray,
+    scale: np.ndarray,
+    params: LinkParams,
+    pairs: list[tuple[int, int]],
+) -> None:
+    """Attach balanced second daughters under Trackastra's parental-softmax
+    constraint (SOT-2871), in place.
+
+    For each matched parent the association mass over its feasible children (those
+    within :attr:`LinkParams.division_distance`) is a softmax of
+    ``-scaled_distance / window_softmax_temp``, so the shares sum to ``<= 1`` (the
+    parental-softmax "one parent" budget). A leftover ``t+1`` detection is attached
+    as a parent's second daughter only when its softmax share is
+    ``>= window_softmax_min_share`` — i.e. the parent's mass is genuinely split
+    between two comparable daughters (a real mitosis), never leaked to a distant
+    detection (a division FP). Out-degree stays capped at two.
+    """
+    matched_dst = {j for _, j in pairs}
+    matched_src = {i for i, _ in pairs}
+    if not matched_src:
+        return
+    parent_pos = src * scale
+    temp = max(params.window_softmax_temp, 1e-6)
+    # Feasible-child softmax shares per matched parent: over every child within
+    # division_distance (scaled), mass = softmax(-dist / temp).
+    dst_pos = dst * scale
+    for j in range(len(dst)):
+        if j in matched_dst:
+            continue
+        # Candidate parents (matched, out-degree < 2, within division_distance),
+        # ranked by the share this leftover child would carry of the parent's mass.
+        best_parent = -1
+        best_share = 0.0
+        for i in matched_src:
+            if graph.out_degree(ids_a[i]) >= 2:
+                continue
+            d_ij = float(np.sqrt(((parent_pos[i] - dst_pos[j]) ** 2).sum()))
+            if d_ij > params.division_distance:
+                continue
+            # Parent i's feasible children (within division_distance), incl. this one.
+            d_children = np.sqrt(((dst_pos - parent_pos[i]) ** 2).sum(axis=1))
+            feas = d_children <= params.division_distance
+            if not feas.any():
+                continue
+            logits = -d_children[feas] / temp
+            logits = logits - logits.max()
+            w = np.exp(logits)
+            w = w / w.sum()
+            share = float(w[np.flatnonzero(feas) == j][0]) if feas[j] else 0.0
+            if share > best_share:
+                best_share = share
+                best_parent = i
+        if best_parent >= 0 and best_share >= params.window_softmax_min_share:
+            graph.add_edge(ids_a[best_parent], ids_b[j])
+            matched_dst.add(j)
+
+
+def _window_link(
+    graph: TrackingGraph,
+    detections: dict[int, np.ndarray],
+    ids_by_t: dict[int, list[int]],
+    scale_arr: np.ndarray,
+    params: LinkParams,
+    descriptors: dict[int, np.ndarray] | None,
+    edge_model,
+    use_edge_model: bool,
+) -> None:
+    """Motion-coupled windowed global association (SOT-2871), in place.
+
+    Processes consecutive ``t -> t+1`` transitions in time order. Each source's
+    predicted position blends the SOT-2864 global motion field with a **carried
+    velocity** running-averaged over the previous ``window_assoc - 1`` transitions
+    (reset across any timepoint gap), so a middle detection's outgoing link cost
+    depends on the incoming link the window chose one frame earlier — the cross-hop
+    coupling that makes the short window bite. The per-transition assignment is a
+    birth/death-outlier LAP (:func:`_window_assign`); optional parental-softmax adds
+    balanced second daughters (:func:`_parental_softmax_divide`). Emits only
+    consecutive-frame edges (metric-valid); short-track pruning and the division
+    overlay are applied by the caller, as on the global path.
+    """
+    W = max(params.window_assoc, 2)
+    theta = params.window_theta
+    alpha = params.window_carry_weight
+    gain = params.motion_gain
+    sigma = params.motion_smooth_sigma
+    use_desc = (params.appearance_weight > 0.0 or use_edge_model) and descriptors is not None
+
+    times = sorted(detections)
+    # Carried velocity (voxel space) into each matched detection, keyed by
+    # (timepoint, local-index). Reset whenever the frame chain breaks.
+    carry: dict[tuple[int, int], np.ndarray] = {}
+    for t_a, t_b in zip(times, times[1:]):
+        if t_b != t_a + 1:
+            carry = {}  # gap: the window's motion history does not span missing frames
+            continue
+        src = detections[t_a]
+        dst = detections[t_b]
+        n = len(src)
+        src_pred: np.ndarray | None = None
+        if n and len(dst) and gain != 0.0:
+            field_pred = _motion_field_predict(
+                src, dst, scale_arr, params.max_distance, sigma, 1.0
+            )
+            field_disp = field_pred - src
+            disp = field_disp.copy()
+            for i in range(n):
+                v = carry.get((t_a, i))
+                if v is not None:
+                    disp[i] = alpha * v + (1.0 - alpha) * field_disp[i]
+            src_pred = src + gain * disp
+
+        pairs = _window_assign(
+            src, dst, scale_arr, params.max_distance, theta,
+            src_pred=src_pred, disp_weight=params.velocity_disp_weight,
+            gate_on_prediction=params.motion_gate_on_prediction,
+            src_desc=descriptors[t_a] if use_desc else None,
+            dst_desc=descriptors[t_b] if use_desc else None,
+            appearance_weight=params.appearance_weight,
+            edge_model=edge_model if use_edge_model else None,
+        )
+
+        # Update the carried velocity: a running mean over up to W-1 incoming hops,
+        # so a larger window smooths the trajectory over more frames.
+        new_carry: dict[tuple[int, int], np.ndarray] = {}
+        for i, j in pairs:
+            d = dst[j] - src[i]
+            prev = carry.get((t_a, i))
+            if prev is not None and W > 2:
+                d = ((W - 2) * prev + d) / (W - 1)
+            new_carry[(t_b, j)] = d
+        carry = new_carry
+
+        for i, j in pairs:
+            graph.add_edge(ids_by_t[t_a][i], ids_by_t[t_b][j])
+
+        if params.window_parental_softmax and params.allow_division and n and len(dst):
+            _parental_softmax_divide(
+                graph, ids_by_t[t_a], ids_by_t[t_b], src, dst, scale_arr, params, pairs
+            )
+
+
 def link_centroids(
     detections: dict[int, np.ndarray],
     scale: tuple[float, float, float] = DEFAULT_SCALE,
@@ -918,6 +1195,27 @@ def link_centroids(
             ids.append(next_id)
             next_id += 1
         ids_by_t[t] = ids
+
+    # Motion-coupled windowed global association (SOT-2871): a portable
+    # Trackastra-style short-window LAP chain whose carried velocity couples adjacent
+    # transitions (so the window bites, unlike the SOT-2830 pure-distance flow).
+    # Supersedes ``global_window``; emits only ``t -> t+1`` metric-valid edges. Short-
+    # track pruning and the division overlay run afterwards exactly as on the global
+    # path. ``window_assoc <= 1`` (default) leaves the champion path untouched.
+    if params.window_assoc > 1:
+        _window_link(
+            graph, detections, ids_by_t, scale_arr, params,
+            descriptors, edge_model, use_edge_model,
+        )
+        if params.min_track_length > 1:
+            graph = _prune_short_tracks(graph, params.min_track_length)
+        if params.division_overlay:
+            from .division_overlay import apply_division_overlay
+
+            graph = apply_division_overlay(
+                graph, tuple(scale_arr), params.division_overlay
+            )
+        return graph
 
     # Global short-window min-cost-flow linking (SOT-2830): explicit birth/death
     # arcs let the solver refuse a marginal link instead of greedily matching every

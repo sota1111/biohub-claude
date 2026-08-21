@@ -315,6 +315,19 @@ def champion_params(
         edge_cost_model=(
             dict(l["edge_cost_model"]) if l.get("edge_cost_model") is not None else None
         ),
+        # Whole-sequence Viterbi global track-linking with swaps (SOT-2918); absent
+        # keys keep the champion byte-identical (viterbi_link default off). JSON cannot
+        # hold inf, so an absent/null viterbi_theta means "unbounded" (accept every
+        # distance-feasible pair => the birth/death arc never fires).
+        viterbi_link=bool(l.get("viterbi_link", False)),
+        viterbi_motion_gain=float(l.get("viterbi_motion_gain", 1.0)),
+        viterbi_curvature_weight=float(l.get("viterbi_curvature_weight", 1.0)),
+        viterbi_theta=(
+            float("inf")
+            if l.get("viterbi_theta") is None
+            else float(l["viterbi_theta"])
+        ),
+        viterbi_max_sweeps=int(l.get("viterbi_max_sweeps", 8)),
         # Motion-coupled windowed global association (SOT-2871); absent keys keep the
         # champion byte-identical (window_assoc default 1 => per-frame champion path).
         window_assoc=int(l.get("window_assoc", 1)),

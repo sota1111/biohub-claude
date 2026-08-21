@@ -137,6 +137,57 @@ class LinkParams:
     displacement; ``0.0`` disables prediction (falling back to the raw-position
     assignment); values in between damp the extrapolation."""
 
+    local_affine_predict: bool = False
+    """Local neighbour-affine motion prediction for the LAP link gate (SOT-2911).
+
+    ``False`` (default, absent key) reproduces the memoryless nearest-neighbour
+    champion **byte-for-byte**. When set, the ``t -> t+1`` assignment is solved on
+    **predicted** source positions taken from a *per-cell local affine motion field*
+    fitted by least squares to each cell's :attr:`local_affine_k` nearest anchor
+    displacements (:func:`_local_affine_predict`), then reused by the existing
+    predicted-position LAP path (``src_pred`` + :attr:`motion_gate_on_prediction`).
+
+    **Distinct mechanism** from the SOT-2864 global smoothed motion field
+    (:attr:`motion_model_link` / :attr:`motion_smooth_sigma`): that diffuses the
+    provisional anchor displacements into a *single global* Gaussian-smoothed field —
+    a locally-constant translation. This instead fits, per source cell, a *local
+    affine* map ``disp ≈ A·pos + b`` (least squares over the k nearest anchors), so it
+    captures the first-order **velocity gradient** of collective tissue flow (shear /
+    divergence between adjacent morphogenetic patches — epiboly), which a smoothed
+    average cannot represent. Ports the collective-motion affine/D²min analysis (PLOS
+    Comput. Biol. pcbi.1008407 / PMC9287486) and Amat super-voxel optical flow
+    (Bioinformatics 29(3):373). Pure numpy/scipy, CPU, offline, deterministic;
+    evaluated as an **independent axis** (not combined with the global motion field).
+
+    Both predicted-position paths reuse :attr:`velocity_disp_weight` /
+    :attr:`motion_gate_on_prediction`; with ``motion_gate_on_prediction`` False
+    (default) prediction only *re-ranks* within the champion's feasible set (the
+    ``<= max_distance`` gate is on the raw distance), so it can never admit a new
+    long-range edge."""
+
+    local_affine_k: int = 12
+    """Neighbour count for the local affine fit (SOT-2911).
+
+    Only used when :attr:`local_affine_predict` is set. Each source cell fits its
+    affine motion map to the ``local_affine_k`` nearest provisional anchors (by scaled
+    distance). Fewer than 4 usable anchors falls back to the local mean displacement
+    (a local translation); no anchor in reach keeps the cell at its raw position."""
+
+    local_affine_gain: float = 1.0
+    """Scale on the predicted local-affine displacement (SOT-2911).
+
+    Only used when :attr:`local_affine_predict` is set. ``1.0`` uses the full fitted
+    displacement; ``0.0`` disables prediction (raw-position assignment); values in
+    between damp the extrapolation."""
+
+    local_affine_ridge: float = 1.0
+    """Ridge (Tikhonov) regularisation on the local affine fit (SOT-2911).
+
+    Only used when :attr:`local_affine_predict` is set. Added to the normal-equation
+    diagonal (in scaled-position units) to keep the per-cell least-squares affine well
+    posed on nearly-collinear neighbourhoods; larger values shrink the fit toward the
+    local mean translation."""
+
     link_consistency_gate: bool = False
     """Ultrack-style bidirectional forward↔backward motion-consistency gate (SOT-2883).
 
@@ -1214,6 +1265,78 @@ def _motion_field_predict(
     return pred
 
 
+def _local_affine_predict(
+    src: np.ndarray,
+    dst: np.ndarray,
+    scale: np.ndarray,
+    max_distance: float,
+    k: int,
+    gain: float,
+    ridge: float,
+) -> np.ndarray:
+    """Predicted ``src`` positions from a per-cell **local affine** motion field.
+
+    Collective-motion affine analysis (PLOS Comput. Biol. pcbi.1008407 / PMC9287486)
+    and Amat super-voxel optical flow (Bioinformatics 29(3):373), numpy/scipy-only:
+
+    1. Run a provisional optimal assignment ``src -> dst`` within ``max_distance``
+       (:func:`_assign`) to obtain *anchor* displacements ``v_k = dst[j] - src[i]``
+       (voxel space) at each matched source ``src[i]`` — the same provisional flow the
+       SOT-2864 global field uses.
+    2. For every source detection ``i`` (matched or not), take its ``k`` nearest
+       anchors by *scaled* distance and fit a local affine map ``disp ≈ A·p + b`` (p =
+       scaled position) by ridge least squares, then predict ``disp_i = A·p_i + b``.
+       With ``< 4`` usable anchors the fit degenerates to the local mean displacement
+       (a pure translation); with no anchor in reach the cell keeps zero motion.
+    3. Return ``src + gain * predicted_displacement`` (voxel space).
+
+    Unlike the global Gaussian-smoothed field (:func:`_motion_field_predict`, a locally
+    *constant* translation), the affine term ``A`` represents the first-order velocity
+    gradient (shear / divergence) of neighbouring tissue patches. Deterministic and
+    pure numpy/scipy. With no anchors (or ``gain == 0``) the predicted positions equal
+    ``src`` (the assignment reduces to the champion nearest-neighbour path).
+    """
+    pred = np.asarray(src, dtype=float).copy()
+    if gain == 0.0 or len(src) == 0 or len(dst) == 0 or k <= 0:
+        return pred
+    anchors = _assign(src, dst, scale, max_distance)
+    if not anchors:
+        return pred
+    anchor_src = np.array([src[i] for i, _ in anchors], dtype=float)  # (K, 3) voxel
+    anchor_disp = np.array(
+        [dst[j] - src[i] for i, j in anchors], dtype=float
+    )  # (K, 3) voxel displacement
+    anchor_pos = anchor_src * scale  # (K, 3) scaled position (fit basis)
+    src_pos = src * scale  # (N, 3) scaled
+    kk = min(int(k), len(anchors))
+    field = np.zeros_like(pred)
+    for i in range(len(src)):
+        d2 = ((anchor_pos - src_pos[i][None, :]) ** 2).sum(axis=1)  # (K,) scaled dist^2
+        nn = np.argsort(d2)[:kk]
+        p = anchor_pos[nn]  # (kk, 3) scaled positions
+        v = anchor_disp[nn]  # (kk, 3) voxel displacements
+        if len(nn) < 4:
+            # Too few neighbours for a stable affine: local mean translation.
+            field[i] = v.mean(axis=0)
+            continue
+        # Ridge-regularised affine fit disp ≈ A·p + b via the augmented design
+        # matrix [p | 1]; the bias column is left un-penalised so the fit can still
+        # reproduce a pure translation exactly (only the linear A block is shrunk).
+        design = np.concatenate([p, np.ones((len(nn), 1))], axis=1)  # (kk, 4)
+        gram = design.T @ design  # (4, 4)
+        reg = np.eye(4) * float(ridge)
+        reg[3, 3] = 0.0  # do not penalise the bias/translation term
+        try:
+            coef = np.linalg.solve(gram + reg, design.T @ v)  # (4, 3)
+        except np.linalg.LinAlgError:
+            field[i] = v.mean(axis=0)
+            continue
+        q = np.concatenate([src_pos[i], [1.0]])  # (4,) this cell's scaled position + 1
+        field[i] = q @ coef  # (3,) predicted voxel displacement
+    pred = pred + gain * field
+    return pred
+
+
 def _global_assign(
     src: np.ndarray, dst: np.ndarray, scale: np.ndarray, max_distance: float,
     theta: float,
@@ -1593,7 +1716,30 @@ def link_centroids(
             continue  # only link consecutive timepoints
         src = detections[t_a]
         dst = detections[t_b]
-        if params.motion_model_link and len(src):
+        if params.local_affine_predict and len(src):
+            # Local neighbour-affine prediction (SOT-2911): fit a per-cell affine
+            # motion map to each source's k nearest provisional anchor displacements,
+            # then LAP against the predicted positions. An independent axis from the
+            # SOT-2864 global smoothed field — it captures the local velocity gradient
+            # (shear/divergence) a single smoothed translation cannot.
+            src_pred = _local_affine_predict(
+                src, dst, scale_arr, params.max_distance,
+                params.local_affine_k, params.local_affine_gain,
+                params.local_affine_ridge,
+            )
+            pairs = _assign(
+                src, dst, scale_arr, params.max_distance,
+                src_pred=src_pred, disp_weight=params.velocity_disp_weight,
+                gate_on_prediction=params.motion_gate_on_prediction,
+                src_desc=descriptors[t_a] if use_desc else None,
+                dst_desc=descriptors[t_b] if use_desc else None,
+                appearance_weight=params.appearance_weight,
+                edge_model=edge_model if use_edge_model else None,
+                edge_gate_expand=params.edge_gate_expand,
+                edge_gate_admit_prob=params.edge_gate_admit_prob,
+                edge_gate_expand_ratio=params.edge_gate_expand_ratio,
+            )
+        elif params.motion_model_link and len(src):
             # ARGUS-style global-motion-field prediction (SOT-2864): predict every
             # source's next position from a smoothed field estimated *within this
             # frame pair*, then LAP against the predicted positions. Distinct from

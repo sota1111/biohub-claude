@@ -1,6 +1,6 @@
 {
-  "id": "sota1111/biohub-claude-candidate-motion",
-  "title": "Biohub Claude Candidate (SOT-2864 motion-link)",
+  "id": "sota1111/biohub-claude-candidate-sot-2864-motion-link",
+  "title": "Biohub Claude Candidate SOT-2864 Motion Link",
   "code_file": "biohub-claude-candidate-motion.py",
   "language": "python",
   "kernel_type": "script",

@@ -267,6 +267,19 @@ def champion_params(
         local_affine_k=int(l.get("local_affine_k", 12)),
         local_affine_gain=float(l.get("local_affine_gain", 1.0)),
         local_affine_ridge=float(l.get("local_affine_ridge", 1.0)),
+        # Per-track constant-velocity Kalman Mahalanobis gate (SOT-2920); absent keys
+        # keep the champion byte-identical (kalman_gate default off). JSON cannot hold
+        # inf, so an absent/null kalman_gate_chi2 means "no hard Mahalanobis rejection".
+        kalman_gate=bool(l.get("kalman_gate", False)),
+        kalman_process_noise=float(l.get("kalman_process_noise", 1.0)),
+        kalman_obs_noise=float(l.get("kalman_obs_noise", 1.0)),
+        kalman_gate_chi2=(
+            float("inf")
+            if l.get("kalman_gate_chi2") is None
+            else float(l["kalman_gate_chi2"])
+        ),
+        kalman_init_pos_var=float(l.get("kalman_init_pos_var", 1.0)),
+        kalman_init_vel_var=float(l.get("kalman_init_vel_var", 100.0)),
         # Ultrack bidirectional motion-consistency gate (SOT-2883); absent keys keep
         # the champion byte-identical (link_consistency_gate default off). JSON cannot
         # hold inf, so an absent/null tol means "no hard rejection" (soft penalty only).

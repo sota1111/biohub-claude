@@ -1,0 +1,151 @@
+{
+  "adjustment_alpha": 0.1,
+  "reanchor_primary_kpi": "lineage_macro_raw",
+  "ranking_table": [
+    {
+      "name": "detect-link-v1",
+      "issue": "SOT-1983",
+      "micro_adj": 0.3598,
+      "micro_raw": 0.3419,
+      "lineage_macro_adj": 0.4295,
+      "lineage_macro_raw": 0.4077,
+      "node_penalty_contribution": 0.0179,
+      "public_lb": 0.509,
+      "public_note": "2026-07-28 submission, pre division-exploit metric patch."
+    },
+    {
+      "name": "detect-link-dog-v2",
+      "issue": "SOT-2272",
+      "micro_adj": 0.5225,
+      "micro_raw": 0.6561,
+      "lineage_macro_adj": 0.6419,
+      "lineage_macro_raw": 0.7258,
+      "node_penalty_contribution": -0.1336,
+      "public_lb": 0.5,
+      "public_note": "near-tied v1 on LB ~0.50 (pre-patch); registry reason."
+    },
+    {
+      "name": "detect-link-dog-v3-adaptive",
+      "issue": "SOT-2307",
+      "micro_adj": 0.6232,
+      "micro_raw": 0.6531,
+      "lineage_macro_adj": 0.6942,
+      "lineage_macro_raw": 0.7198,
+      "node_penalty_contribution": -0.0299,
+      "public_lb": null,
+      "public_note": "submitted 2026-08-02 (ref 55193790), result pending/unconfirmed; the human-noted 0.557 per-submission point is the candidate but is NOT confirmed on the same metric footing \u2192 excluded from the anchor."
+    },
+    {
+      "name": "detect-link-dog-v4-shorttrack",
+      "issue": "SOT-2369",
+      "micro_adj": 0.6649,
+      "micro_raw": 0.684,
+      "lineage_macro_adj": 0.7216,
+      "lineage_macro_raw": 0.7358,
+      "node_penalty_contribution": -0.0191,
+      "public_lb": 0.624,
+      "public_note": "2026-08-03 pre-patch public 0.624 (champion best); the SAME byte-frozen artifact was re-scored 2026-08-20 \u2192 0.509 by the division-exploit metric patch (topScore 0.943\u21920.957). 0.624\u22610.509 is one config across a metric boundary, not two orderable configs."
+    }
+  ],
+  "order_consistency": {
+    "micro_adj": {
+      "statistic": "micro_adj",
+      "n_anchored": 3,
+      "pairs": [
+        {
+          "name": "detect-link-v1",
+          "cv": 0.3598,
+          "public_lb": 0.509
+        },
+        {
+          "name": "detect-link-dog-v2",
+          "cv": 0.5225,
+          "public_lb": 0.5
+        },
+        {
+          "name": "detect-link-dog-v4-shorttrack",
+          "cv": 0.6649,
+          "public_lb": 0.624
+        }
+      ],
+      "spearman_vs_public": 0.5,
+      "cv_top_matches_public_top": true
+    },
+    "micro_raw": {
+      "statistic": "micro_raw",
+      "n_anchored": 3,
+      "pairs": [
+        {
+          "name": "detect-link-v1",
+          "cv": 0.3419,
+          "public_lb": 0.509
+        },
+        {
+          "name": "detect-link-dog-v2",
+          "cv": 0.6561,
+          "public_lb": 0.5
+        },
+        {
+          "name": "detect-link-dog-v4-shorttrack",
+          "cv": 0.684,
+          "public_lb": 0.624
+        }
+      ],
+      "spearman_vs_public": 0.5,
+      "cv_top_matches_public_top": true
+    },
+    "lineage_macro_adj": {
+      "statistic": "lineage_macro_adj",
+      "n_anchored": 3,
+      "pairs": [
+        {
+          "name": "detect-link-v1",
+          "cv": 0.4295,
+          "public_lb": 0.509
+        },
+        {
+          "name": "detect-link-dog-v2",
+          "cv": 0.6419,
+          "public_lb": 0.5
+        },
+        {
+          "name": "detect-link-dog-v4-shorttrack",
+          "cv": 0.7216,
+          "public_lb": 0.624
+        }
+      ],
+      "spearman_vs_public": 0.5,
+      "cv_top_matches_public_top": true
+    },
+    "lineage_macro_raw": {
+      "statistic": "lineage_macro_raw",
+      "n_anchored": 3,
+      "pairs": [
+        {
+          "name": "detect-link-v1",
+          "cv": 0.4077,
+          "public_lb": 0.509
+        },
+        {
+          "name": "detect-link-dog-v2",
+          "cv": 0.7258,
+          "public_lb": 0.5
+        },
+        {
+          "name": "detect-link-dog-v4-shorttrack",
+          "cv": 0.7358,
+          "public_lb": 0.624
+        }
+      ],
+      "spearman_vs_public": 0.5,
+      "cv_top_matches_public_top": true
+    }
+  },
+  "champion_live_guard": null,
+  "lineage_crosscheck": [
+    "detect-link-v1: per-family counts + micro_adj match live re-score \u2713",
+    "detect-link-dog-v2: per-family counts + micro_adj match live re-score \u2713",
+    "detect-link-dog-v3-adaptive: per-family counts + micro_adj match live re-score \u2713",
+    "detect-link-dog-v4-shorttrack: per-family counts + micro_adj match live re-score \u2713"
+  ]
+}

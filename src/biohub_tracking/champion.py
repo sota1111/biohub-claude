@@ -262,6 +262,16 @@ def champion_params(
         edge_cost_model=(
             dict(l["edge_cost_model"]) if l.get("edge_cost_model") is not None else None
         ),
+        # Motion-coupled windowed global association (SOT-2871); absent keys keep the
+        # champion byte-identical (window_assoc default 1 => per-frame champion path).
+        window_assoc=int(l.get("window_assoc", 1)),
+        window_theta=(
+            float("inf") if l.get("window_theta") is None else float(l["window_theta"])
+        ),
+        window_carry_weight=float(l.get("window_carry_weight", 0.5)),
+        window_parental_softmax=bool(l.get("window_parental_softmax", False)),
+        window_softmax_min_share=float(l.get("window_softmax_min_share", 0.3)),
+        window_softmax_temp=float(l.get("window_softmax_temp", 1.0)),
         min_track_length=int(l.get("min_track_length", 1)),
         division_overlay=(
             (

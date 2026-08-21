@@ -95,6 +95,48 @@ class LinkParams:
     distance instead, letting a fast, motion-consistent cell link slightly beyond
     ``max_distance`` in raw terms."""
 
+    motion_model_link: bool = False
+    """ARGUS-style motion-model predicted-position LAP linking (SOT-2864).
+
+    ``False`` (default, absent key) reproduces the memoryless nearest-neighbour
+    champion **byte-for-byte**. When set, the ``t -> t+1`` assignment is solved on
+    **predicted** source positions taken from a *global, spatially-smoothed motion
+    field* estimated from the current frame pair — the core of ARGUS
+    (arXiv:2607.08297): match against *where each cell is predicted to move*, not
+    its raw position (:func:`_motion_field_predict`).
+
+    **Distinct mechanism** from the existing constant-velocity :attr:`velocity_gain`
+    (SOT-2369): that predicts each cell from *its own* incoming ``t-1 -> t`` edge, so
+    a first-appearance cell (no prior track) gets no prediction. The motion field is
+    instead estimated *within the current frame pair* — a provisional assignment
+    gives anchor displacements, which are smoothed over space (Gaussian kernel in
+    scaled microns) into a dense field, so **every** source detection (including
+    ones with no history) gets a locally-consistent predicted displacement. This is
+    the portable, numpy/scipy-only proxy for a Farneback dense optical flow when
+    ``cv2`` is unavailable (the offline kernel); the mechanism and gate reuse
+    :attr:`velocity_disp_weight` / :attr:`motion_gate_on_prediction`. It is also
+    mechanistically distinct from the rejected static gap-closing (SOT-2763) and
+    node-interpolation gap-recovery (SOT-2849), which touch missing/gap frames
+    rather than the primary ``t -> t+1`` link cost."""
+
+    motion_smooth_sigma: float = 15.0
+    """Gaussian bandwidth (scaled microns) of the motion-field smoothing (SOT-2864).
+
+    Only used when :attr:`motion_model_link` is set. Each source detection's
+    predicted displacement is the anchor displacements (from a provisional
+    assignment) weighted by ``exp(-0.5 * (d / motion_smooth_sigma)**2)`` in scaled
+    distance ``d`` to the anchor source. A larger sigma yields a smoother, more
+    global field (approaching a single rigid translation); a smaller sigma lets the
+    field vary locally. ``<= 0`` collapses to each cell's own provisional
+    displacement (no spatial smoothing)."""
+
+    motion_gain: float = 1.0
+    """Scale on the predicted motion-field displacement (SOT-2864).
+
+    Only used when :attr:`motion_model_link` is set. ``1.0`` uses the full predicted
+    displacement; ``0.0`` disables prediction (falling back to the raw-position
+    assignment); values in between damp the extrapolation."""
+
     max_frame_gap: int = 1
     """Gap-closing 2nd linking step across missing detections (SOT-2763).
 
@@ -642,6 +684,61 @@ def _assign(
     return [(int(r), int(c)) for r, c in zip(rows, cols) if gate[r, c] <= max_distance]
 
 
+def _motion_field_predict(
+    src: np.ndarray,
+    dst: np.ndarray,
+    scale: np.ndarray,
+    max_distance: float,
+    smooth_sigma: float,
+    gain: float,
+) -> np.ndarray:
+    """Predicted ``src`` positions from a global, spatially-smoothed motion field.
+
+    ARGUS-style (arXiv:2607.08297) motion-model prediction, numpy/scipy-only (the
+    portable proxy for a Farneback dense optical flow when ``cv2`` is unavailable):
+
+    1. Run a provisional optimal assignment ``src -> dst`` within ``max_distance``
+       (:func:`_assign`) to obtain *anchor* displacements ``v_k = dst[j] - src[i]``
+       (voxel space) located at each matched source ``src[i]``.
+    2. For every source detection ``i`` — including ones the provisional pass left
+       unmatched — set its predicted displacement to the anchor displacements
+       weighted by a Gaussian of the *scaled* distance to each anchor source,
+       ``w = exp(-0.5 * (d / smooth_sigma)**2)``. This diffuses the sparse anchor
+       flow into a dense, locally-consistent field, so a first-appearance cell with
+       no track history still inherits its neighbourhood's motion.
+    3. Return ``src + gain * predicted_displacement`` (voxel space).
+
+    Deterministic and pure numpy/scipy. With no anchors (or ``gain == 0``) the
+    predicted positions equal ``src`` (the assignment then reduces to the champion
+    nearest-neighbour path).
+    """
+    pred = np.asarray(src, dtype=float).copy()
+    if gain == 0.0 or len(src) == 0 or len(dst) == 0:
+        return pred
+    anchors = _assign(src, dst, scale, max_distance)
+    if not anchors:
+        return pred
+    anchor_src = np.array([src[i] for i, _ in anchors], dtype=float)
+    anchor_disp = np.array([dst[j] - src[i] for i, j in anchors], dtype=float)
+    if smooth_sigma <= 0.0:
+        # No spatial smoothing: each anchored source uses its own displacement,
+        # every other source keeps zero (nearest-anchor fallback below is skipped).
+        for k, (i, _) in enumerate(anchors):
+            pred[i] = src[i] + gain * anchor_disp[k]
+        return pred
+    # Gaussian-weighted average of anchor displacements over scaled distance.
+    diff = (src[:, None, :] - anchor_src[None, :, :]) * scale  # (N, K, 3)
+    d2 = (diff**2).sum(axis=2)  # (N, K) squared scaled distance
+    w = np.exp(-0.5 * d2 / (smooth_sigma * smooth_sigma))  # (N, K)
+    wsum = w.sum(axis=1, keepdims=True)  # (N, 1)
+    # Rows with negligible total weight (far from every anchor) keep zero motion.
+    safe = wsum[:, 0] > 1e-12
+    field = np.zeros_like(pred)
+    field[safe] = (w[safe][:, :, None] * anchor_disp[None, :, :]).sum(axis=1) / wsum[safe]
+    pred = pred + gain * field
+    return pred
+
+
 def _global_assign(
     src: np.ndarray, dst: np.ndarray, scale: np.ndarray, max_distance: float,
     theta: float,
@@ -792,7 +889,25 @@ def link_centroids(
             continue  # only link consecutive timepoints
         src = detections[t_a]
         dst = detections[t_b]
-        if params.velocity_gain and len(src):
+        if params.motion_model_link and len(src):
+            # ARGUS-style global-motion-field prediction (SOT-2864): predict every
+            # source's next position from a smoothed field estimated *within this
+            # frame pair*, then LAP against the predicted positions. Distinct from
+            # the own-track velocity path below (predicts even history-less cells).
+            src_pred = _motion_field_predict(
+                src, dst, scale_arr, params.max_distance,
+                params.motion_smooth_sigma, params.motion_gain,
+            )
+            pairs = _assign(
+                src, dst, scale_arr, params.max_distance,
+                src_pred=src_pred, disp_weight=params.velocity_disp_weight,
+                gate_on_prediction=params.motion_gate_on_prediction,
+                src_desc=descriptors[t_a] if use_desc else None,
+                dst_desc=descriptors[t_b] if use_desc else None,
+                appearance_weight=params.appearance_weight,
+                edge_model=edge_model if use_edge_model else None,
+            )
+        elif params.velocity_gain and len(src):
             src_pred = np.array(
                 [
                     src[i] + params.velocity_gain * velocity_by_index.get((t_a, i), 0.0)

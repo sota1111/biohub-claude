@@ -224,6 +224,11 @@ def champion_params(
         velocity_gain=float(l.get("velocity_gain", 0.0)),
         velocity_disp_weight=float(l.get("velocity_disp_weight", 0.05)),
         motion_gate_on_prediction=bool(l.get("motion_gate_on_prediction", False)),
+        # ARGUS motion-model predicted-position LAP linking (SOT-2864); absent keys
+        # keep the champion byte-identical (motion_model_link default off).
+        motion_model_link=bool(l.get("motion_model_link", False)),
+        motion_smooth_sigma=float(l.get("motion_smooth_sigma", 15.0)),
+        motion_gain=float(l.get("motion_gain", 1.0)),
         max_frame_gap=int(l.get("max_frame_gap", 1)),
         gap_distance=float(l.get("gap_distance", 7.0)),
         # Node-interpolation gap recovery (SOT-2849); absent keys keep the champion

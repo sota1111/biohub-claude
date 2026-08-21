@@ -13,6 +13,7 @@ from .cv import (
 )
 from .division_metric import DivisionCounts, division_counts, score_divisions
 from .edge_metric import EdgeCounts, edge_counts
+from .recall_metric import NodeRecall, gt_node_recall
 from .score import (
     ADJUSTMENT_ALPHA,
     SCORE_DIVISION_WEIGHT,
@@ -40,6 +41,8 @@ __all__ = [
     "DatasetsResult",
     "DivisionCounts",
     "EdgeCounts",
+    "NodeRecall",
+    "gt_node_recall",
     "EvaluationResult",
     "adjusted_edge_jaccard",
     "division_counts",

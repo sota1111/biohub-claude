@@ -1,0 +1,39 @@
+[baseline] 44b6_0113de3b: 28.5s adj=0.8895 tp=47 fp=2 fn=3 npred=29844 ep_recall=1.0000
+[baseline] 44b6_0b24845f: 29.1s adj=0.6817 tp=37 fp=5 fn=12 npred=34485 ep_recall=0.8824
+[baseline] 6bba_05b6850b: 28.8s adj=0.5700 tp=651 fp=215 fn=194 npred=10938 ep_recall=0.9373
+[baseline] 6bba_05db0fb1: 30.4s adj=0.7310 tp=973 fp=148 fn=210 npred=69784 ep_recall=0.9162
+[baseline] micro_adj=0.6649 score=0.6649 ep_recall=0.9257
+[k2.0_f0.1] 44b6_0113de3b: 32.2s adj=0.8826 tp=47 fp=2 fn=3 npred=31818 ep_recall=1.0000
+[k2.0_f0.1] 44b6_0b24845f: 33.5s adj=0.6681 tp=38 fp=7 fn=11 npred=37842 ep_recall=0.9216
+[k2.0_f0.1] 6bba_05b6850b: 33.2s adj=0.5614 tp=651 fp=215 fn=194 npred=11827 ep_recall=0.9373
+[k2.0_f0.1] 6bba_05db0fb1: 35.2s adj=0.7464 tp=1005 fp=154 fn=178 npred=74661 ep_recall=0.9471
+[variant] k_low=2.0 frac=0.1 micro_adj=0.6692 score=0.6692 d=+0.0043 ep_recall=0.9439 (d=+0.0182) dTP=+33 dFP=+8 dFN=-33 dNpred=+11097 no_reg=False promotable=False
+[k2.0_f0.3] 44b6_0113de3b: 32.4s adj=0.8720 tp=47 fp=2 fn=3 npred=34826 ep_recall=1.0000
+[k2.0_f0.3] 44b6_0b24845f: 33.9s adj=0.6598 tp=38 fp=7 fn=11 npred=41890 ep_recall=0.9216
+[k2.0_f0.3] 6bba_05b6850b: 33.3s adj=0.5431 tp=651 fp=215 fn=194 npred=13723 ep_recall=0.9373
+[k2.0_f0.3] 6bba_05db0fb1: 35.3s adj=0.7446 tp=1004 fp=156 fn=179 npred=74687 ep_recall=0.9471
+[variant] k_low=2.0 frac=0.3 micro_adj=0.6601 score=0.6601 d=-0.0048 ep_recall=0.9439 (d=+0.0182) dTP=+32 dFP=+10 dFN=-32 dNpred=+20075 no_reg=False promotable=False
+[k2.0_f0.6] 44b6_0113de3b: 32.3s adj=0.8720 tp=47 fp=2 fn=3 npred=34839 ep_recall=1.0000
+[k2.0_f0.6] 44b6_0b24845f: 33.9s adj=0.6536 tp=38 fp=7 fn=11 npred=44877 ep_recall=0.9216
+[k2.0_f0.6] 6bba_05b6850b: 33.8s adj=0.5226 tp=651 fp=215 fn=194 npred=15849 ep_recall=0.9373
+[k2.0_f0.6] 6bba_05db0fb1: 35.7s adj=0.7446 tp=1004 fp=156 fn=179 npred=74687 ep_recall=0.9471
+[variant] k_low=2.0 frac=0.6 micro_adj=0.6513 score=0.6513 d=-0.0136 ep_recall=0.9439 (d=+0.0182) dTP=+32 dFP=+10 dFN=-32 dNpred=+25201 no_reg=False promotable=False
+[k1.0_f0.1] 44b6_0113de3b: 32.7s adj=0.8826 tp=47 fp=2 fn=3 npred=31818 ep_recall=1.0000
+[k1.0_f0.1] 44b6_0b24845f: 34.1s adj=0.6922 tp=38 fp=5 fn=11 npred=38154 ep_recall=0.9020
+[k1.0_f0.1] 6bba_05b6850b: 33.7s adj=0.5614 tp=651 fp=215 fn=194 npred=11827 ep_recall=0.9373
+[k1.0_f0.1] 6bba_05db0fb1: 35.8s adj=0.7411 tp=1003 fp=157 fn=180 npred=76665 ep_recall=0.9471
+[variant] k_low=1.0 frac=0.1 micro_adj=0.6670 score=0.6670 d=+0.0021 ep_recall=0.9435 (d=+0.0178) dTP=+31 dFP=+9 dFN=-31 dNpred=+13413 no_reg=False promotable=False
+[k1.0_f0.3] 44b6_0113de3b: 32.7s adj=0.8650 tp=47 fp=2 fn=3 npred=36832 ep_recall=1.0000
+[k1.0_f0.3] 44b6_0b24845f: 34.1s adj=0.6692 tp=38 fp=6 fn=11 npred=43120 ep_recall=0.9020
+[k1.0_f0.3] 6bba_05b6850b: 33.5s adj=0.5428 tp=651 fp=215 fn=194 npred=13754 ep_recall=0.9373
+[k1.0_f0.3] 6bba_05db0fb1: 35.8s adj=0.7357 tp=1002 fp=163 fn=181 npred=78020 ep_recall=0.9479
+[variant] k_low=1.0 frac=0.3 micro_adj=0.6555 score=0.6555 d=-0.0094 ep_recall=0.9439 (d=+0.0182) dTP=+30 dFP=+16 dFN=-30 dNpred=+26675 no_reg=False promotable=False
+[k1.0_f0.6] 44b6_0113de3b: 32.9s adj=0.8354 tp=47 fp=2 fn=3 npred=45248 ep_recall=1.0000
+[k1.0_f0.6] 44b6_0b24845f: 34.3s adj=0.6596 tp=38 fp=6 fn=11 npred=47678 ep_recall=0.9020
+[k1.0_f0.6] 6bba_05b6850b: 33.6s adj=0.5150 tp=651 fp=215 fn=194 npred=16633 ep_recall=0.9373
+[k1.0_f0.6] 6bba_05db0fb1: 35.8s adj=0.7357 tp=1002 fp=163 fn=181 npred=78020 ep_recall=0.9479
+[variant] k_low=1.0 frac=0.6 micro_adj=0.6430 score=0.6430 d=-0.0219 ep_recall=0.9439 (d=+0.0182) dTP=+30 dFP=+16 dFN=-30 dNpred=+42528 no_reg=False promotable=False
+
+wrote /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2866c/screen_recall.json
+baseline champion score=0.6649; n_promotable=0
+NO PROMOTABLE variant. Top-by-score: k_low=2.0 frac=0.1 score=0.6692 (delta +0.0043) ep_recall_delta=+0.0182 no_reg=False edge_delta={'d_tp': 33, 'd_fp': 8, 'd_fn': -33, 'd_npred': 11097}

@@ -162,6 +162,7 @@ def champion_params(
     dsplit = d.get("density_gated_split")
     lthr = d.get("local_threshold")
     dscorer = d.get("detect_scorer")
+    rrec = d.get("recall_recovery")
     detect = DetectParams(
         sigma_zyx=tuple(d.get("sigma_zyx", (1.0, 3.0, 3.0))),
         nms_size_zyx=tuple(d.get("nms_size_zyx", (2, 5, 5))),
@@ -215,6 +216,13 @@ def champion_params(
         # through as-is; DetectParams.detect_scorer=None (absent) keeps the champion
         # byte-identical.
         detect_scorer=dict(dscorer) if dscorer is not None else None,
+        # Recall-oriented FN-edge-endpoint recovery tier (SOT-2873); absent key
+        # keeps the champion byte-identical (recall_recovery default off).
+        recall_recovery=(
+            (str(rrec[0]), float(rrec[1]), float(rrec[2]))
+            if rrec is not None
+            else None
+        ),
     )
     link = LinkParams(
         max_distance=float(l.get("max_distance", 7.0)),

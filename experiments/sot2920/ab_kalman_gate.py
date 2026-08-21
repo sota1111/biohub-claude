@@ -54,7 +54,8 @@ from biohub_tracking.detect import detect_volume_series
 REPO = Path(__file__).resolve().parents[2]
 CHAMPION_CONFIG = REPO / "champion/config.json"
 CHAMPION_CONFIG_SHA256 = (
-    "42064648e612183e761bf9d40b70d3e8a2497453a878f1a44f5b52e410e01bdd"
+    # Current champion (SOT-2909 motion-model-link gain=1.0 promotion, CV micro_adj 0.6760).
+    "f2b107674d870cfd8e1b667a5d487b15b994382f9de0e9c3bc66a0c05b6522fc"
 )
 # Kalman knob grid. process_noise q inflates the predicted covariance (wider, softer
 # gate → trusts the CV prediction less, toward the Euclidean champion); gate_chi2 is the

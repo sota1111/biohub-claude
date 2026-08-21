@@ -1,0 +1,6 @@
+[champion]  micro=0.6649 macro=0.7180 lineage_macro=0.7216
+[candidate] micro=0.6644 macro=0.7134 lineage_macro=0.7172
+[delta] micro=-0.0005 per_dataset={'44b6_0113de3b': -0.0183, '44b6_0b24845f': 0.0007, '6bba_05b6850b': -0.0025, '6bba_05db0fb1': 0.0016}
+[postproc_only=True] [champ_frozen=True]
+RESULT=rejected :: per-dataset regression (True) or micro -0.0005 below -0.005; gate removed real TP edges. Revert / keep off.
+wrote /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2895/ab_suspicious_review.json

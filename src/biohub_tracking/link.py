@@ -481,6 +481,62 @@ class LinkParams:
     second daughter rarely clears :attr:`window_softmax_min_share`); larger =
     flatter. Only used when :attr:`window_parental_softmax` is set."""
 
+    suspicious_review: bool = False
+    """Post-hoc suspicious-tracking-event review gate (SOT-2895, default-off).
+
+    Ported from the public **"Biohub Suspicious Tracking Event Review"** notebook
+    (dalloliogm, Apache-2.0,
+    https://www.kaggle.com/code/dalloliogm/biohub-suspicious-tracking-event-review),
+    which builds *graph diagnostics* over a submitted lineage graph to surface
+    anomalous tracking events. Here that review is applied as a **post-hoc,
+    track-unit anomaly gate** on the already-linked graph: an interior link is cut
+    when it is simultaneously (a) a sharp **direction reversal** and (b) an
+    abnormal **step jump** relative to the cell's own incoming motion — the
+    teleport-to-decoy signature of a linking false-positive that grabbed a
+    transient/noise detection. Cutting such an edge ends the real track cleanly and
+    leaves the decoy tail as a short fragment that the existing
+    :attr:`min_track_length` prune (which runs *after* this gate) removes, freeing
+    the matched GT node and shedding a false-positive edge — the score lever, since
+    the metric is ``TP/(TP+FP+FN)`` and FP edges hurt most.
+
+    ``False`` (default, absent key) leaves the champion graph **byte-for-byte**
+    unchanged. This is a *post-hoc, per-track anomaly detection* family, distinct
+    from every rejected linking axis, none of which inspect the finished track's
+    self-consistency: static gap-closing (SOT-2763), GT-learned edge cost
+    (SOT-2841), learned motion/shape edge gate (SOT-2870) and the bidirectional
+    forward↔backward link-cost gate (SOT-2883) all reshape the ``t -> t+1``
+    *assignment cost*, whereas this only removes an already-made edge that the
+    finished trajectory contradicts."""
+
+    suspicious_turn_cos: float = -0.5
+    """Direction-reversal threshold for the suspicious-review gate (SOT-2895).
+
+    At an interior node ``u`` with incoming displacement ``d1 = pos(u) - pos(p)``
+    and outgoing displacement ``d2 = pos(v) - pos(u)`` (both in **scaled microns**),
+    the turn cosine is ``cos = (d1·d2)/(|d1||d2|)``. The outgoing edge is a
+    reversal candidate when ``cos < suspicious_turn_cos``. The default ``-0.5``
+    requires a turn sharper than 120° — a near-backtrack a smoothly moving cell
+    almost never makes. Only used when :attr:`suspicious_review` is set."""
+
+    suspicious_jump_ratio: float = 3.0
+    """Step-jump threshold for the suspicious-review gate (SOT-2895).
+
+    The outgoing edge is a jump candidate when its scaled step ``|d2|`` exceeds
+    ``suspicious_jump_ratio * max(|d1|, suspicious_jump_floor)`` — the cell
+    suddenly accelerates far beyond its established pace. An edge is cut only when
+    it is **both** a reversal (:attr:`suspicious_turn_cos`) **and** a jump, so a
+    fast-but-straight cell (jump, no reversal) and a gentle wobble (reversal, no
+    jump) are both preserved. Higher = stricter (fewer cuts). Only used when
+    :attr:`suspicious_review` is set."""
+
+    suspicious_jump_floor: float = 1.0
+    """Minimum reference step (scaled microns) in the jump test (SOT-2895).
+
+    Guards the ``|d2| > ratio * |d1|`` test against a near-static cell whose tiny
+    ``|d1|`` would make any real step look like a huge multiple. The reference step
+    is ``max(|d1|, suspicious_jump_floor)``. Only used when
+    :attr:`suspicious_review` is set."""
+
     min_track_length: int = 1
     """Drop weakly-connected track fragments with fewer than this many nodes
     (SOT-2369, ported from the reference tracker's ``FILTER_SHORT_TRACKS``).
@@ -497,6 +553,50 @@ class LinkParams:
     TP/FP/FN are untouched while ``N_pred`` falls — a strict adjusted-Jaccard gain
     whenever the pipeline over-predicts. ``1`` keeps every node (champion
     behaviour, byte-for-byte)."""
+
+
+def _suspicious_edge_review(
+    graph: TrackingGraph,
+    scale: np.ndarray,
+    turn_cos: float,
+    jump_ratio: float,
+    jump_floor: float,
+) -> TrackingGraph:
+    """Cut post-hoc "suspicious" links (SOT-2895; dalloliogm event-review port).
+
+    An interior link ``u -> v`` is removed when, given ``u``'s single incoming edge
+    ``p -> u``, the outgoing displacement both **reverses** the incoming direction
+    (turn cosine ``< turn_cos``) and **jumps** in length
+    (``|d2| > jump_ratio * max(|d1|, jump_floor)``), with distances in scaled
+    microns. This is the teleport-to-decoy signature of a false-positive link; the
+    real trajectory is contradicted by its own finished motion. Only single-parent,
+    single-child interior nodes are reviewed (``p`` and ``v`` unique), so a genuine
+    division vertex (out-degree ``>= 2``) is never touched. Returns a new graph with
+    the same nodes and the surviving edges; a no-op returns an equivalent graph.
+    """
+    dropped: set[tuple[int, int]] = set()
+    for u in graph.node_ids():
+        preds = graph.predecessors(u)
+        succs = graph.successors(u)
+        if len(preds) != 1 or len(succs) != 1:
+            continue  # only review the interior of a simple chain
+        p = preds[0]
+        v = succs[0]
+        d1 = (graph.position(u) - graph.position(p)) * scale
+        d2 = (graph.position(v) - graph.position(u)) * scale
+        s1 = float(np.sqrt((d1 * d1).sum()))
+        s2 = float(np.sqrt((d2 * d2).sum()))
+        if s1 <= 0.0 or s2 <= 0.0:
+            continue
+        cos = float((d1 * d2).sum()) / (s1 * s2)
+        is_reversal = cos < turn_cos
+        is_jump = s2 > jump_ratio * max(s1, jump_floor)
+        if is_reversal and is_jump:
+            dropped.add((u, v))
+    if not dropped:
+        return graph
+    kept_edges = [e for e in graph.edges if e not in dropped]
+    return TrackingGraph.from_lists(dict(graph.coords), kept_edges)
 
 
 def _prune_short_tracks(graph: TrackingGraph, min_nodes: int) -> TrackingGraph:
@@ -1278,6 +1378,11 @@ def link_centroids(
             graph, detections, ids_by_t, scale_arr, params,
             descriptors, edge_model, use_edge_model,
         )
+        if params.suspicious_review:
+            graph = _suspicious_edge_review(
+                graph, scale_arr, params.suspicious_turn_cos,
+                params.suspicious_jump_ratio, params.suspicious_jump_floor,
+            )
         if params.min_track_length > 1:
             graph = _prune_short_tracks(graph, params.min_track_length)
         if params.division_overlay:
@@ -1296,6 +1401,11 @@ def link_centroids(
     # so the champion graph is byte-for-byte preserved.
     if params.global_window > 1:
         _global_link(graph, detections, ids_by_t, scale_arr, params)
+        if params.suspicious_review:
+            graph = _suspicious_edge_review(
+                graph, scale_arr, params.suspicious_turn_cos,
+                params.suspicious_jump_ratio, params.suspicious_jump_floor,
+            )
         if params.min_track_length > 1:
             graph = _prune_short_tracks(graph, params.min_track_length)
         if params.division_overlay:
@@ -1440,6 +1550,15 @@ def link_centroids(
             params.gap_recover_max_gap,
             params.gap_recover_distance,
             params.gap_recover_min_frag,
+        )
+    # Post-hoc suspicious-tracking-event review (SOT-2895) runs on the finished
+    # linked graph, right BEFORE short-track pruning, so a cut decoy tail is left as
+    # a short fragment the prune then removes (freeing the matched GT node and
+    # shedding the FP edge). ``suspicious_review`` off → champion graph unchanged.
+    if params.suspicious_review:
+        graph = _suspicious_edge_review(
+            graph, scale_arr, params.suspicious_turn_cos,
+            params.suspicious_jump_ratio, params.suspicious_jump_floor,
         )
     if params.min_track_length > 1:
         graph = _prune_short_tracks(graph, params.min_track_length)

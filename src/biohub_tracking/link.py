@@ -578,6 +578,52 @@ class LinkParams:
     the champion byte-for-byte). The classical baseline used a full gate ``~1.3×`` its
     tight gate (11 µm over 7 µm)."""
 
+    cycle_consistency_gate: bool = False
+    """Bidirectional mutual-nearest-neighbour cycle-consistency edge gate (SOT-2910).
+
+    ``False`` (default, absent key) leaves the champion assignment **byte-for-byte**
+    unchanged. When ``True``, the primary ``t -> t+1`` links are additionally filtered
+    to keep only those that are **mutually consistent in both directions** — a pure
+    logic FP-edge suppressor ported from the cycle-consistency principle of
+    NeighborTrack (arXiv:2211.06663) and DistNet2D (arXiv:2310.19641):
+
+    * **forward** — for source ``i`` its nearest destination is ``argmin_j dist(i, j)``
+      (scaled microns);
+    * **backward** — for destination ``j`` its nearest source is ``argmin_i dist(i, j)``.
+
+    A link ``i -> j`` survives only when it is a **mutual nearest neighbour**: ``j`` is
+    ``i``'s forward-nearest destination AND ``i`` is ``j``'s backward-nearest source.
+    The champion's optimal (Hungarian) assignment sacrifices local mutual-nearest
+    optimality for a globally-cheaper total; in a dense volume that produces exactly
+    the *contested*, non-mutual links most likely to be a false-positive steal. Dropping
+    an asymmetric link ends its source's track cleanly and leaves a shorter fragment the
+    existing :attr:`min_track_length` prune (which runs after) removes — shedding the FP
+    edge, the score lever since the metric is ``TP/(TP+FP+FN)``.
+
+    This **PRUNES** primary ``t -> t+1`` edges and never adds one, so it can only lose
+    recall to gain precision (never introduces a new/long-range edge); the ``<=
+    max_distance`` feasibility cap is preserved by construction. It is a strict
+    **restriction** of the champion feasible set. **Distinct** from the REJECTED
+    SOT-2895 suspicious-review (a *jump/reversal* self-motion signature on the finished
+    track, non-specific), the REJECTED SOT-2898 ``mutual-nn`` **division** overlay (which
+    *added* second-daughter fork edges to realise the 0.1 division term — this axis adds
+    none), and the SOT-2883 forward↔backward *motion-field residual* gate (which reuses
+    the SOT-2864 smoothed motion field and only re-ranks/soft-penalises within it — this
+    axis is a pure point mutual-NN filter that needs no motion model). Active on the
+    per-frame champion path (the global/window paths take their own early return)."""
+
+    cycle_consistency_margin: float = 0.0
+    """Ambiguity margin (scaled microns) for the cycle-consistency gate (SOT-2910).
+
+    Only consulted when :attr:`cycle_consistency_gate` is set. ``0.0`` (default) keeps
+    the pure mutual-nearest-neighbour rule (drop every non-mutual link). When ``> 0`` a
+    surviving mutual-best link ``i -> j`` is *additionally* dropped when it is
+    **contested** — its runner-up competitor is within ``margin`` in **either**
+    direction (``second_nearest_dst(i) - dist(i,j) < margin`` OR
+    ``second_nearest_src(j) - dist(i,j) < margin``). Larger ``margin`` = stricter (only
+    unambiguous, well-separated mutual links survive), suppressing more FP edges at the
+    cost of more recall. A source/destination with no competitor is never contested."""
+
     min_track_length: int = 1
     """Drop weakly-connected track fragments with fewer than this many nodes
     (SOT-2369, ported from the reference tracker's ``FILTER_SHORT_TRACKS``).
@@ -1065,6 +1111,52 @@ def _two_pass_assign(
     for a, b in sub:
         pairs.append((free_src[a], free_dst[b]))
     return pairs
+
+
+def _cycle_consistency_filter(
+    pairs: list[tuple[int, int]],
+    src: np.ndarray,
+    dst: np.ndarray,
+    scale: np.ndarray,
+    margin: float,
+) -> list[tuple[int, int]]:
+    """Keep only mutually-consistent (mutual nearest-neighbour) links (SOT-2910).
+
+    Given the primary ``t -> t+1`` assignment ``pairs`` (each ``(src_idx, dst_idx)``),
+    a link ``i -> j`` survives only when it is a **mutual nearest neighbour** in scaled
+    microns: ``j`` is ``i``'s forward-nearest destination AND ``i`` is ``j``'s
+    backward-nearest source. This is the bidirectional cycle-consistency principle
+    (NeighborTrack / DistNet2D): a globally-assigned but non-mutual link is a contested
+    steal the two directions disagree on, so pruning it sheds an FP edge (and, after
+    :attr:`~LinkParams.min_track_length` pruning, frees the matched GT node).
+
+    ``margin > 0`` additionally drops a mutual-best link that is *contested* — its
+    runner-up competitor lies within ``margin`` in either direction. The filter only
+    ever **removes** links (never adds one and never widens the feasibility gate), so it
+    is a strict restriction of the champion assignment; an empty ``pairs`` or a
+    single-sided frame returns it unchanged. Deterministic (``np.argmin`` ties break to
+    the first index, matching the assignment's own ordering).
+    """
+    if not pairs or len(src) == 0 or len(dst) == 0:
+        return pairs
+    diff = (src[:, None, :] - dst[None, :, :]) * scale
+    dist = np.sqrt((diff**2).sum(axis=2))  # (Ns, Nd) scaled distances
+    fwd_nn = np.argmin(dist, axis=1)  # each source's nearest destination
+    bwd_nn = np.argmin(dist, axis=0)  # each destination's nearest source
+    row2 = np.partition(dist, 1, axis=1)[:, 1] if margin > 0.0 and dist.shape[1] > 1 else None
+    col2 = np.partition(dist, 1, axis=0)[1, :] if margin > 0.0 and dist.shape[0] > 1 else None
+    kept: list[tuple[int, int]] = []
+    for i, j in pairs:
+        if int(fwd_nn[i]) != j or int(bwd_nn[j]) != i:
+            continue  # non-mutual: the two directions disagree -> FP-prone steal
+        if margin > 0.0:
+            d_ij = dist[i, j]
+            r2 = row2[i] if row2 is not None else float("inf")
+            c2 = col2[j] if col2 is not None else float("inf")
+            if (r2 - d_ij) < margin or (c2 - d_ij) < margin:
+                continue  # mutual best but contested within the ambiguity margin
+        kept.append((i, j))
+    return kept
 
 
 def _motion_field_predict(
@@ -1575,6 +1667,15 @@ def link_centroids(
                 edge_gate_expand=params.edge_gate_expand,
                 edge_gate_admit_prob=params.edge_gate_admit_prob,
                 edge_gate_expand_ratio=params.edge_gate_expand_ratio,
+            )
+        # Bidirectional mutual-NN cycle-consistency gate (SOT-2910): a pure
+        # FP-edge suppressor that keeps only links agreeing in BOTH directions,
+        # applied to the primary assignment before division / edge insertion.
+        # Off (default) => champion byte-for-byte; it can only remove links, so
+        # the <= max_distance cap and every recall-neutral edge are preserved.
+        if params.cycle_consistency_gate:
+            pairs = _cycle_consistency_filter(
+                pairs, src, dst, scale_arr, params.cycle_consistency_margin
             )
         # Record each child's incoming displacement so it can predict t+1 -> t+2.
         if params.velocity_gain:

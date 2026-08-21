@@ -749,6 +749,84 @@ class LinkParams:
     unambiguous, well-separated mutual links survive), suppressing more FP edges at the
     cost of more recall. A source/destination with no competitor is never contested."""
 
+    viterbi_link: bool = False
+    """Whole-sequence Viterbi global track-linking with swap operations (SOT-2918).
+
+    ``False`` (default, absent key) runs the unchanged per-frame champion path, so
+    the champion graph is reproduced **byte-for-byte**. When ``True`` the linker
+    takes an early return through :func:`_viterbi_link`, a portable numpy/scipy port
+    of Magnusson/Jaldén/Gilbert/Blau, *"Global Linking of Cell Tracks Using the
+    Viterbi Algorithm"* (IEEE TMI 34(4):911-929, 2015; the ISBI Cell-Tracking-
+    Challenge-winning global linker).
+
+    **Mechanism (whole-sequence, with swaps).** The champion is a *greedy* per-frame
+    Hungarian LAP: a link committed at ``t -> t+1`` can never be revised, so a single
+    early mis-link *propagates* down the track. Magnusson's linker instead scores
+    each ``t -> t+1`` assignment against a *motion-coherence* trellis coupling both
+    neighbouring transitions — the predicted position of the source from its
+    **incoming** velocity (``t-1 -> t``) *and* the predicted origin of the
+    destination from its **outgoing** velocity (``t+1 -> t+2``) — and re-solves the
+    **whole sequence** by iterated re-optimisation (:func:`_viterbi_link`) until the
+    assignment reaches a fixed point. Because a downstream transition's velocity
+    feeds an upstream transition's cost, a link committed in one sweep is **swapped**
+    (re-assigned to a different successor) in a later sweep when whole-sequence
+    evidence contradicts it — the retroactive error-correction the greedy LAP lacks.
+
+    **Distinct from the rejected single-shot flow (SOT-2830/2840).** That min-cost
+    flow solved each frame-pair assignment *independently* (its cost was separable
+    per transition, so the "window" never bit — see :attr:`global_window`). This axis
+    is genuinely coupled across transitions by the second-order motion term and
+    performs re-assignment (swaps), which a single independent LAP-with-birth/death
+    cannot. It is also distinct from the SOT-2864 global smoothed *forward-only*
+    motion field and the SOT-2911 spatial-affine field: those re-rank a single
+    forward LAP, they do not re-optimise the whole sequence with backward coupling.
+
+    Pure numpy/scipy, CPU, offline, deterministic. Linking-only (detection is
+    champion-invariant). Emits only ``t -> t+1`` metric-valid one-to-one edges; the
+    short-track prune and division overlay run afterwards exactly as on the other
+    global paths. Incompatible with in-linker division / gap-closing (ignored on this
+    path). Reuses :attr:`viterbi_motion_gain` / :attr:`viterbi_curvature_weight` /
+    :attr:`viterbi_theta` / :attr:`viterbi_max_sweeps`."""
+
+    viterbi_motion_gain: float = 1.0
+    """Velocity-extrapolation gain for the Viterbi motion trellis (SOT-2918).
+
+    Only used when :attr:`viterbi_link` is set. A source's predicted next position is
+    ``pos + viterbi_motion_gain * v_in`` (``v_in`` its current incoming displacement),
+    and a destination's predicted origin is ``pos - viterbi_motion_gain * v_out``.
+    ``0.0`` collapses both predictions to the raw positions, so the linker reduces to
+    a whole-sequence distance LAP (no motion coupling)."""
+
+    viterbi_curvature_weight: float = 1.0
+    """Weight on the motion-incoherence (curvature) penalty (SOT-2918).
+
+    Only used when :attr:`viterbi_link` is set. The assignment cost of a pair is
+    ``dist + viterbi_curvature_weight * (fwd_residual + bwd_residual)`` where the two
+    residuals are the scaled distances from the source's forward-predicted position
+    and the destination's backward-predicted origin to the actual endpoints. ``0.0``
+    drops the coupling (pure distance LAP over the whole sequence); larger values
+    prefer trajectories whose velocity varies smoothly across the whole track. The
+    ``<= max_distance`` feasibility gate stays on the **raw** scaled distance, so the
+    motion term only re-ranks the champion's feasible set (never a new long edge)."""
+
+    viterbi_theta: float = float("inf")
+    """Birth+death link-acceptance threshold for the Viterbi linker (SOT-2918).
+
+    Only used when :attr:`viterbi_link` is set. A ``t -> t+1`` pair is accepted only
+    when its effective (distance + curvature) cost is ``< viterbi_theta`` — the
+    Magnusson appearance/disappearance arc cost, letting the global linker *refuse* a
+    marginal link and start/end a track instead. ``inf`` (default) accepts every
+    distance-feasible pair (birth/death never cheaper), so acceptance is governed by
+    the ``<= max_distance`` gate alone."""
+
+    viterbi_max_sweeps: int = 8
+    """Maximum whole-sequence re-optimisation sweeps for the Viterbi linker (SOT-2918).
+
+    Only used when :attr:`viterbi_link` is set. Each sweep re-solves every transition
+    against the previous sweep's velocities (Jacobi iteration); the loop stops early
+    once the assignment reaches a fixed point (no pair changes), so this only caps a
+    non-converging sequence. ``1`` performs a single motion-coupled pass (no swap)."""
+
     min_track_length: int = 1
     """Drop weakly-connected track fragments with fewer than this many nodes
     (SOT-2369, ported from the reference tracker's ``FILTER_SHORT_TRACKS``).
@@ -1487,6 +1565,138 @@ def _global_link(
             graph.add_edge(ids_by_t[t_a][i], ids_by_t[t_b][j])
 
 
+def _viterbi_assign(
+    src: np.ndarray,
+    dst: np.ndarray,
+    scale: np.ndarray,
+    max_distance: float,
+    theta: float,
+    v_in: np.ndarray,
+    v_out: np.ndarray,
+    gain: float,
+    curvature_weight: float,
+) -> list[tuple[int, int]]:
+    """One motion-coupled transition of the Viterbi global linker (SOT-2918).
+
+    Solves the ``t -> t+1`` assignment on the Magnusson motion-coherence cost
+
+    ``c(i, j) = ||src_i - dst_j|| + curvature_weight * (r_fwd + r_bwd)``
+
+    where ``r_fwd = ||(src_i + gain*v_in_i) - dst_j||`` is the residual of the
+    source's **forward** velocity prediction and ``r_bwd = ||src_i - (dst_j -
+    gain*v_out_j)||`` the residual of the destination's **backward** velocity
+    prediction (all in scaled microns). ``v_in`` / ``v_out`` are the per-detection
+    incoming / outgoing displacements from the *previous* whole-sequence sweep
+    (voxel units), which is what couples this transition to both its neighbours and
+    lets a later sweep swap an earlier link. The feasibility gate stays on the
+    **raw** scaled distance ``<= max_distance`` (motion only re-ranks, never admits a
+    new long edge); a finite ``theta`` additionally refuses a pair whose effective
+    cost is ``>= theta`` (birth/death acceptance). With ``v_in == v_out == 0`` (or
+    ``gain == 0``) and ``theta == inf`` the cost is ``(1 + 2*curvature_weight)*dist``
+    — the champion distance ranking — so the first sweep matches the champion
+    feasible optimum before the coupling bites.
+    """
+    if len(src) == 0 or len(dst) == 0:
+        return []
+    diff = (src[:, None, :] - dst[None, :, :]) * scale
+    dist = np.sqrt((diff**2).sum(axis=2))
+    cost_base = dist
+    if curvature_weight != 0.0 and gain != 0.0:
+        pred_src = src + gain * v_in  # forward extrapolation of each source
+        diff_f = (pred_src[:, None, :] - dst[None, :, :]) * scale
+        r_fwd = np.sqrt((diff_f**2).sum(axis=2))
+        pred_dst_origin = dst - gain * v_out  # where each dst is predicted to come from
+        diff_b = (src[:, None, :] - pred_dst_origin[None, :, :]) * scale
+        r_bwd = np.sqrt((diff_b**2).sum(axis=2))
+        cost_base = dist + curvature_weight * (r_fwd + r_bwd)
+
+    feasible = dist <= max_distance
+    if np.isfinite(theta):
+        feasible = feasible & (cost_base < theta)
+    if not feasible.any():
+        return []
+    big = max_distance * 1000.0 + float(cost_base.max()) + 1.0
+    cost = np.where(feasible, cost_base, big)
+    rows, cols = linear_sum_assignment(cost)
+    return [(int(r), int(c)) for r, c in zip(rows, cols) if bool(feasible[r, c])]
+
+
+def _viterbi_link(
+    graph: TrackingGraph,
+    detections: dict[int, np.ndarray],
+    ids_by_t: dict[int, list[int]],
+    scale_arr: np.ndarray,
+    params: LinkParams,
+) -> None:
+    """Whole-sequence Viterbi global track-linking with swaps (SOT-2918), in place.
+
+    Ports Magnusson/Jaldén/Gilbert/Blau (IEEE TMI 2015). The greedy per-frame LAP
+    commits each link once and propagates any early error; this instead re-solves the
+    **whole sequence** by iterated re-optimisation. Each sweep re-runs every
+    consecutive-frame :func:`_viterbi_assign` using the incoming/outgoing velocities
+    from the *previous* sweep's assignment, so a downstream transition's velocity
+    feeds an upstream transition's cost (and vice-versa). A link is therefore
+    **swapped** — re-assigned to a different successor — in a later sweep when
+    whole-sequence motion evidence contradicts it, the retroactive error-correction
+    the greedy LAP lacks. The loop stops at the first fixed point (assignment
+    unchanged) or after :attr:`LinkParams.viterbi_max_sweeps` sweeps.
+
+    Emits only consecutive-frame one-to-one ``t -> t+1`` metric-valid edges (no
+    bridge, no in-linker division), so the graph is a motion-coherent
+    generalisation of the per-frame champion whose sole levers are the motion-
+    coupling weight/gain and the birth/death threshold ``viterbi_theta``.
+    """
+    times = sorted(detections)
+    transitions = [
+        (t_a, t_b) for t_a, t_b in zip(times, times[1:]) if t_b == t_a + 1
+    ]
+    gain = params.viterbi_motion_gain
+    cw = params.viterbi_curvature_weight
+    theta = params.viterbi_theta
+    max_sweeps = max(1, int(params.viterbi_max_sweeps))
+
+    # Per-transition assignment (list of (i, j) index pairs), updated each sweep.
+    pairs_by_trans: dict[int, list[tuple[int, int]]] = {
+        k: [] for k in range(len(transitions))
+    }
+
+    for _sweep in range(max_sweeps):
+        # Velocities from the *previous* sweep's assignment (Jacobi coupling). v_in
+        # of a dst comes from the link that lands on it; v_out of a src from the link
+        # leaving it. Displacements are in voxel units (scaled inside the cost).
+        v_in_by_t: dict[int, np.ndarray] = {
+            t: np.zeros_like(detections[t], dtype=float) for t in times
+        }
+        v_out_by_t: dict[int, np.ndarray] = {
+            t: np.zeros_like(detections[t], dtype=float) for t in times
+        }
+        for k, (t_a, t_b) in enumerate(transitions):
+            src, dst = detections[t_a], detections[t_b]
+            for i, j in pairs_by_trans[k]:
+                disp = dst[j] - src[i]
+                v_in_by_t[t_b][j] = disp   # dst j arrived with this velocity
+                v_out_by_t[t_a][i] = disp  # src i departs with this velocity
+
+        new_pairs: dict[int, list[tuple[int, int]]] = {}
+        for k, (t_a, t_b) in enumerate(transitions):
+            new_pairs[k] = _viterbi_assign(
+                detections[t_a], detections[t_b], scale_arr,
+                params.max_distance, theta,
+                v_in=v_in_by_t[t_a],    # src i's incoming vel (t_a-1 -> t_a link's disp)
+                v_out=v_out_by_t[t_b],  # dst j's outgoing vel (t_b -> t_b+1 link's disp)
+                gain=gain, curvature_weight=cw,
+            )
+
+        if new_pairs == pairs_by_trans:
+            pairs_by_trans = new_pairs
+            break  # fixed point reached: whole-sequence-consistent assignment
+        pairs_by_trans = new_pairs
+
+    for k, (t_a, t_b) in enumerate(transitions):
+        for i, j in pairs_by_trans[k]:
+            graph.add_edge(ids_by_t[t_a][i], ids_by_t[t_b][j])
+
+
 def _window_assign(
     src: np.ndarray, dst: np.ndarray, scale: np.ndarray, max_distance: float,
     theta: float,
@@ -1822,6 +2032,32 @@ def link_centroids(
             ids.append(next_id)
             next_id += 1
         ids_by_t[t] = ids
+
+    # Whole-sequence Viterbi global track-linking with swaps (SOT-2918): a portable
+    # port of Magnusson/Jaldén/Gilbert/Blau (IEEE TMI 2015). Re-solves the whole
+    # sequence by iterated motion-coupled re-optimisation, so a link committed in one
+    # sweep is swapped in a later sweep when whole-sequence evidence contradicts it —
+    # the retroactive error-correction the greedy per-frame LAP lacks. Emits only
+    # ``t -> t+1`` metric-valid edges; short-track pruning and the division overlay run
+    # afterwards exactly as on the other global paths. ``viterbi_link`` False (default,
+    # absent key) falls through to the unchanged champion path, so the champion graph
+    # is byte-for-byte preserved.
+    if params.viterbi_link:
+        _viterbi_link(graph, detections, ids_by_t, scale_arr, params)
+        if params.suspicious_review:
+            graph = _suspicious_edge_review(
+                graph, scale_arr, params.suspicious_turn_cos,
+                params.suspicious_jump_ratio, params.suspicious_jump_floor,
+            )
+        if params.min_track_length > 1:
+            graph = _prune_short_tracks(graph, params.min_track_length)
+        if params.division_overlay:
+            from .division_overlay import apply_division_overlay
+
+            graph = apply_division_overlay(
+                graph, tuple(scale_arr), params.division_overlay
+            )
+        return graph
 
     # Motion-coupled windowed global association (SOT-2871): a portable
     # Trackastra-style short-window LAP chain whose carried velocity couples adjacent

@@ -1,0 +1,101 @@
+=== 00:57:59 START nnpu (estimated pi) ===
+00:58:00 [nnpu|44b6_0113de3b] train on ['44b6_0b24845f', '6bba_05b6850b', '6bba_05db0fb1'] | GT labels=2141 | pi=4.763e-03
+00:58:14 [nnpu|44b6_0113de3b] step 150/1500 loss=0.18241
+00:58:27 [nnpu|44b6_0113de3b] step 300/1500 loss=0.07976
+00:58:40 [nnpu|44b6_0113de3b] step 450/1500 loss=0.04611
+00:58:53 [nnpu|44b6_0113de3b] step 600/1500 loss=0.03326
+00:59:06 [nnpu|44b6_0113de3b] step 750/1500 loss=0.02646
+00:59:19 [nnpu|44b6_0113de3b] step 900/1500 loss=0.02293
+00:59:32 [nnpu|44b6_0113de3b] step 1050/1500 loss=0.01846
+00:59:45 [nnpu|44b6_0113de3b] step 1200/1500 loss=0.01580
+00:59:58 [nnpu|44b6_0113de3b] step 1350/1500 loss=0.01612
+01:00:11 [nnpu|44b6_0113de3b] step 1500/1500 loss=0.01146
+01:00:11 [nnpu|44b6_0113de3b] saved /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2862a/weights/nnpu/44b6_0113de3b.pt | 130.7s final_loss=0.01146
+01:00:11 [nnpu|44b6_0b24845f] train on ['44b6_0113de3b', '6bba_05b6850b', '6bba_05db0fb1'] | GT labels=2142 | pi=4.455e-03
+01:00:24 [nnpu|44b6_0b24845f] step 150/1500 loss=0.17915
+01:00:37 [nnpu|44b6_0b24845f] step 300/1500 loss=0.07460
+01:00:50 [nnpu|44b6_0b24845f] step 450/1500 loss=0.04077
+01:01:03 [nnpu|44b6_0b24845f] step 600/1500 loss=0.02461
+01:01:16 [nnpu|44b6_0b24845f] step 750/1500 loss=0.01963
+01:01:28 [nnpu|44b6_0b24845f] step 900/1500 loss=0.01638
+01:01:41 [nnpu|44b6_0b24845f] step 1050/1500 loss=0.01300
+01:01:54 [nnpu|44b6_0b24845f] step 1200/1500 loss=0.01332
+01:02:07 [nnpu|44b6_0b24845f] step 1350/1500 loss=0.01068
+01:02:20 [nnpu|44b6_0b24845f] step 1500/1500 loss=0.01071
+01:02:20 [nnpu|44b6_0b24845f] saved /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2862a/weights/nnpu/44b6_0b24845f.pt | 129.4s final_loss=0.01071
+01:02:20 [nnpu|6bba_05b6850b] train on ['44b6_0113de3b', '44b6_0b24845f', '6bba_05db0fb1'] | GT labels=1332 | pi=5.610e-03
+01:02:34 [nnpu|6bba_05b6850b] step 150/1500 loss=0.18116
+01:02:47 [nnpu|6bba_05b6850b] step 300/1500 loss=0.07874
+01:03:00 [nnpu|6bba_05b6850b] step 450/1500 loss=0.04486
+01:03:13 [nnpu|6bba_05b6850b] step 600/1500 loss=0.03203
+01:03:26 [nnpu|6bba_05b6850b] step 750/1500 loss=0.02681
+01:03:39 [nnpu|6bba_05b6850b] step 900/1500 loss=0.01992
+01:03:52 [nnpu|6bba_05b6850b] step 1050/1500 loss=0.01778
+01:04:05 [nnpu|6bba_05b6850b] step 1200/1500 loss=0.01648
+01:04:18 [nnpu|6bba_05b6850b] step 1350/1500 loss=0.01677
+01:04:31 [nnpu|6bba_05b6850b] step 1500/1500 loss=0.01317
+01:04:31 [nnpu|6bba_05b6850b] saved /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2862a/weights/nnpu/6bba_05b6850b.pt | 130.8s final_loss=0.01317
+01:04:31 [nnpu|6bba_05db0fb1] train on ['44b6_0113de3b', '44b6_0b24845f', '6bba_05b6850b'] | GT labels=964 | pi=2.837e-03
+01:04:44 [nnpu|6bba_05db0fb1] step 150/1500 loss=0.17550
+01:04:57 [nnpu|6bba_05db0fb1] step 300/1500 loss=0.07173
+01:05:10 [nnpu|6bba_05db0fb1] step 450/1500 loss=0.03780
+01:05:23 [nnpu|6bba_05db0fb1] step 600/1500 loss=0.02255
+01:05:36 [nnpu|6bba_05db0fb1] step 750/1500 loss=0.01339
+01:05:49 [nnpu|6bba_05db0fb1] step 900/1500 loss=0.01148
+01:06:02 [nnpu|6bba_05db0fb1] step 1050/1500 loss=0.00864
+01:06:14 [nnpu|6bba_05db0fb1] step 1200/1500 loss=0.00773
+01:06:27 [nnpu|6bba_05db0fb1] step 1350/1500 loss=0.00579
+01:06:40 [nnpu|6bba_05db0fb1] step 1500/1500 loss=0.00510
+01:06:40 [nnpu|6bba_05db0fb1] saved /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2862a/weights/nnpu/6bba_05db0fb1.pt | 129.0s final_loss=0.00510
+01:06:40 wrote /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2862a/train_summary_nnpu.json
+=== 01:06:41 START cellsparse ===
+01:06:42 [cellsparse|44b6_0113de3b] train on ['44b6_0b24845f', '6bba_05b6850b', '6bba_05db0fb1'] | GT labels=2141 | pi=4.763e-03
+01:06:55 [cellsparse|44b6_0113de3b] step 150/1500 loss=0.00671
+01:07:08 [cellsparse|44b6_0113de3b] step 300/1500 loss=0.00535
+01:07:21 [cellsparse|44b6_0113de3b] step 450/1500 loss=0.00448
+01:07:33 [cellsparse|44b6_0113de3b] step 600/1500 loss=0.00406
+01:07:46 [cellsparse|44b6_0113de3b] step 750/1500 loss=0.00400
+01:07:59 [cellsparse|44b6_0113de3b] step 900/1500 loss=0.00389
+01:08:11 [cellsparse|44b6_0113de3b] step 1050/1500 loss=0.00399
+01:08:24 [cellsparse|44b6_0113de3b] step 1200/1500 loss=0.00350
+01:08:37 [cellsparse|44b6_0113de3b] step 1350/1500 loss=0.00398
+01:08:49 [cellsparse|44b6_0113de3b] step 1500/1500 loss=0.00295
+01:08:50 [cellsparse|44b6_0113de3b] saved /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2862a/weights/cellsparse/44b6_0113de3b.pt | 127.4s final_loss=0.00295
+01:08:50 [cellsparse|44b6_0b24845f] train on ['44b6_0113de3b', '6bba_05b6850b', '6bba_05db0fb1'] | GT labels=2142 | pi=4.455e-03
+01:09:02 [cellsparse|44b6_0b24845f] step 150/1500 loss=0.00644
+01:09:15 [cellsparse|44b6_0b24845f] step 300/1500 loss=0.00448
+01:09:27 [cellsparse|44b6_0b24845f] step 450/1500 loss=0.00408
+01:09:40 [cellsparse|44b6_0b24845f] step 600/1500 loss=0.00365
+01:09:53 [cellsparse|44b6_0b24845f] step 750/1500 loss=0.00414
+01:10:05 [cellsparse|44b6_0b24845f] step 900/1500 loss=0.00350
+01:10:18 [cellsparse|44b6_0b24845f] step 1050/1500 loss=0.00341
+01:10:31 [cellsparse|44b6_0b24845f] step 1200/1500 loss=0.00344
+01:10:43 [cellsparse|44b6_0b24845f] step 1350/1500 loss=0.00309
+01:10:56 [cellsparse|44b6_0b24845f] step 1500/1500 loss=0.00325
+01:10:56 [cellsparse|44b6_0b24845f] saved /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2862a/weights/cellsparse/44b6_0b24845f.pt | 126.3s final_loss=0.00325
+01:10:56 [cellsparse|6bba_05b6850b] train on ['44b6_0113de3b', '44b6_0b24845f', '6bba_05db0fb1'] | GT labels=1332 | pi=5.610e-03
+01:11:09 [cellsparse|6bba_05b6850b] step 150/1500 loss=0.00571
+01:11:21 [cellsparse|6bba_05b6850b] step 300/1500 loss=0.00478
+01:11:34 [cellsparse|6bba_05b6850b] step 450/1500 loss=0.00369
+01:11:47 [cellsparse|6bba_05b6850b] step 600/1500 loss=0.00352
+01:12:00 [cellsparse|6bba_05b6850b] step 750/1500 loss=0.00323
+01:12:13 [cellsparse|6bba_05b6850b] step 900/1500 loss=0.00284
+01:12:25 [cellsparse|6bba_05b6850b] step 1050/1500 loss=0.00281
+01:12:38 [cellsparse|6bba_05b6850b] step 1200/1500 loss=0.00288
+01:12:51 [cellsparse|6bba_05b6850b] step 1350/1500 loss=0.00288
+01:13:04 [cellsparse|6bba_05b6850b] step 1500/1500 loss=0.00259
+01:13:04 [cellsparse|6bba_05b6850b] saved /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2862a/weights/cellsparse/6bba_05b6850b.pt | 127.9s final_loss=0.00259
+01:13:04 [cellsparse|6bba_05db0fb1] train on ['44b6_0113de3b', '44b6_0b24845f', '6bba_05b6850b'] | GT labels=964 | pi=2.837e-03
+01:13:16 [cellsparse|6bba_05db0fb1] step 150/1500 loss=0.00424
+01:13:29 [cellsparse|6bba_05db0fb1] step 300/1500 loss=0.00394
+01:13:41 [cellsparse|6bba_05db0fb1] step 450/1500 loss=0.00289
+01:13:54 [cellsparse|6bba_05db0fb1] step 600/1500 loss=0.00292
+01:14:06 [cellsparse|6bba_05db0fb1] step 750/1500 loss=0.00270
+01:14:19 [cellsparse|6bba_05db0fb1] step 900/1500 loss=0.00233
+01:14:31 [cellsparse|6bba_05db0fb1] step 1050/1500 loss=0.00215
+01:14:44 [cellsparse|6bba_05db0fb1] step 1200/1500 loss=0.00230
+01:14:56 [cellsparse|6bba_05db0fb1] step 1350/1500 loss=0.00219
+01:15:09 [cellsparse|6bba_05db0fb1] step 1500/1500 loss=0.00190
+01:15:09 [cellsparse|6bba_05db0fb1] saved /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2862a/weights/cellsparse/6bba_05db0fb1.pt | 125.1s final_loss=0.00190
+01:15:09 wrote /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2862a/train_summary_cellsparse.json
+=== 01:15:09 TRAIN_DONE ===

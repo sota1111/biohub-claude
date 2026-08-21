@@ -1,0 +1,77 @@
+{
+  "folds": [
+    {
+      "holdout": "44b6_0113de3b",
+      "train_families": [
+        "44b6_0b24845f",
+        "6bba_05b6850b",
+        "6bba_05db0fb1"
+      ],
+      "n_train_labels": 2141,
+      "loss": "nnpu",
+      "pi": 0.004762518405914307,
+      "final_loss": 0.011463215101975947,
+      "seconds": 130.7,
+      "weights": "/workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2862a/weights/nnpu/44b6_0113de3b.pt"
+    },
+    {
+      "holdout": "44b6_0b24845f",
+      "train_families": [
+        "44b6_0113de3b",
+        "6bba_05b6850b",
+        "6bba_05db0fb1"
+      ],
+      "n_train_labels": 2142,
+      "loss": "nnpu",
+      "pi": 0.00445479949315389,
+      "final_loss": 0.010707599435700104,
+      "seconds": 129.4,
+      "weights": "/workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2862a/weights/nnpu/44b6_0b24845f.pt"
+    },
+    {
+      "holdout": "6bba_05b6850b",
+      "train_families": [
+        "44b6_0113de3b",
+        "44b6_0b24845f",
+        "6bba_05db0fb1"
+      ],
+      "n_train_labels": 1332,
+      "loss": "nnpu",
+      "pi": 0.005610187848409017,
+      "final_loss": 0.013165291012264789,
+      "seconds": 130.8,
+      "weights": "/workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2862a/weights/nnpu/6bba_05b6850b.pt"
+    },
+    {
+      "holdout": "6bba_05db0fb1",
+      "train_families": [
+        "44b6_0113de3b",
+        "44b6_0b24845f",
+        "6bba_05b6850b"
+      ],
+      "n_train_labels": 964,
+      "loss": "nnpu",
+      "pi": 0.0028373082478841145,
+      "final_loss": 0.005098456282867119,
+      "seconds": 129.0,
+      "weights": "/workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2862a/weights/nnpu/6bba_05db0fb1.pt"
+    }
+  ],
+  "config": {
+    "loss": "nnpu",
+    "steps": 1500,
+    "batch": 2,
+    "lr": 0.001,
+    "base": 16,
+    "fg_weight": 50.0,
+    "unlabeled_weight": 0.05,
+    "pi": null,
+    "pi_source": "estimated",
+    "beta": 0.0,
+    "gamma": 1.0,
+    "seed": 1234,
+    "device": "cuda",
+    "only": null,
+    "out": null
+  }
+}

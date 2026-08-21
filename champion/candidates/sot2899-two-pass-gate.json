@@ -1,0 +1,21 @@
+{
+  "name": "candidate-two-pass-link-gate-full11",
+  "description": "SOT-2899 external-knowledge port CANDIDATE (NOT the live champion). Byte-identical to the champion detect-link-dog-v4-shorttrack EXCEPT the frame-to-frame linker runs the classical baseline's two-pass tight-then-full-gate Hungarian assignment (link_two_pass=true, link_full_distance=11.0 over the champion tight gate max_distance=7.0). Ported from xiaoleilian's genuine public 'Biohub Cell Tracking - Classical Baseline' (https://www.kaggle.com/code/xiaoleilian/biohub-cell-tracking-classical-baseline, LB 0.720, pure numpy/scipy = fully portable), whose linker comment reads 'v4: two-pass -- tight gate first, then full gate for leftovers'. Pass 1 makes only high-confidence <=7um links (cells move <=7um at p99 while neighbours are >=12um apart, so no distractor steal); Pass 2 re-links the still-unmatched leftovers out to 11um to recover the rare fast cell whose real successor sits just beyond the tight gate (an FN edge). Mechanistically distinct from every rejected linking axis (not a cost re-rank, cross-frame bridge, birth/death flow, post-hoc cut, or motion prediction) -- a pure feasibility-structure change. Champion pointer stays BYTE-FROZEN (sha256 42064648...); candidate artifact only, NO Kaggle submission. The link_full_distance value is swept single-variable on the SOT-2817 re-anchored leak-free CV against the byte-frozen champion (0.6649) with a mandatory per-dataset non-regression gate.",
+  "scale": [1.625, 0.40625, 0.40625],
+  "detect": {
+    "sigma_zyx": [1.0, 2.0, 2.0],
+    "background_sigma_zyx": [2.0, 6.0, 6.0],
+    "nms_size_zyx": [2, 5, 5],
+    "threshold_percentile": 92.0,
+    "mad_k": 3.0,
+    "min_threshold": 0.0
+  },
+  "link": {
+    "max_distance": 7.0,
+    "allow_division": false,
+    "division_distance": 7.0,
+    "min_track_length": 4,
+    "link_two_pass": true,
+    "link_full_distance": 11.0
+  }
+}

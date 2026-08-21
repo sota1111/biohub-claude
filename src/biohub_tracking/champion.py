@@ -300,6 +300,13 @@ def champion_params(
         suspicious_turn_cos=float(l.get("suspicious_turn_cos", -0.5)),
         suspicious_jump_ratio=float(l.get("suspicious_jump_ratio", 3.0)),
         suspicious_jump_floor=float(l.get("suspicious_jump_floor", 1.0)),
+        # Two-pass tight-then-full-gate Hungarian linking (SOT-2899, classical
+        # baseline port); absent keys keep the champion byte-identical (two-pass off,
+        # and link_full_distance defaults to max_distance => Pass 2 a no-op).
+        link_two_pass=bool(l.get("link_two_pass", False)),
+        link_full_distance=float(
+            l.get("link_full_distance", l.get("max_distance", 7.0))
+        ),
         min_track_length=int(l.get("min_track_length", 1)),
         division_overlay=(
             (

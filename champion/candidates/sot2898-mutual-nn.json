@@ -1,0 +1,20 @@
+{
+  "name": "candidate-mutual-nn-division-overlay",
+  "description": "SOT-2898 precision-first division-recovery candidate artifact — REJECTED, retained for the audit trail only (do NOT submit / do NOT flip the champion). Identical to the reigning detect-link-dog-v4-shorttrack champion (champion/config.json, sha256 42064648e612183e761bf9d40b70d3e8a2497453a878f1a44f5b52e410e01bdd) EXCEPT a default-off post-processing division overlay of kind 'mutual-nn' is enabled to realise the official metric's unrealised 0.1*division_jaccard term (the champion runs allow_division=false and predicts zero forks). The overlay adds ONE parent->nearby-head second-daughter edge per fork ONLY when (a) the head and parent are mutual nearest neighbours with an unambiguous margin (mutual_margin=0.5, i.e. the runner-up parent must be >=1.5x farther), (b) BOTH daughters persist >= min_daughter_len=3 nodes (symmetric-persistence, require_primary_persist=true), and (c) the head is within max_distance=5um and sibling_ratio=1.5 of the primary daughter. Distinct from the rejected SOT-2818 nearest-head overlay / SOT-2762 division-aware linking by the mutual-NN + symmetric-persistence precision gate and the explicit edge-FP guard. A/B RESULT on the SOT-2817 re-anchored leak-free CV (experiments/sot2898/ab_mutual_nn.json, same-seed, detection cached once per family): the holdout GT carries only a SINGLE recoverable division TP (GT splits are extremely sparse — 6bba_05db0fb1 only), so even this tightest firing config buys division_tp=1 with div_fp=6 while ADDING edge FP (edge_fp_total 370->375) and REGRESSING micro-adjusted edge Jaccard (0.6649 -> 0.6647, dMicro -0.0002); every added second-daughter edge is also an edge FP, so the 4-family per-dataset edge non-regression gate FAILS (no_edge_regression=false, edge_fp_increase=true). The full-metric score rises marginally (+0.0109) but ENTIRELY via the 0.1*division term on that one TP while the dominant edge component regresses — precisely the edge-FP hazard this Issue forbids. REJECTED. The live champion (LinkParams.division_overlay default None) stays BYTE-FROZEN and the overlay stays default-off everywhere.",
+  "scale": [1.625, 0.40625, 0.40625],
+  "detect": {
+    "sigma_zyx": [1.0, 2.0, 2.0],
+    "background_sigma_zyx": [2.0, 6.0, 6.0],
+    "nms_size_zyx": [2, 5, 5],
+    "threshold_percentile": 92.0,
+    "mad_k": 3.0,
+    "min_threshold": 0.0
+  },
+  "link": {
+    "max_distance": 7.0,
+    "allow_division": false,
+    "division_distance": 7.0,
+    "min_track_length": 4,
+    "division_overlay": ["mutual-nn", 5.0, 1.5, 3, true, true, 0.5]
+  }
+}

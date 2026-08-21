@@ -308,16 +308,15 @@ def champion_params(
             l.get("link_full_distance", l.get("max_distance", 7.0))
         ),
         min_track_length=int(l.get("min_track_length", 1)),
+        # The leading element is a ``kind`` tag; the trailing elements are the
+        # kind's gate params (5 total for SOT-2818 ``nearest-head``, 7 for the
+        # SOT-2898 ``mutual-nn`` precision fork). Preserve the FULL tuple rather
+        # than truncating to 5 — the overlay dispatcher coerces each element by
+        # position, so passing the raw config values through is both
+        # backward-compatible (nearest-head sees the same 5) and forward-safe
+        # (mutual-nn's require_primary_persist / mutual_margin survive).
         division_overlay=(
-            (
-                str(overlay[0]),
-                float(overlay[1]),
-                float(overlay[2]),
-                int(overlay[3]),
-                bool(overlay[4]),
-            )
-            if overlay is not None
-            else None
+            (str(overlay[0]), *overlay[1:]) if overlay is not None else None
         ),
     )
     scale = tuple(config.get("scale", DEFAULT_SCALE))

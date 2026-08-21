@@ -1,0 +1,489 @@
+{
+  "champion_reproduced": true,
+  "champion": {
+    "micro_adj": 0.6649,
+    "lineage_macro_adj": 0.7216,
+    "division_jaccard": 0.0,
+    "division_term": 0.0,
+    "score": 0.6649,
+    "division_measurable": true,
+    "family_mix_sensitive": true,
+    "per_dataset": {
+      "44b6_0113de3b": {
+        "adj_edge_jaccard": 0.8895,
+        "edge_tp": 47,
+        "edge_fp": 2,
+        "edge_fn": 3,
+        "division_tp": 0,
+        "division_fp": 0,
+        "division_fn": 0
+      },
+      "44b6_0b24845f": {
+        "adj_edge_jaccard": 0.6817,
+        "edge_tp": 37,
+        "edge_fp": 5,
+        "edge_fn": 12,
+        "division_tp": 0,
+        "division_fp": 0,
+        "division_fn": 0
+      },
+      "6bba_05b6850b": {
+        "adj_edge_jaccard": 0.57,
+        "edge_tp": 651,
+        "edge_fp": 215,
+        "edge_fn": 194,
+        "division_tp": 0,
+        "division_fp": 0,
+        "division_fn": 0
+      },
+      "6bba_05db0fb1": {
+        "adj_edge_jaccard": 0.731,
+        "edge_tp": 973,
+        "edge_fp": 148,
+        "edge_fn": 210,
+        "division_tp": 0,
+        "division_fp": 0,
+        "division_fn": 3
+      }
+    },
+    "edge_fp_total": 370,
+    "division_tp_total": 0,
+    "division_fp_total": 0,
+    "division_fn_total": 3
+  },
+  "candidates": [
+    {
+      "label": "m0.00_d7_s2_l2",
+      "params": [
+        "mutual-nn",
+        7.0,
+        2.0,
+        2,
+        true,
+        true,
+        0.0
+      ],
+      "micro_adj": 0.6627,
+      "lineage_macro_adj": 0.717,
+      "division_jaccard": 0.0476,
+      "division_term": 0.0048,
+      "score": 0.6674,
+      "division_measurable": true,
+      "family_mix_sensitive": true,
+      "per_dataset": {
+        "44b6_0113de3b": {
+          "adj_edge_jaccard": 0.8727,
+          "edge_tp": 47,
+          "edge_fp": 3,
+          "edge_fn": 3,
+          "division_tp": 0,
+          "division_fp": 1,
+          "division_fn": 0
+        },
+        "44b6_0b24845f": {
+          "adj_edge_jaccard": 0.6817,
+          "edge_tp": 37,
+          "edge_fp": 5,
+          "edge_fn": 12,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0
+        },
+        "6bba_05b6850b": {
+          "adj_edge_jaccard": 0.5692,
+          "edge_tp": 655,
+          "edge_fp": 223,
+          "edge_fn": 190,
+          "division_tp": 0,
+          "division_fp": 11,
+          "division_fn": 0
+        },
+        "6bba_05db0fb1": {
+          "adj_edge_jaccard": 0.7282,
+          "edge_tp": 975,
+          "edge_fp": 156,
+          "edge_fn": 208,
+          "division_tp": 1,
+          "division_fp": 6,
+          "division_fn": 2
+        }
+      },
+      "edge_fp_total": 387,
+      "division_tp_total": 1,
+      "division_fp_total": 18,
+      "division_fn_total": 2,
+      "edge_adj_delta_per_dataset": {
+        "44b6_0113de3b": -0.0168,
+        "44b6_0b24845f": 0.0,
+        "6bba_05b6850b": -0.0008,
+        "6bba_05db0fb1": -0.0029
+      },
+      "no_edge_regression": false,
+      "edge_fp_increase": true,
+      "micro_delta_vs_champ": -0.0022,
+      "score_delta_vs_champ": 0.0025,
+      "promote": false
+    },
+    {
+      "label": "m0.25_d7_s2_l2",
+      "params": [
+        "mutual-nn",
+        7.0,
+        2.0,
+        2,
+        true,
+        true,
+        0.25
+      ],
+      "micro_adj": 0.6629,
+      "lineage_macro_adj": 0.7171,
+      "division_jaccard": 0.0476,
+      "division_term": 0.0048,
+      "score": 0.6677,
+      "division_measurable": true,
+      "family_mix_sensitive": true,
+      "per_dataset": {
+        "44b6_0113de3b": {
+          "adj_edge_jaccard": 0.8727,
+          "edge_tp": 47,
+          "edge_fp": 3,
+          "edge_fn": 3,
+          "division_tp": 0,
+          "division_fp": 1,
+          "division_fn": 0
+        },
+        "44b6_0b24845f": {
+          "adj_edge_jaccard": 0.6817,
+          "edge_tp": 37,
+          "edge_fp": 5,
+          "edge_fn": 12,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0
+        },
+        "6bba_05b6850b": {
+          "adj_edge_jaccard": 0.5692,
+          "edge_tp": 655,
+          "edge_fp": 223,
+          "edge_fn": 190,
+          "division_tp": 0,
+          "division_fp": 11,
+          "division_fn": 0
+        },
+        "6bba_05db0fb1": {
+          "adj_edge_jaccard": 0.7287,
+          "edge_tp": 975,
+          "edge_fp": 155,
+          "edge_fn": 208,
+          "division_tp": 1,
+          "division_fp": 6,
+          "division_fn": 2
+        }
+      },
+      "edge_fp_total": 386,
+      "division_tp_total": 1,
+      "division_fp_total": 18,
+      "division_fn_total": 2,
+      "edge_adj_delta_per_dataset": {
+        "44b6_0113de3b": -0.0168,
+        "44b6_0b24845f": 0.0,
+        "6bba_05b6850b": -0.0008,
+        "6bba_05db0fb1": -0.0023
+      },
+      "no_edge_regression": false,
+      "edge_fp_increase": true,
+      "micro_delta_vs_champ": -0.002,
+      "score_delta_vs_champ": 0.0028,
+      "promote": false
+    },
+    {
+      "label": "m0.50_d7_s2_l2",
+      "params": [
+        "mutual-nn",
+        7.0,
+        2.0,
+        2,
+        true,
+        true,
+        0.5
+      ],
+      "micro_adj": 0.664,
+      "lineage_macro_adj": 0.7176,
+      "division_jaccard": 0.0526,
+      "division_term": 0.0053,
+      "score": 0.6693,
+      "division_measurable": true,
+      "family_mix_sensitive": true,
+      "per_dataset": {
+        "44b6_0113de3b": {
+          "adj_edge_jaccard": 0.8727,
+          "edge_tp": 47,
+          "edge_fp": 3,
+          "edge_fn": 3,
+          "division_tp": 0,
+          "division_fp": 1,
+          "division_fn": 0
+        },
+        "44b6_0b24845f": {
+          "adj_edge_jaccard": 0.6817,
+          "edge_tp": 37,
+          "edge_fp": 5,
+          "edge_fn": 12,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0
+        },
+        "6bba_05b6850b": {
+          "adj_edge_jaccard": 0.5692,
+          "edge_tp": 655,
+          "edge_fp": 223,
+          "edge_fn": 190,
+          "division_tp": 0,
+          "division_fp": 11,
+          "division_fn": 0
+        },
+        "6bba_05db0fb1": {
+          "adj_edge_jaccard": 0.7309,
+          "edge_tp": 975,
+          "edge_fp": 151,
+          "edge_fn": 208,
+          "division_tp": 1,
+          "division_fp": 4,
+          "division_fn": 2
+        }
+      },
+      "edge_fp_total": 382,
+      "division_tp_total": 1,
+      "division_fp_total": 16,
+      "division_fn_total": 2,
+      "edge_adj_delta_per_dataset": {
+        "44b6_0113de3b": -0.0168,
+        "44b6_0b24845f": 0.0,
+        "6bba_05b6850b": -0.0008,
+        "6bba_05db0fb1": -0.0001
+      },
+      "no_edge_regression": false,
+      "edge_fp_increase": true,
+      "micro_delta_vs_champ": -0.0009,
+      "score_delta_vs_champ": 0.0044,
+      "promote": false
+    },
+    {
+      "label": "m1.00_d7_s2_l2",
+      "params": [
+        "mutual-nn",
+        7.0,
+        2.0,
+        2,
+        true,
+        true,
+        1.0
+      ],
+      "micro_adj": 0.6642,
+      "lineage_macro_adj": 0.7213,
+      "division_jaccard": 0.0909,
+      "division_term": 0.0091,
+      "score": 0.6733,
+      "division_measurable": true,
+      "family_mix_sensitive": true,
+      "per_dataset": {
+        "44b6_0113de3b": {
+          "adj_edge_jaccard": 0.8895,
+          "edge_tp": 47,
+          "edge_fp": 2,
+          "edge_fn": 3,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0
+        },
+        "44b6_0b24845f": {
+          "adj_edge_jaccard": 0.6817,
+          "edge_tp": 37,
+          "edge_fp": 5,
+          "edge_fn": 12,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0
+        },
+        "6bba_05b6850b": {
+          "adj_edge_jaccard": 0.5685,
+          "edge_tp": 653,
+          "edge_fp": 221,
+          "edge_fn": 192,
+          "division_tp": 0,
+          "division_fp": 7,
+          "division_fn": 0
+        },
+        "6bba_05db0fb1": {
+          "adj_edge_jaccard": 0.7312,
+          "edge_tp": 974,
+          "edge_fp": 149,
+          "edge_fn": 209,
+          "division_tp": 1,
+          "division_fp": 1,
+          "division_fn": 2
+        }
+      },
+      "edge_fp_total": 377,
+      "division_tp_total": 1,
+      "division_fp_total": 8,
+      "division_fn_total": 2,
+      "edge_adj_delta_per_dataset": {
+        "44b6_0113de3b": 0.0,
+        "44b6_0b24845f": 0.0,
+        "6bba_05b6850b": -0.0015,
+        "6bba_05db0fb1": 0.0002
+      },
+      "no_edge_regression": false,
+      "edge_fp_increase": true,
+      "micro_delta_vs_champ": -0.0007,
+      "score_delta_vs_champ": 0.0084,
+      "promote": false
+    },
+    {
+      "label": "m0.50_d5_s1.5_l3",
+      "params": [
+        "mutual-nn",
+        5.0,
+        1.5,
+        3,
+        true,
+        true,
+        0.5
+      ],
+      "micro_adj": 0.6647,
+      "lineage_macro_adj": 0.7215,
+      "division_jaccard": 0.1111,
+      "division_term": 0.0111,
+      "score": 0.6758,
+      "division_measurable": true,
+      "family_mix_sensitive": true,
+      "per_dataset": {
+        "44b6_0113de3b": {
+          "adj_edge_jaccard": 0.8895,
+          "edge_tp": 47,
+          "edge_fp": 2,
+          "edge_fn": 3,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0
+        },
+        "44b6_0b24845f": {
+          "adj_edge_jaccard": 0.6817,
+          "edge_tp": 37,
+          "edge_fp": 5,
+          "edge_fn": 12,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0
+        },
+        "6bba_05b6850b": {
+          "adj_edge_jaccard": 0.5696,
+          "edge_tp": 653,
+          "edge_fp": 219,
+          "edge_fn": 192,
+          "division_tp": 0,
+          "division_fp": 5,
+          "division_fn": 0
+        },
+        "6bba_05db0fb1": {
+          "adj_edge_jaccard": 0.7312,
+          "edge_tp": 974,
+          "edge_fp": 149,
+          "edge_fn": 209,
+          "division_tp": 1,
+          "division_fp": 1,
+          "division_fn": 2
+        }
+      },
+      "edge_fp_total": 375,
+      "division_tp_total": 1,
+      "division_fp_total": 6,
+      "division_fn_total": 2,
+      "edge_adj_delta_per_dataset": {
+        "44b6_0113de3b": 0.0,
+        "44b6_0b24845f": 0.0,
+        "6bba_05b6850b": -0.0004,
+        "6bba_05db0fb1": 0.0002
+      },
+      "no_edge_regression": false,
+      "edge_fp_increase": true,
+      "micro_delta_vs_champ": -0.0002,
+      "score_delta_vs_champ": 0.0109,
+      "promote": false
+    },
+    {
+      "label": "m0.50_d7_s1.2_l2",
+      "params": [
+        "mutual-nn",
+        7.0,
+        1.2,
+        2,
+        true,
+        true,
+        0.5
+      ],
+      "micro_adj": 0.6649,
+      "lineage_macro_adj": 0.7216,
+      "division_jaccard": 0.0,
+      "division_term": 0.0,
+      "score": 0.6649,
+      "division_measurable": true,
+      "family_mix_sensitive": true,
+      "per_dataset": {
+        "44b6_0113de3b": {
+          "adj_edge_jaccard": 0.8895,
+          "edge_tp": 47,
+          "edge_fp": 2,
+          "edge_fn": 3,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0
+        },
+        "44b6_0b24845f": {
+          "adj_edge_jaccard": 0.6817,
+          "edge_tp": 37,
+          "edge_fp": 5,
+          "edge_fn": 12,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0
+        },
+        "6bba_05b6850b": {
+          "adj_edge_jaccard": 0.5692,
+          "edge_tp": 652,
+          "edge_fp": 218,
+          "edge_fn": 193,
+          "division_tp": 0,
+          "division_fp": 3,
+          "division_fn": 0
+        },
+        "6bba_05db0fb1": {
+          "adj_edge_jaccard": 0.7318,
+          "edge_tp": 974,
+          "edge_fp": 148,
+          "edge_fn": 209,
+          "division_tp": 0,
+          "division_fp": 1,
+          "division_fn": 3
+        }
+      },
+      "edge_fp_total": 373,
+      "division_tp_total": 0,
+      "division_fp_total": 4,
+      "division_fn_total": 3,
+      "edge_adj_delta_per_dataset": {
+        "44b6_0113de3b": 0.0,
+        "44b6_0b24845f": 0.0,
+        "6bba_05b6850b": -0.0007,
+        "6bba_05db0fb1": 0.0008
+      },
+      "no_edge_regression": false,
+      "edge_fp_increase": true,
+      "micro_delta_vs_champ": -0.0,
+      "score_delta_vs_champ": -0.0,
+      "promote": false
+    }
+  ],
+  "any_promote": false
+}

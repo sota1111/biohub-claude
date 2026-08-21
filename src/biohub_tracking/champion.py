@@ -30,26 +30,34 @@ from .link import LinkParams
 # access (Kaggle kernel / exec()). MUST mirror champion/config.json exactly;
 # tests/test_exec_compat.py asserts they stay identical.
 EMBEDDED_CHAMPION_CONFIG: dict = {
-    "name": "detect-link-dog-v4-shorttrack",
+    "name": "detect-link-dog-v4-shorttrack-motion-gain1",
     "description": (
-        "DoG-v3 adaptive detection (median + 3.0*1.4826*MAD of the local-contrast "
-        "response) + optimal nearest-neighbour frame linking, now with post-link "
-        "short-track pruning (min_track_length=4). Fourth biohub-claude champion "
-        "(SOT-2369): a detection that never links into a >=4-node track is almost "
-        "always noise, so pruning those weakly-connected fragments both relieves the "
-        "node-count penalty AND frees GT nodes so the per-timepoint <=7um matching "
-        "attaches the persistent track instead of a transient decoy. On the SOT-2305 "
-        "4-dataset LB holdout every dataset improves with no regression (44b6_0113de3b "
-        "0.8814->0.8895, 44b6_0b24845f 0.6658->0.6817, 6bba_05b6850b 0.5025->0.5700 "
-        "with edge TP 619->651/FP 251->215/FN 226->194, 6bba_05db0fb1 0.7096->0.7310), "
-        "raising the holdout micro-adj from 0.6232 to 0.6649 (+0.042). "
-        "min_track_length=5 scored a hair higher on micro (0.6692) but regressed the "
-        "clean 44b6_0113de3b family (TP 47->45, adj 0.8895->0.8539) by pruning real "
-        "short tracks, so mtl=4 is chosen for no-per-dataset-regression robustness. "
-        "Ported from the public frontier lineage tracker's FILTER_SHORT_TRACKS "
-        "post-processing (that notebook's 0.913 comes from a GPU pretrained UNet+ILP "
-        "pipeline that cannot run under this repo's numpy/scipy/zarr, CPU, no-internet, "
-        "no-weights kernel; the short-track filter is the one score lever that transfers)."
+        "Fifth biohub-claude champion (SOT-2909 cycle-3 parent-resume promotion). "
+        "Identical to the prior detect-link-dog-v4-shorttrack champion EXCEPT the "
+        "linking stage now runs SOT-2864's ARGUS-style motion-model predicted-position "
+        "LAP linking (motion_model_link=true, motion_smooth_sigma=15.0 um, "
+        "motion_gain=1.0, motion_gate_on_prediction=true); detection knobs are "
+        "byte-identical (linking-only change). PROMOTED because the two-signal gate "
+        "FIRED: this exact linking config was pushed as reserve LB probe 55662947 "
+        "(kernel sota1111/biohub-claude-candidate-sot-2864-motion-link v2, artifact "
+        "sha256 95b8893a) and scored public 0.626 on the hidden leaderboard, i.e. it "
+        "BEATS the reigning champion's genuine public best 0.624 (SOT-2369 sha256 "
+        "48b1eaa2) and far exceeds the last champion submission 0.509 (SOT-2902 "
+        "fingerprint-flip artifact). Simultaneously it is CV-superior on the "
+        "SOT-2817/SOT-2903 re-anchored leak-free CV (primary micro_adj edge Jaccard "
+        "0.6649 -> 0.6760, +0.0111, dTP+16/dFP-20/dFN-16) with 4/4 per-dataset "
+        "NON-REGRESSION and micro/macro/lineage-macro all rising together "
+        "(44b6_0113de3b 0.8895->0.9078, 44b6_0b24845f 0.6817->0.6938, 6bba_05b6850b "
+        "0.5700->0.5748, 6bba_05db0fb1 0.7310->0.7477; macro 0.7180->0.731, "
+        "lineage-macro 0.7216->0.7351), so it is NOT family-mix-sensitive. This "
+        "resolves the documented CV<->LB divergence guard (SOT-2816 CV +0.042 -> "
+        "public -0.115) that kept the champion byte-frozen: the CV gain of this lever "
+        "DOES transfer to public, so the byte-freeze is lifted for THIS lever only. "
+        "The stronger-CV motion_gain=2.0 sibling "
+        "(champion/candidates/sot2900-motion-model-link-gain2.json, CV 0.6821) has "
+        "UNOBSERVED public and is HELD as the #1 reserve for a single converge-phase "
+        "public check (explore phase consumes public sparsely). Pure numpy/scipy, "
+        "CPU, offline, no-weights, deterministic."
     ),
     "scale": [1.625, 0.40625, 0.40625],
     "detect": {
@@ -65,6 +73,10 @@ EMBEDDED_CHAMPION_CONFIG: dict = {
         "allow_division": False,
         "division_distance": 7.0,
         "min_track_length": 4,
+        "motion_model_link": True,
+        "motion_smooth_sigma": 15.0,
+        "motion_gain": 1.0,
+        "motion_gate_on_prediction": True,
     },
 }
 

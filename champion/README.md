@@ -1,4 +1,18 @@
-# Champion — `detect-link-dog-v4-shorttrack`
+# Champion — `detect-link-dog-v4-shorttrack-motion-gain1`
+
+**SOT-2909 (cycle-3 parent-resume) promoted `detect-link-dog-v4-shorttrack-motion-gain1`.**
+Same detection as `detect-link-dog-v4-shorttrack`, but the linking stage now runs SOT-2864's
+ARGUS-style motion-model predicted-position LAP linking (`motion_model_link=true`,
+`motion_smooth_sigma=15.0`, `motion_gain=1.0`, `motion_gate_on_prediction=true`). This is the first
+promotion to clear the **two-signal gate**: the exact config was pushed as reserve LB probe
+`55662947` and scored **public 0.626** (> the champion's genuine public best 0.624, >> the 0.509
+fingerprint-flip artifact) *and* the re-anchored leak-free CV rises **0.6649 → 0.6760** (+0.0111) with
+4/4 per-dataset non-regression. Its CV gain therefore demonstrably transfers to the hidden LB,
+lifting the SOT-2816 CV↔LB-divergence byte-freeze for this lever. The stronger-CV `motion_gain=2.0`
+sibling (`candidates/sot2900-motion-model-link-gain2.json`, CV 0.6821, public unobserved) is HELD as
+the #1 reserve for a single converge-phase public check.
+
+## Lineage
 
 The reigning detection + linking configuration for biohub-claude. Established in
 **SOT-1983** (`detect-link-v1`), superseded in **SOT-2272** by `detect-link-dog-v2`

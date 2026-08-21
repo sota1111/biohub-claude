@@ -1,0 +1,98 @@
+{
+  "recordedAt": "2026-08-21T09:40:39.526528+00:00",
+  "issue": "SOT-2902",
+  "restore_candidate": "champion/candidates/sot2902-restore-0624.json",
+  "effective_config_identical_to_champion": true,
+  "restore_cv": {
+    "micro_adj_edge_jaccard": 0.6649,
+    "score": 0.6649,
+    "division_term": 0.0,
+    "delta_micro_vs_reference": 2e-06,
+    "delta_score_vs_reference": 2e-06,
+    "cv_reproduces_reference": true,
+    "reference_micro_adj": 0.6649
+  },
+  "exec_compat_ok": true,
+  "exec_compat_summary": {
+    "num_nodes": 10,
+    "num_edges": 8,
+    "datasets": [
+      "smoke"
+    ],
+    "csv_path": "/tmp/tmpwpsmacyg/sub/submission.csv"
+  },
+  "fingerprint_forensics": {
+    "champion_kernel_sha256": "48b1eaa2dfb63c8a31344c8e5695acb8c7d546ba696952ce317ed6471ee3a698",
+    "champion_config_sha256": "42064648e612183e761bf9d40b70d3e8a2497453a878f1a44f5b52e410e01bdd",
+    "champion_config_sha256_expected": "42064648e612183e761bf9d40b70d3e8a2497453a878f1a44f5b52e410e01bdd",
+    "artifact_0624_fingerprint": "48b1eaa2dfb63c8a31344c8e5695acb8c7d546ba696952ce317ed6471ee3a698",
+    "artifact_0509_fingerprint": "e445965c6cdea076430fc7a0a899aca9c24933877d72998e734dff0f3623da8e",
+    "head_kernel_sha256_equals_0624_artifact": true,
+    "fallback_identity_string": "kaggle-notebook:sota1111/biohub-claude-champion@4:submission.csv",
+    "fallback_identity_sha256": "e445965c6cdea076430fc7a0a899aca9c24933877d72998e734dff0f3623da8e",
+    "e445965_is_kaggle_notebook_fallback_identity": true,
+    "note": "48b1e == sha256(champion kernel .py) = real source-file hash reproduced at HEAD; e445965 == sha256(kaggle-notebook:<kernel>@4:submission.csv) = synthetic fallback identity (kernel-name@version+output only, never the scored CSV content). The two are different fingerprint SCHEMES, not two submission artifacts. HEAD regenerates 48b1e (the 0.624 source), never e445965."
+  },
+  "per_dataset": [
+    {
+      "name": "44b6_0113de3b",
+      "lineage": "44b6",
+      "edge_tp": 47,
+      "edge_fp": 2,
+      "edge_fn": 3,
+      "edge_jaccard": 0.9038,
+      "adjusted_edge_jaccard": 0.8895,
+      "division_tp": 0,
+      "division_fp": 0,
+      "division_fn": 0,
+      "pred_nodes": 29844,
+      "n_true": 25755.0,
+      "weight": 52
+    },
+    {
+      "name": "44b6_0b24845f",
+      "lineage": "44b6",
+      "edge_tp": 37,
+      "edge_fp": 5,
+      "edge_fn": 12,
+      "edge_jaccard": 0.6852,
+      "adjusted_edge_jaccard": 0.6817,
+      "division_tp": 0,
+      "division_fp": 0,
+      "division_fn": 0,
+      "pred_nodes": 34485,
+      "n_true": 32795.0,
+      "weight": 54
+    },
+    {
+      "name": "6bba_05b6850b",
+      "lineage": "6bba",
+      "edge_tp": 651,
+      "edge_fp": 215,
+      "edge_fn": 194,
+      "edge_jaccard": 0.6142,
+      "adjusted_edge_jaccard": 0.57,
+      "division_tp": 0,
+      "division_fp": 0,
+      "division_fn": 0,
+      "pred_nodes": 10938,
+      "n_true": 6362.0,
+      "weight": 1060
+    },
+    {
+      "name": "6bba_05db0fb1",
+      "lineage": "6bba",
+      "edge_tp": 973,
+      "edge_fp": 148,
+      "edge_fn": 210,
+      "edge_jaccard": 0.731,
+      "adjusted_edge_jaccard": 0.731,
+      "division_tp": 0,
+      "division_fp": 0,
+      "division_fn": 3,
+      "pred_nodes": 69784,
+      "n_true": 69800.0,
+      "weight": 1331
+    }
+  ]
+}

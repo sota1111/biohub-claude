@@ -249,6 +249,12 @@ def champion_params(
         motion_model_link=bool(l.get("motion_model_link", False)),
         motion_smooth_sigma=float(l.get("motion_smooth_sigma", 15.0)),
         motion_gain=float(l.get("motion_gain", 1.0)),
+        # Local neighbour-affine motion prediction (SOT-2911); absent keys keep the
+        # champion byte-identical (local_affine_predict default off).
+        local_affine_predict=bool(l.get("local_affine_predict", False)),
+        local_affine_k=int(l.get("local_affine_k", 12)),
+        local_affine_gain=float(l.get("local_affine_gain", 1.0)),
+        local_affine_ridge=float(l.get("local_affine_ridge", 1.0)),
         # Ultrack bidirectional motion-consistency gate (SOT-2883); absent keys keep
         # the champion byte-identical (link_consistency_gate default off). JSON cannot
         # hold inf, so an absent/null tol means "no hard rejection" (soft penalty only).

@@ -31,6 +31,21 @@ metric-valid**: the ``<= max_distance`` feasibility gate stays on the raw scaled
 distance, so the term only reorders the champion's existing feasible set and can
 never introduce a new long-range (metric-invalid) edge.
 
+**SOT-2870 — learned gate EXPANSION (motion + shape/intensity):** SOT-2841's re-rank
+was CV-neutral because a fixed raw-distance feasible set is saturated (near ≈ GT). The
+headroom SOT-2864 found (motion-model linking, +0.0111) is in the *feasibility gate*:
+admitting a raw-far but **motion-consistent** successor the distance gate drops
+(**FN-edge recovery**). This module's feature vector is therefore extended with the
+SOT-2864 **motion residual** (predicted-position distance) and two Trackastra-style
+shallow **shape/intensity ratios** (brightness / spread change, reused from the patch
+descriptor — no new extraction, no train/infer skew). The learned ``p_edge`` then
+drives a **gate-expansion admissibility** in the linker (:class:`LinkParams`
+``edge_gate_expand``): a pair beyond ``max_distance`` in raw distance is admitted only
+when it is motion-corrected in-range (``dist_pred <= max_distance``), within a bounded
+raw ratio, **and** the classifier scores it a real edge — never an unbounded
+long-range edge. Default-off (``edge_gate_expand=False``) keeps the champion
+byte-for-byte.
+
 Kernel-safe by construction (numpy/scipy only, embedded coefficients, no sklearn /
 pickle / filesystem at inference, ``exec()`` / no ``__file__``):
 
@@ -63,8 +78,24 @@ EDGE_FEATURE_NAMES: tuple[str, ...] = (
     "succ_rank",       # 0-based distance rank of this dst among the source's feasibles
     "pred_rank",       # 0-based distance rank of this src among the dst's feasibles
     "succ_margin",     # dist - (source's nearest feasible successor distance) (>= 0)
+    # --- SOT-2870 joint motion + shape/intensity features (gate-expansion axis) ---
+    "motion_resid",    # scaled dist from the SOT-2864 motion-predicted src to dst
+                       # (== dist_scaled when no motion field is supplied) — the
+                       # residual that discriminates a motion-consistent successor
+                       # (small) from a raw-near but motion-incoherent decoy (large).
+    "intensity_ratio", # |src - dst| standardized mean-intensity (descriptor ch0):
+                       # a real successor keeps a similar brightness frame-to-frame.
+    "shape_ratio",     # |src - dst| standardized intensity-spread (descriptor ch1),
+                       # a coarse size/shape-change proxy (Trackastra shallow cue).
 )
 N_EDGE_FEATURES: int = len(EDGE_FEATURE_NAMES)
+
+# Descriptor channels reused for the shape/intensity ratio features (SOT-2870). The
+# appearance descriptor (biohub_tracking.detect.patch_descriptors) packs the patch
+# mean intensity at index 0 and its std (spread) at index 1 — reusing them keeps the
+# joint edge feature train/infer-skew-free (no new extraction path).
+_DESC_INTENSITY_CH = 0
+_DESC_SPREAD_CH = 1
 
 
 def _sigmoid(logit: np.ndarray) -> np.ndarray:
@@ -102,11 +133,31 @@ def _appearance_cosine(src_desc: np.ndarray, dst_desc: np.ndarray) -> np.ndarray
     return 0.5 * (1.0 + cos)
 
 
+def _abs_channel_diff(
+    src_desc: np.ndarray, dst_desc: np.ndarray, channel: int, shape: tuple[int, int]
+) -> np.ndarray:
+    """``(P, Q)`` absolute difference of one descriptor channel (0 if absent).
+
+    Used for the SOT-2870 shape/intensity ratio features. A descriptor with fewer
+    than ``channel + 1`` columns (a degenerate/empty patch stat) yields a neutral
+    all-zero plane rather than an index error, so the feature is always well defined.
+    """
+    p, q = shape
+    if src_desc.ndim != 2 or dst_desc.ndim != 2:
+        return np.zeros((p, q), dtype=np.float64)
+    if src_desc.shape[1] <= channel or dst_desc.shape[1] <= channel:
+        return np.zeros((p, q), dtype=np.float64)
+    s = src_desc[:, channel].astype(np.float64)
+    d = dst_desc[:, channel].astype(np.float64)
+    return np.abs(s[:, None] - d[None, :])
+
+
 def edge_feature_planes(
     dist_scaled: np.ndarray,
     src_desc: np.ndarray,
     dst_desc: np.ndarray,
     max_distance: float,
+    dist_pred: np.ndarray | None = None,
 ) -> np.ndarray:
     """Edge-feature planes ``(P, Q, F)`` for one ``t -> t+1`` transition.
 
@@ -119,13 +170,31 @@ def edge_feature_planes(
     computed **only over the feasible set** — exactly the competition a dense
     cluster's assignment faces.
 
+    ``dist_pred`` (SOT-2870, optional) is the ``(P, Q)`` scaled distance from each
+    source's **motion-predicted** position (the SOT-2864 motion field) to each
+    destination. When supplied, two things change so the joint feature vector matches
+    the gate-*expansion* the model is trained/used for: (1) the ``motion_resid``
+    feature carries the predicted-distance residual (raw distance otherwise), and
+    (2) the feasible set the ranks/rivals/margins are computed over is the **union**
+    of the raw ``<= max_distance`` set and the motion-corrected ``dist_pred <=
+    max_distance`` set — i.e. the motion-admissible successors a gate-expanded
+    assignment actually competes among. With ``dist_pred is None`` the function is
+    byte-for-byte the original SOT-2841 behaviour (new columns are neutral).
+
     Feature order is :data:`EDGE_FEATURE_NAMES`.
     """
     p, q = dist_scaled.shape
-    feasible = dist_scaled <= max_distance
+    if dist_pred is None:
+        feasible = dist_scaled <= max_distance
+        motion_resid = dist_scaled.astype(np.float64)
+    else:
+        feasible = (dist_scaled <= max_distance) | (dist_pred <= max_distance)
+        motion_resid = np.asarray(dist_pred, dtype=np.float64)
     inf = np.inf
 
     app = _appearance_cosine(src_desc, dst_desc)
+    intensity_ratio = _abs_channel_diff(src_desc, dst_desc, _DESC_INTENSITY_CH, (p, q))
+    shape_ratio = _abs_channel_diff(src_desc, dst_desc, _DESC_SPREAD_CH, (p, q))
 
     # Rival counts: number of OTHER feasible partners on each side (0 = the pair is
     # the source's/destination's only feasible option -> unambiguous).
@@ -157,6 +226,9 @@ def edge_feature_planes(
             succ_rank,
             pred_rank,
             succ_margin,
+            motion_resid,
+            intensity_ratio,
+            shape_ratio,
         ],
         axis=2,
     )
@@ -191,9 +263,17 @@ class LearnedEdgeCost:
         src_desc: np.ndarray,
         dst_desc: np.ndarray,
         max_distance: float,
+        dist_pred: np.ndarray | None = None,
     ) -> np.ndarray:
-        """``(P, Q)`` learned edge probability ``p_edge`` for every pair."""
-        planes = edge_feature_planes(dist_scaled, src_desc, dst_desc, max_distance)
+        """``(P, Q)`` learned edge probability ``p_edge`` for every pair.
+
+        ``dist_pred`` (SOT-2870) threads the motion-predicted distance into the joint
+        feature vector so the same model scores both the re-rank (in-gate) and the
+        gate-expansion (motion-corrected) admissibility decisions consistently.
+        """
+        planes = edge_feature_planes(
+            dist_scaled, src_desc, dst_desc, max_distance, dist_pred=dist_pred
+        )
         std = np.where(self.std > 1e-12, self.std, 1.0)
         z = (planes - self.mean) / std  # (P, Q, F)
         logit = z @ self.coef + self.intercept  # (P, Q)
@@ -205,12 +285,13 @@ class LearnedEdgeCost:
         src_desc: np.ndarray,
         dst_desc: np.ndarray,
         max_distance: float,
+        dist_pred: np.ndarray | None = None,
     ) -> np.ndarray:
         """``weight * (1 - p_edge)`` added-cost matrix ``(P, Q)`` (0 when weight 0)."""
         if self.weight == 0.0:
             return np.zeros_like(dist_scaled, dtype=np.float64)
         p_edge = self.probability_planes(
-            dist_scaled, src_desc, dst_desc, max_distance
+            dist_scaled, src_desc, dst_desc, max_distance, dist_pred=dist_pred
         )
         return self.weight * (1.0 - p_edge)
 

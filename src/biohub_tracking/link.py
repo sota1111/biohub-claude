@@ -318,6 +318,40 @@ class LinkParams:
     champion **byte-for-byte** (a strict default-off superset). Inactive on the
     global-window (SOT-2830) path (which emits distance-only birth/death edges)."""
 
+    edge_gate_expand: bool = False
+    """Learned-cost feasibility-gate EXPANSION for FN-edge recovery (SOT-2870, off).
+
+    SOT-2841's re-rank was CV-neutral (a fixed raw-distance feasible set is
+    saturated); SOT-2864 showed the headroom is in the *gate* — admitting a raw-far
+    but **motion-consistent** successor the distance gate drops (an FN edge). When
+    this is ``True`` (and an :attr:`edge_cost_model` and a motion prediction —
+    :attr:`motion_model_link` or :attr:`velocity_gain` — and descriptors are all
+    active), a pair whose **raw** scaled distance exceeds :attr:`max_distance` is
+    additionally admitted iff ALL hold:
+
+    * it is **motion-corrected in-range**: the SOT-2864 predicted-position distance is
+      ``<= max_distance`` (so the expansion is confined to motion-explained proximity,
+      never an unbounded long-range edge);
+    * its raw distance is within :attr:`edge_gate_expand_ratio` ``* max_distance`` (a
+      hard cap so a wild motion prediction cannot admit an arbitrarily distant pair);
+    * the learned ``p_edge`` (motion + shape/intensity joint features) is
+      ``>= :attr:`edge_gate_admit_prob``` — the classifier must judge it a real edge.
+
+    ``False`` (default) leaves the feasibility gate on the raw distance exactly like
+    SOT-2841 (re-rank only), so the champion is reproduced **byte-for-byte**."""
+
+    edge_gate_admit_prob: float = 0.5
+    """Min learned ``p_edge`` to admit a gate-expanded pair (SOT-2870).
+
+    Only consulted when :attr:`edge_gate_expand` is set. Higher = stricter (fewer
+    expanded admits, fewer FP; the learned filter that SOT-2864's pure motion gate
+    lacked)."""
+
+    edge_gate_expand_ratio: float = 1.5
+    """Hard cap on a gate-expanded pair's **raw** distance, as a multiple of
+    :attr:`max_distance` (SOT-2870). Bounds the expansion so a spurious motion
+    prediction can never admit an arbitrarily far (metric-invalid) edge."""
+
     min_track_length: int = 1
     """Drop weakly-connected track fragments with fewer than this many nodes
     (SOT-2369, ported from the reference tracker's ``FILTER_SHORT_TRACKS``).
@@ -630,6 +664,9 @@ def _assign(
     src_desc: np.ndarray | None = None, dst_desc: np.ndarray | None = None,
     appearance_weight: float = 0.0,
     edge_model=None,
+    edge_gate_expand: bool = False,
+    edge_gate_admit_prob: float = 0.5,
+    edge_gate_expand_ratio: float = 1.5,
 ) -> list[tuple[int, int]]:
     """Optimal one-to-one assignment of ``src`` rows to ``dst`` rows within range.
 
@@ -659,6 +696,7 @@ def _assign(
         return []
     diff = (src[:, None, :] - dst[None, :, :]) * scale
     dist = np.sqrt((diff**2).sum(axis=2))
+    dist_pred: np.ndarray | None = None
     if src_pred is None:
         gate = dist
         cost_base = dist
@@ -667,21 +705,41 @@ def _assign(
         dist_pred = np.sqrt((diff_pred**2).sum(axis=2))
         gate = dist_pred if gate_on_prediction else dist
         cost_base = dist_pred + disp_weight * dist
-    if appearance_weight > 0.0 and src_desc is not None and dst_desc is not None:
+    has_desc = src_desc is not None and dst_desc is not None
+    if appearance_weight > 0.0 and has_desc:
         cost_base = cost_base + _appearance_cost(src_desc, dst_desc, appearance_weight)
-    if (
-        edge_model is not None
-        and edge_model.weight != 0.0
-        and src_desc is not None
-        and dst_desc is not None
-    ):
+    edge_active = edge_model is not None and edge_model.weight != 0.0 and has_desc
+    if edge_active:
+        # dist_pred (when a motion prediction is active) threads the motion-residual
+        # feature into the joint edge vector, matching how the model was trained.
         cost_base = cost_base + edge_model.penalty(
-            dist, src_desc, dst_desc, max_distance
+            dist, src_desc, dst_desc, max_distance, dist_pred=dist_pred
         )
-    big = max_distance * 1000.0 + cost_base.max() + 1.0
-    cost = np.where(gate <= max_distance, cost_base, big)
+
+    # Base feasibility: the champion's raw (or, under gate_on_prediction, predicted)
+    # distance gate.
+    feasible = gate <= max_distance
+
+    # SOT-2870 learned gate EXPANSION (FN-edge recovery): additionally admit a
+    # raw-far pair only when it is motion-corrected in-range, within the raw-distance
+    # ratio cap, AND the learned classifier scores it a real edge. Requires an active
+    # edge model and a motion prediction (dist_pred); off => champion byte-for-byte.
+    if edge_gate_expand and edge_active and dist_pred is not None:
+        p_edge = edge_model.probability_planes(
+            dist, src_desc, dst_desc, max_distance, dist_pred=dist_pred
+        )
+        expand = (
+            (~feasible)
+            & (dist_pred <= max_distance)
+            & (dist <= max_distance * edge_gate_expand_ratio)
+            & (p_edge >= edge_gate_admit_prob)
+        )
+        feasible = feasible | expand
+
+    big = max_distance * 1000.0 + float(cost_base.max()) + 1.0
+    cost = np.where(feasible, cost_base, big)
     rows, cols = linear_sum_assignment(cost)
-    return [(int(r), int(c)) for r, c in zip(rows, cols) if gate[r, c] <= max_distance]
+    return [(int(r), int(c)) for r, c in zip(rows, cols) if bool(feasible[r, c])]
 
 
 def _motion_field_predict(
@@ -906,6 +964,9 @@ def link_centroids(
                 dst_desc=descriptors[t_b] if use_desc else None,
                 appearance_weight=params.appearance_weight,
                 edge_model=edge_model if use_edge_model else None,
+                edge_gate_expand=params.edge_gate_expand,
+                edge_gate_admit_prob=params.edge_gate_admit_prob,
+                edge_gate_expand_ratio=params.edge_gate_expand_ratio,
             )
         elif params.velocity_gain and len(src):
             src_pred = np.array(
@@ -923,6 +984,9 @@ def link_centroids(
                 dst_desc=descriptors[t_b] if use_desc else None,
                 appearance_weight=params.appearance_weight,
                 edge_model=edge_model if use_edge_model else None,
+                edge_gate_expand=params.edge_gate_expand,
+                edge_gate_admit_prob=params.edge_gate_admit_prob,
+                edge_gate_expand_ratio=params.edge_gate_expand_ratio,
             )
         else:
             pairs = _assign(
@@ -931,6 +995,9 @@ def link_centroids(
                 dst_desc=descriptors[t_b] if use_desc else None,
                 appearance_weight=params.appearance_weight,
                 edge_model=edge_model if use_edge_model else None,
+                edge_gate_expand=params.edge_gate_expand,
+                edge_gate_admit_prob=params.edge_gate_admit_prob,
+                edge_gate_expand_ratio=params.edge_gate_expand_ratio,
             )
         # Record each child's incoming displacement so it can predict t+1 -> t+2.
         if params.velocity_gain:

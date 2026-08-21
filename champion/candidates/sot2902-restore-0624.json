@@ -1,0 +1,19 @@
+{
+  "name": "restore-public-0624-effective-config",
+  "description": "SOT-2902 reproducibility-forensics RESTORE candidate (NOT a champion change, NOT for submission by this child). Byte-for-byte the effective detect+link config that GENERATED the public-0.624 submission (Kaggle ref 55212214, 2026-08-03; source-file artifact sha256 48b1eaa2...), because that config was never lost: the champion kernel submit/kernel/biohub-claude-champion.py has been byte-frozen at sha256 48b1eaa2dfb63c8a...(== the 0.624 artifact fingerprint) since the SOT-2369 commit 57bdf4f that produced 0.624, and champion/config.json has been byte-frozen at sha256 42064648... over the same window. The forensic conclusion of SOT-2902 is that the apparent 48b1e->e445965 'artifact change' is a FINGERPRINT-SCHEME flip, not a submission-content regression: 48b1e is sha256(submit/kernel/biohub-claude-champion.py) (a real source-file hash, reproduced at HEAD), while e445965 is the SYNTHETIC kaggle-notebook fallback identity sha256('kaggle-notebook:sota1111/biohub-claude-champion@4:submission.csv') emitted by scripts/ai/kaggle_targets_submit.sh when no local submission.csv exists — it hashes only kernel-name@version+output-filename, never the scored submission content. The two fingerprints are produced by different branches of the submit script and are NOT comparable as artifact identities. On the SOT-2817 re-anchored full-metric leak-free CV this restore config reproduces micro-adj 0.6649 == champion_reference (delta 0.0000), confirming HEAD already IS the 0.624-generating config. This file is a frozen restore snapshot / audit artifact ONLY; the live champion pointer is untouched.",
+  "scale": [1.625, 0.40625, 0.40625],
+  "detect": {
+    "sigma_zyx": [1.0, 2.0, 2.0],
+    "background_sigma_zyx": [2.0, 6.0, 6.0],
+    "nms_size_zyx": [2, 5, 5],
+    "threshold_percentile": 92.0,
+    "mad_k": 3.0,
+    "min_threshold": 0.0
+  },
+  "link": {
+    "max_distance": 7.0,
+    "allow_division": false,
+    "division_distance": 7.0,
+    "min_track_length": 4
+  }
+}

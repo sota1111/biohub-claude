@@ -1,0 +1,71 @@
+{
+  "name": "candidate-soft-oppoint-mixture-sot2931",
+  "description": "SOT-2931 cycle-6 explore direction C candidate (NOT the live champion; NOT promoted). Reformulates the linking operating point from a single HARD global point / the REJECTED HARD regime label (SOT-2922/2923) into a SOFT per-sequence MIXTURE: a continuous w-weighted average of a conservative (champion motion_gain=1.0, mutual-NN prune off) and an aggressive (motion_gain up to 2.0, mutual-NN prune on) operating point, w=sigmoid((center-median_knn_um)/scale) over SOT-2921's leak-free GT-free density covariate. Structurally DISTINCT from SOT-2922/2923: those pick op in {dense_op,sparse_op} by a STEP function of the covariate (hard label); this picks a BLENDED op whose motion_gain slides continuously with the covariate (the hard switch is the scale->0 degenerate limit, so the soft mixture strictly generalises it). The operating_point_mixture block below is illustrative of the formulation and is READ ONLY when present (default-off: the live champion carries no such block => byte-for-byte champion). VERDICT=INCONCLUSIVE / NOT PROMOTED: leak-free same-seed 4-family LOFO A/B raised micro_adj 0.6760->0.6811 (+0.0051) with macro (0.7310->0.7432) AND lineage-macro (0.7351->0.7491) BOTH up, but FAILED the mandatory 4/4 per-dataset non-regression gate on 6bba_05b6850b (-0.0009 adj) -- the exact family and near-exact delta that broke the SOT-2922 hard switch. The in-sample per-family oracle (leaky ceiling, micro_adj 0.6938) DOES clear 4/4, and its per-family optima are OPPOSITE across families of the SAME covariate side (44b6@8.54 and 6bba_05b6850b@9.49 both moderate/sparse yet want gain=2.0/prune-off vs gain=1.0/prune-on respectively), proving the wall is the covariate's NON-MONOTONE relation to the needed op -- a property shared identically by hard AND soft policies, so softening the partition cannot relax it. Evidence: experiments/sot2931/ab_soft_oppoint_mixture.json. Champion byte-frozen (sha256 f2b1076...6522fc); NO Kaggle submission.",
+  "scale": [
+    1.625,
+    0.40625,
+    0.40625
+  ],
+  "detect": {
+    "sigma_zyx": [
+      1.0,
+      2.0,
+      2.0
+    ],
+    "background_sigma_zyx": [
+      2.0,
+      6.0,
+      6.0
+    ],
+    "nms_size_zyx": [
+      2,
+      5,
+      5
+    ],
+    "threshold_percentile": 92.0,
+    "mad_k": 3.0,
+    "min_threshold": 0.0
+  },
+  "link": {
+    "max_distance": 7.0,
+    "allow_division": false,
+    "division_distance": 7.0,
+    "min_track_length": 4,
+    "motion_model_link": true,
+    "motion_smooth_sigma": 15.0,
+    "motion_gain": 1.0,
+    "motion_gate_on_prediction": true
+  },
+  "operating_point_mixture": {
+    "covariate_key": "median_knn_um",
+    "center": 9.0,
+    "scale": 0.5,
+    "dense_is_low": true,
+    "gate_activation": Infinity,
+    "conservative": {
+      "motion_gain": 1.0,
+      "cycle_consistency_gate": false,
+      "cycle_consistency_margin": 0.0
+    },
+    "aggressive": {
+      "motion_gain": 2.0,
+      "cycle_consistency_gate": true,
+      "cycle_consistency_margin": 0.0
+    }
+  },
+  "promotion": {
+    "promoted": false,
+    "verdict": "inconclusive",
+    "reason": "positive micro (+0.0051) and macro+lineage both up, but fails 4/4 non-regression on 6bba_05b6850b (-0.0009); soft mixture reproduces the SOT-2922 hard-partition failure because the covariate is non-monotone vs the needed operating point",
+    "champion_reference_micro_adj": 0.676,
+    "conditional_micro_adj": 0.6811,
+    "per_dataset_delta_adj": {
+      "44b6_0113de3b": 0.0189,
+      "44b6_0b24845f": 0.0217,
+      "6bba_05b6850b": -0.0009,
+      "6bba_05db0fb1": 0.0091
+    },
+    "oracle_upper_micro_adj": 0.6938,
+    "kaggle_submission": false
+  }
+}

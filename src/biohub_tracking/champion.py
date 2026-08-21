@@ -156,6 +156,37 @@ def learned_detector_config(config: dict | None = None) -> dict | None:
     return block if isinstance(block, dict) else None
 
 
+def regime_conditional_policy(config: dict | None = None):
+    """Return the ``regime_conditional_detect`` policy (SOT-2923), or ``None``.
+
+    The regime-conditional detection operating point selects ``mad_k`` /
+    ``min_track_length`` **per sequence** from the observable density covariate
+    (SOT-2921), so it is not a static :class:`DetectParams` / :class:`LinkParams`
+    knob — it is resolved separately, like :func:`learned_detector_config`, and
+    read by the submission/pipeline layer that has the per-sequence detection
+    point cloud in hand. The champion config carries no such block, so this
+    returns ``None`` and the classical champion path is byte-for-byte unchanged
+    (default-off). Accepts the block at the config top level or nested under
+    ``detect``; an absent or non-dict value yields ``None``.
+
+    Returns a :class:`biohub_tracking.eval.regime_op.ConditionalPolicy` when the
+    block is present (imported lazily so the frozen champion path never pulls in
+    the eval stack).
+    """
+    if config is None:
+        config = load_champion_config()
+    block = config.get("regime_conditional_detect")
+    if block is None:
+        detect = config.get("detect")
+        if isinstance(detect, dict):
+            block = detect.get("regime_conditional_detect")
+    if not isinstance(block, dict):
+        return None
+    from .eval.regime_op import ConditionalPolicy
+
+    return ConditionalPolicy.from_dict(block)
+
+
 def champion_params(
     config: dict | None = None,
 ) -> tuple[DetectParams, LinkParams, tuple[float, float, float]]:

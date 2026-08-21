@@ -22,6 +22,13 @@ from .node_budget import (
     select_adjusted_operating_point,
 )
 from .recall_metric import NodeRecall, gt_node_recall
+from .regime_op import (
+    ConditionalPolicy,
+    FoldFit,
+    RegimeOpPoint,
+    fit_fold_policy,
+    threshold_candidates,
+)
 from .score import (
     ADJUSTMENT_ALPHA,
     SCORE_DIVISION_WEIGHT,
@@ -54,6 +61,11 @@ __all__ = [
     "EvaluationResult",
     "OperatingPoint",
     "OperatingPointSelection",
+    "ConditionalPolicy",
+    "FoldFit",
+    "RegimeOpPoint",
+    "fit_fold_policy",
+    "threshold_candidates",
     "adjusted_edge_jaccard",
     "division_counts",
     "edge_counts",

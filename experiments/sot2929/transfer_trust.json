@@ -1,0 +1,207 @@
+{
+  "regime_covariate": "median_knn_um",
+  "regime_threshold_um": 9.017,
+  "recommended_kpi": "micro_adj",
+  "leak_free_audit": {
+    "entity_holdout_unit": "whole embryo video (.geff lineage)",
+    "regime_by_family": {
+      "44b6_0113de3b": "dense",
+      "44b6_0b24845f": "dense",
+      "6bba_05b6850b": "sparse",
+      "6bba_05db0fb1": "dense"
+    },
+    "strict_partition": true,
+    "regimes_per_lineage": {
+      "44b6": [
+        "dense"
+      ],
+      "6bba": [
+        "dense",
+        "sparse"
+      ]
+    },
+    "regime_crosscuts_lineage": true
+  },
+  "ranking_table": [
+    {
+      "name": "detect-link-v1",
+      "public_lb": 0.509,
+      "micro_adj": 0.3598,
+      "lineage_macro_adj": 0.4295,
+      "per_sequence_parity": 0.4501,
+      "regime_parity_adj": 0.419,
+      "sparse_regime_adj": 0.7148,
+      "dense_regime_adj": 0.1231
+    },
+    {
+      "name": "detect-link-dog-v2",
+      "public_lb": 0.5,
+      "micro_adj": 0.5225,
+      "lineage_macro_adj": 0.6419,
+      "per_sequence_parity": 0.6312,
+      "regime_parity_adj": 0.4903,
+      "sparse_regime_adj": 0.2622,
+      "dense_regime_adj": 0.7183
+    },
+    {
+      "name": "detect-link-dog-v3-adaptive",
+      "public_lb": null,
+      "micro_adj": 0.6232,
+      "lineage_macro_adj": 0.6942,
+      "per_sequence_parity": 0.6898,
+      "regime_parity_adj": 0.6083,
+      "sparse_regime_adj": 0.5025,
+      "dense_regime_adj": 0.7141
+    },
+    {
+      "name": "detect-link-dog-v4-shorttrack",
+      "public_lb": 0.624,
+      "micro_adj": 0.6649,
+      "lineage_macro_adj": 0.7216,
+      "per_sequence_parity": 0.718,
+      "regime_parity_adj": 0.6524,
+      "sparse_regime_adj": 0.57,
+      "dense_regime_adj": 0.7349
+    }
+  ],
+  "order_consistency": {
+    "micro_adj": {
+      "statistic": "micro_adj",
+      "n_anchored": 3,
+      "pairs": [
+        {
+          "name": "detect-link-v1",
+          "cv": 0.3598,
+          "public_lb": 0.509
+        },
+        {
+          "name": "detect-link-dog-v2",
+          "cv": 0.5225,
+          "public_lb": 0.5
+        },
+        {
+          "name": "detect-link-dog-v4-shorttrack",
+          "cv": 0.6649,
+          "public_lb": 0.624
+        }
+      ],
+      "spearman_vs_public": 0.5,
+      "cv_top_matches_public_top": true
+    },
+    "lineage_macro_adj": {
+      "statistic": "lineage_macro_adj",
+      "n_anchored": 3,
+      "pairs": [
+        {
+          "name": "detect-link-v1",
+          "cv": 0.4295,
+          "public_lb": 0.509
+        },
+        {
+          "name": "detect-link-dog-v2",
+          "cv": 0.6419,
+          "public_lb": 0.5
+        },
+        {
+          "name": "detect-link-dog-v4-shorttrack",
+          "cv": 0.7216,
+          "public_lb": 0.624
+        }
+      ],
+      "spearman_vs_public": 0.5,
+      "cv_top_matches_public_top": true
+    },
+    "per_sequence_parity": {
+      "statistic": "per_sequence_parity",
+      "n_anchored": 3,
+      "pairs": [
+        {
+          "name": "detect-link-v1",
+          "cv": 0.4501,
+          "public_lb": 0.509
+        },
+        {
+          "name": "detect-link-dog-v2",
+          "cv": 0.6312,
+          "public_lb": 0.5
+        },
+        {
+          "name": "detect-link-dog-v4-shorttrack",
+          "cv": 0.718,
+          "public_lb": 0.624
+        }
+      ],
+      "spearman_vs_public": 0.5,
+      "cv_top_matches_public_top": true
+    },
+    "regime_parity_adj": {
+      "statistic": "regime_parity_adj",
+      "n_anchored": 3,
+      "pairs": [
+        {
+          "name": "detect-link-v1",
+          "cv": 0.419,
+          "public_lb": 0.509
+        },
+        {
+          "name": "detect-link-dog-v2",
+          "cv": 0.4903,
+          "public_lb": 0.5
+        },
+        {
+          "name": "detect-link-dog-v4-shorttrack",
+          "cv": 0.6524,
+          "public_lb": 0.624
+        }
+      ],
+      "spearman_vs_public": 0.5,
+      "cv_top_matches_public_top": true
+    },
+    "sparse_regime_adj": {
+      "statistic": "sparse_regime_adj",
+      "n_anchored": 3,
+      "pairs": [
+        {
+          "name": "detect-link-v1",
+          "cv": 0.7148,
+          "public_lb": 0.509
+        },
+        {
+          "name": "detect-link-dog-v2",
+          "cv": 0.2622,
+          "public_lb": 0.5
+        },
+        {
+          "name": "detect-link-dog-v4-shorttrack",
+          "cv": 0.57,
+          "public_lb": 0.624
+        }
+      ],
+      "spearman_vs_public": 0.5,
+      "cv_top_matches_public_top": false
+    },
+    "dense_regime_adj": {
+      "statistic": "dense_regime_adj",
+      "n_anchored": 3,
+      "pairs": [
+        {
+          "name": "detect-link-v1",
+          "cv": 0.1231,
+          "public_lb": 0.509
+        },
+        {
+          "name": "detect-link-dog-v2",
+          "cv": 0.7183,
+          "public_lb": 0.5
+        },
+        {
+          "name": "detect-link-dog-v4-shorttrack",
+          "cv": 0.7349,
+          "public_lb": 0.624
+        }
+      ],
+      "spearman_vs_public": 0.5,
+      "cv_top_matches_public_top": true
+    }
+  }
+}

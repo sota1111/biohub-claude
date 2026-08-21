@@ -1,0 +1,47 @@
+{
+  "champion_ondisk": {
+    "micro_adj": 0.6649,
+    "score": 0.6649,
+    "per_dataset": [
+      {
+        "k": "44b6_0113de3b",
+        "adj": null
+      },
+      {
+        "k": "44b6_0b24845f",
+        "adj": null
+      },
+      {
+        "k": "6bba_05b6850b",
+        "adj": null
+      },
+      {
+        "k": "6bba_05db0fb1",
+        "adj": null
+      }
+    ]
+  },
+  "gain1_sot2864": {
+    "micro_adj": 0.676,
+    "score": 0.676,
+    "per_dataset": [
+      {
+        "k": "44b6_0113de3b",
+        "adj": null
+      },
+      {
+        "k": "44b6_0b24845f",
+        "adj": null
+      },
+      {
+        "k": "6bba_05b6850b",
+        "adj": null
+      },
+      {
+        "k": "6bba_05db0fb1",
+        "adj": null
+      }
+    ]
+  },
+  "elapsed_s": 243.5
+}

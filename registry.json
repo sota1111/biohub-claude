@@ -1,11 +1,36 @@
 {
   "schema_version": 1,
-  "champion": "detect-link-dog-v4-shorttrack",
+  "champion": "detect-link-dog-v4-shorttrack-motion-gain1",
   "agents": {
-    "detect-link-dog-v4-shorttrack": {
+    "detect-link-dog-v4-shorttrack-motion-gain1": {
       "module": "biohub_tracking.pipeline.run_pipeline",
       "config": "champion/config.json",
       "status": "incumbent",
+      "promotion_gate": "two-signal gate (SOT-2909, kaggle-private-anchored-improvement): a candidate promotes only when leak-free CV (re-anchored micro_adj, SOT-2817/SOT-2903) rises past noise vs the incumbent with 4/4 per-dataset non-regression AND the hidden public LB does not contradict (non-decrease vs the champion's genuine public best). Both signals confirmed here.",
+      "evaluation": "champion/candidates/sot2864-motion-model-link.json",
+      "metrics": {
+        "datasets": ["44b6_0113de3b", "44b6_0b24845f", "6bba_05b6850b", "6bba_05db0fb1"],
+        "holdout_micro_adj_edge_jaccard": 0.6760,
+        "by_prefix": {"44b6": 0.8008, "6bba": 0.6613},
+        "per_dataset": {
+          "44b6_0113de3b": {"adjusted_edge_jaccard": 0.9078},
+          "44b6_0b24845f": {"adjusted_edge_jaccard": 0.6938},
+          "6bba_05b6850b": {"adjusted_edge_jaccard": 0.5748},
+          "6bba_05db0fb1": {"adjusted_edge_jaccard": 0.7477}
+        },
+        "public_lb": 0.626,
+        "public_lb_submission_ref": "55662947",
+        "division_jaccard": null,
+        "score": 0.6760
+      },
+      "reason": "SOT-2909 cycle-3 parent-resume promotion. Adds SOT-2864's ARGUS-style motion-model predicted-position LAP linking (motion_model_link=true, motion_smooth_sigma=15.0 um, motion_gain=1.0, motion_gate_on_prediction=true) on top of the detect-link-dog-v4-shorttrack detection (byte-identical detect knobs; linking-only change). The two-signal gate fired: reserve LB probe 55662947 scored public 0.626 (> the champion's genuine public best 0.624, SOT-2369 sha256 48b1eaa2; >> the 0.509 SOT-2902 fingerprint-flip artifact) AND the re-anchored leak-free CV rises 0.6649 -> 0.6760 (+0.0111) with 4/4 per-dataset non-regression and micro/macro/lineage-macro all up together (macro 0.7180->0.731, lineage-macro 0.7216->0.7351), i.e. not family-mix-sensitive. This lifts the SOT-2816 CV<->LB divergence byte-freeze for this lever (its CV gain demonstrably transfers to public). The stronger-CV motion_gain=2.0 sibling (champion/candidates/sot2900-motion-model-link-gain2.json, CV 0.6821, public unobserved) is HELD as the #1 reserve for a single converge-phase public check.",
+      "issue": "SOT-2909",
+      "supersedes": "detect-link-dog-v4-shorttrack"
+    },
+    "detect-link-dog-v4-shorttrack": {
+      "module": "biohub_tracking.pipeline.run_pipeline",
+      "config": null,
+      "status": "superseded",
       "promotion_gate": "screen->confirm on the SOT-2305 4-dataset LB holdout (44b6x2 + 6bba x2), independent re-score via the real champion_params()->run_pipeline; require holdout micro-adj improvement AND no per-dataset regression vs the DoG-v3 incumbent",
       "evaluation": "experiments/sot2369/confirm_shorttrack.json",
       "metrics": {

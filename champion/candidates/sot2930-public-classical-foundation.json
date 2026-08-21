@@ -1,0 +1,75 @@
+{
+  "name": "public-classical-foundation-w1-twopass-core-sot2930",
+  "description": "SOT-2930 cycle-6 explore direction A' candidate (NOT the live champion; NOT promoted; NOT hedged). WHOLESALE adoption of an INDEPENDENT public classical baseline FOUNDATION -- not a champion micro-diff. Our champion (detect-link-dog-v4-shorttrack-motion-gain1, leak-free CV micro_adj 0.6760, public 0.626) was built by incremental single-lever accretion on a classical DoG-detect/NN-link substrate and is stuck on the density-mix wall. This candidate instead adopts the public classical baseline xiaoleilian/biohub-cell-tracking-classical-baseline (public LB ~0.720; https://www.kaggle.com/code/xiaoleilian/biohub-cell-tracking-classical-baseline) WHOLESALE: its structural linking foundation = MEMORYLESS two-pass tight(7um)->full(11um) Hungarian assignment ('v4: tight gate first then full gate for leftovers'), the champion's ARGUS global motion model (SOT-2864) turned OFF -- the baseline's own basin, structurally distinct from the champion. Shared substrate = classical DoG detection (the champion detector IS itself the ported classical-baseline-family DoG; the baseline's differentiator vs our champion is the LINKER, so detection is held at the shared operating point and only the linking foundation varies -- also a clean detection-cached linking-only ablation). The private notebook's exact detection thresholds are not byte-recoverable offline; this is a faithful reconstruction from the documented design + the repo's already-ported baseline linker knobs (link_two_pass/link_full_distance, SOT-2899), DISCLOSED, not a byte-copy of the private kernel. This JSON stores the BEST-of-3 wholesale variant (w1, memoryless two-pass core); the sibling variants w2 (division on) and w3 (division on + no short-track pruning) are recorded in the promotion block and experiments/sot2930/ab_public_classical_foundation.json. VERDICT = REJECTED (not promoted, not hedged): leak-free same-seed 4-family LOFO A/B put ALL 3 wholesale variants BELOW the champion -- best (w1) micro_adj 0.6588 (-0.0172), failing 4/4 per-dataset non-regression (44b6_0113de3b -0.0350, 6bba_05db0fb1 -0.0270, 6bba_05b6850b -0.0076); adding division (w2 0.5998 -0.0762 / w3 0.5940 -0.0820) makes it far worse (the sparse-GT over-prediction penalty punishes the extra fork edges, division_jaccard only ~0.01). rogii discipline: the adopted baseline's HIGH PUBLIC (0.720 > our 0.626) is NOT private/CV evidence -- measured on our leak-free CV the memoryless two-pass foundation UNDERPERFORMS our accreted motion-model champion, especially on the clean/dense families the champion's smoothed motion field wins (44b6_0113de3b, 6bba_05db0fb1). The two-signal gate (CV up + 4/4 non-regression) did NOT fire, so NO promotion; and because the foundation is CV-INFERIOR by a clear margin, spending a final slot to hedge on it would be a public-chasing bet the rogii post-mortem forbids -> NOT adopted as a hedge. Champion stays the live config, byte-frozen (sha256 15e1db9c...). NO Kaggle submission.",
+  "scale": [
+    1.625,
+    0.40625,
+    0.40625
+  ],
+  "detect": {
+    "sigma_zyx": [
+      1.0,
+      2.0,
+      2.0
+    ],
+    "background_sigma_zyx": [
+      2.0,
+      6.0,
+      6.0
+    ],
+    "nms_size_zyx": [
+      2,
+      5,
+      5
+    ],
+    "threshold_percentile": 92.0,
+    "mad_k": 3.0,
+    "min_threshold": 0.0
+  },
+  "link": {
+    "max_distance": 7.0,
+    "allow_division": false,
+    "division_distance": 7.0,
+    "min_track_length": 4,
+    "link_two_pass": true,
+    "link_full_distance": 11.0
+  },
+  "promotion": {
+    "promoted": false,
+    "hedged": false,
+    "verdict": "rejected",
+    "reason": "wholesale public classical baseline foundation is CV-inferior to champion on the leak-free 4-family LOFO CV; best variant w1 micro_adj 0.6588 (-0.0172) fails 4/4 non-regression; division variants far worse. High adopted-baseline public (0.720) is not private/CV evidence (rogii). Two-signal gate did not fire -> not promoted; CV-inferior -> not hedged. Champion byte-frozen.",
+    "champion_reference_micro_adj": 0.676,
+    "champion_config_sha256": "15e1db9c15e4a766",
+    "adopted_source_public_lb": 0.720,
+    "champion_public_lb": 0.626,
+    "variants": {
+      "w1_twopass_core": {
+        "micro_adj": 0.6588,
+        "delta_micro_adj": -0.0172,
+        "no_regression": false,
+        "division_jaccard": 0.0,
+        "per_dataset_delta_adj": {
+          "44b6_0113de3b": -0.035,
+          "44b6_0b24845f": 0.0003,
+          "6bba_05b6850b": -0.0076,
+          "6bba_05db0fb1": -0.027
+        }
+      },
+      "w2_twopass_division": {
+        "micro_adj": 0.5998,
+        "delta_micro_adj": -0.0762,
+        "no_regression": false,
+        "division_jaccard": 0.01
+      },
+      "w3_twopass_division_nopruning": {
+        "micro_adj": 0.594,
+        "delta_micro_adj": -0.082,
+        "no_regression": false,
+        "division_jaccard": 0.0101
+      }
+    },
+    "evidence": "experiments/sot2930/ab_public_classical_foundation.json",
+    "kaggle_submission": false
+  }
+}

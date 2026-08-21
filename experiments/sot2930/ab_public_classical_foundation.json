@@ -1,0 +1,114 @@
+{
+  "issue": "SOT-2930",
+  "axis": "cycle-6 direction A' \u2014 wholesale public classical baseline foundation",
+  "recordedAt": "2026-08-21T18:37:38.241241+00:00",
+  "champion": {
+    "name": "detect-link-dog-v4-shorttrack-motion-gain1",
+    "config_sha256": "15e1db9c15e4a766fb1563fb137ff4b3506b85d31d35ba5bf96d465894281c20",
+    "registry_reference_micro_adj": 0.676,
+    "micro_adj": 0.676,
+    "micro_raw": 0.696,
+    "macro_adj": 0.731,
+    "lineage_macro_adj": 0.7351,
+    "division_jaccard": 0.0,
+    "score": 0.676,
+    "per_dataset_adj": {
+      "44b6_0113de3b": 0.9078,
+      "44b6_0b24845f": 0.6938,
+      "6bba_05b6850b": 0.5748,
+      "6bba_05db0fb1": 0.7477
+    }
+  },
+  "sources": [
+    {
+      "lineage": "xiaoleilian/biohub-cell-tracking-classical-baseline",
+      "url": "https://www.kaggle.com/code/xiaoleilian/biohub-cell-tracking-classical-baseline",
+      "public_lb": 0.72,
+      "portable": "classical DoG detect + memoryless two-pass tight/full Hungarian link + division (offline/numpy/no-weights)"
+    },
+    {
+      "lineage": "kaiwalyaatulraut/biohub-cell-tracking-solution",
+      "url": "https://www.kaggle.com/code/kaiwalyaatulraut/biohub-cell-tracking-solution",
+      "public_lb": null,
+      "portable": "corroborating classical DoG + greedy NN family"
+    }
+  ],
+  "noise_band": 0.005,
+  "variants": {
+    "w1_twopass_core": {
+      "micro_adj": 0.6588,
+      "micro_raw": 0.6809,
+      "macro_adj": 0.7137,
+      "lineage_macro_adj": 0.7183,
+      "division_jaccard": 0.0,
+      "score": 0.6588,
+      "per_dataset_adj": {
+        "44b6_0113de3b": 0.8728,
+        "44b6_0b24845f": 0.6941,
+        "6bba_05b6850b": 0.5672,
+        "6bba_05db0fb1": 0.7207
+      },
+      "delta_micro_adj": -0.0172,
+      "per_dataset_delta_adj": {
+        "44b6_0113de3b": -0.035,
+        "44b6_0b24845f": 0.0003,
+        "6bba_05b6850b": -0.0076,
+        "6bba_05db0fb1": -0.027
+      },
+      "no_regression_vs_champion": false,
+      "beats_champion_two_signal_gate": false
+    },
+    "w2_twopass_division": {
+      "micro_adj": 0.5998,
+      "micro_raw": 0.6262,
+      "macro_adj": 0.6543,
+      "lineage_macro_adj": 0.656,
+      "division_jaccard": 0.01,
+      "score": 0.6008,
+      "per_dataset_adj": {
+        "44b6_0113de3b": 0.8372,
+        "44b6_0b24845f": 0.6074,
+        "6bba_05b6850b": 0.4999,
+        "6bba_05db0fb1": 0.6726
+      },
+      "delta_micro_adj": -0.0762,
+      "per_dataset_delta_adj": {
+        "44b6_0113de3b": -0.0706,
+        "44b6_0b24845f": -0.0864,
+        "6bba_05b6850b": -0.0749,
+        "6bba_05db0fb1": -0.0751
+      },
+      "no_regression_vs_champion": false,
+      "beats_champion_two_signal_gate": false
+    },
+    "w3_twopass_division_nopruning": {
+      "micro_adj": 0.594,
+      "micro_raw": 0.6232,
+      "macro_adj": 0.6503,
+      "lineage_macro_adj": 0.6522,
+      "division_jaccard": 0.0101,
+      "score": 0.595,
+      "per_dataset_adj": {
+        "44b6_0113de3b": 0.8359,
+        "44b6_0b24845f": 0.6053,
+        "6bba_05b6850b": 0.4888,
+        "6bba_05db0fb1": 0.6711
+      },
+      "delta_micro_adj": -0.082,
+      "per_dataset_delta_adj": {
+        "44b6_0113de3b": -0.0719,
+        "44b6_0b24845f": -0.0885,
+        "6bba_05b6850b": -0.086,
+        "6bba_05db0fb1": -0.0766
+      },
+      "no_regression_vs_champion": false,
+      "beats_champion_two_signal_gate": false
+    }
+  },
+  "best_variant": "w1_twopass_core",
+  "best_variant_micro_adj": 0.6588,
+  "any_variant_promotes": false,
+  "rogii_note": "adopted baseline public 0.720 > champion public 0.626, but public is NOT private evidence; promotion decided ONLY by leak-free CV two-signal gate (micro_adj up + 4/4 non-regression). Champion byte-frozen as hedge.",
+  "kaggle_submission": false,
+  "elapsed_s": 479.8
+}

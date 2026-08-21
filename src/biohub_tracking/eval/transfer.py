@@ -19,17 +19,43 @@ historical submissions relative to the *same-metric* public anchors:
 * ``micro_raw`` — penalty-stripped matching quality (micro edge Jaccard). The gap
   ``micro_adj − micro_raw`` is the **node-count-penalty contribution**, the layer
   that produced the entire dog-v2→v3 CV "gain" (raw matching was flat).
-* ``lineage_macro_raw`` — the **re-anchored transfer-robust KPI**: raw edge
-  Jaccard averaged with lineage parity (each embryo lineage counts equally, so
-  the dense 6bba families cannot dominate and the coarse ``N_true`` node-count
-  proxy tail is removed). A promotion must move THIS, not the penalty term.
+* ``lineage_macro_raw`` — the penalty-stripped, lineage-parity statistic
+  SOT-2894 chose as the "transfer-robust" primary KPI (raw edge Jaccard,
+  each embryo lineage counts equally).
+
+**SOT-2903 correction (transfer-trust audit + oracle re-anchor).** With the
+third public anchor confirmed (01c2f3 = 0.557, dog-v3-adaptive, SOT-2300) the
+CV↔public rank-correlation is measured per statistic over four well-separated
+public points (v1 0.509 / dog-v2 0.500 / v3 0.557 / v4 0.624). The result is
+decisive and reverses SOT-2894's KPI choice:
+
+* the **adjusted** statistics (``micro_adj`` / ``macro_adj`` /
+  ``lineage_macro_adj`` — node-count penalty ``a=0.1`` INCLUDED, i.e. the
+  official metric) score **Spearman ρ = 0.80** vs public;
+* the **penalty-free** statistics (``micro_raw`` / ``lineage_macro_raw``) score
+  only **ρ = 0.40**.
+
+The official royerlab metric IS micro-averaged *adjusted* edge Jaccard +
+0.1·division (``metrics.md``: ``a=0.1``, ``w=0.1``, 7 µm one-to-one matching,
+micro-averaging — all reproduced byte-exactly by :mod:`biohub_tracking.eval`).
+So ``lineage_macro_raw`` diverges from the true metric on **all three** axes
+(drops the penalty, macro/lineage-parity- instead of micro-averages, uses raw
+instead of adjusted J) and **halves** the CV↔public correlation. The oracle
+repair is therefore to re-anchor the PRIMARY promotion KPI back to the official
+full metric ``micro_adj`` (== cv.py ``score`` on the division-forfeiting
+holdout), and keep ``micro_raw`` / per-dataset raw no-regression only as a
+**guardrail** so a promotion still cannot be pure node-count-penalty relief with
+matching going backwards (SOT-2894's one legitimate concern). This does not
+change the live gate — cv.py/``--check-champion`` already gate on
+``micro_adj``/``score`` — it corrects the *recommended* KPI this module reports.
 
 Everything here is a pure function of already-computed :class:`FamilyResult`
 rows, so it unit-tests without the (gitignored) competition data. The historical
 per-family counts are reconstructed from the single leak-free harness
-(``experiments/sot2816-oracle-audit/lineage_cv_rescore.json``); the driver
-``experiments/sot2894-cv-reanchor/reanchor_transfer.py`` re-runs them live when
-``data/`` is present and asserts they still reproduce.
+(``experiments/sot2816-oracle-audit/lineage_cv_rescore.json``); the drivers
+``experiments/sot2894-cv-reanchor/reanchor_transfer.py`` and
+``experiments/sot2903/audit_transfer_trust.py`` re-run/derive them live when
+``data/`` is present and assert they still reproduce.
 """
 
 from __future__ import annotations
@@ -41,7 +67,15 @@ from .cv import FamilyResult, aggregate
 from .score import ADJUSTMENT_ALPHA
 
 # The re-anchored primary KPI name — the statistic future promotions gate on.
-REANCHOR_PRIMARY: str = "lineage_macro_raw"
+# SOT-2903: re-anchored to the OFFICIAL full metric (micro-averaged adjusted edge
+# Jaccard + 0.1·division == cv.py `score`), the best CV↔public proxy (ρ=0.80 vs
+# 0.40 for the penalty-free SOT-2894 statistic). ``micro_adj`` is that statistic
+# on the division-forfeiting holdout (division_term == 0 → score == micro_adj).
+REANCHOR_PRIMARY: str = "micro_adj"
+# Secondary guardrail: raw matching quality must not regress, so a promotion
+# cannot be pure node-count-penalty relief (SOT-2894's legitimate concern) with
+# the underlying matching going backwards.
+REANCHOR_GUARDRAIL: str = "micro_raw"
 
 
 class ConfigCv(NamedTuple):

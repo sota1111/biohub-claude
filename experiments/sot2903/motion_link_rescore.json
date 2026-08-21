@@ -1,0 +1,58 @@
+{
+  "candidate": "champion/candidates/sot2900-motion-model-link-gain2.json",
+  "champion": {
+    "micro_adj_edge_jaccard": 0.6649,
+    "micro_raw_edge_jaccard": 0.684,
+    "macro_adj_edge_jaccard": 0.718,
+    "lineage_macro_adj": 0.7216,
+    "score": 0.6649,
+    "per_dataset_adj": {
+      "44b6_0113de3b": 0.8895,
+      "44b6_0b24845f": 0.6817,
+      "6bba_05b6850b": 0.57,
+      "6bba_05db0fb1": 0.731
+    },
+    "per_dataset_raw": {
+      "44b6_0113de3b": 0.9038,
+      "44b6_0b24845f": 0.6852,
+      "6bba_05b6850b": 0.6142,
+      "6bba_05db0fb1": 0.731
+    }
+  },
+  "candidate_cv": {
+    "micro_adj_edge_jaccard": 0.6821,
+    "micro_raw_edge_jaccard": 0.7023,
+    "macro_adj_edge_jaccard": 0.7575,
+    "lineage_macro_adj": 0.7623,
+    "score": 0.6821,
+    "per_dataset_adj": {
+      "44b6_0113de3b": 0.9835,
+      "44b6_0b24845f": 0.7155,
+      "6bba_05b6850b": 0.5739,
+      "6bba_05db0fb1": 0.7569
+    },
+    "per_dataset_raw": {
+      "44b6_0113de3b": 1.0,
+      "44b6_0b24845f": 0.72,
+      "6bba_05b6850b": 0.6198,
+      "6bba_05db0fb1": 0.7571
+    }
+  },
+  "delta_micro_adj_TRUE_metric": 0.0172,
+  "delta_micro_raw_guardrail": 0.0183,
+  "per_dataset_adj_delta": {
+    "44b6_0113de3b": 0.094,
+    "44b6_0b24845f": 0.0338,
+    "6bba_05b6850b": 0.0039,
+    "6bba_05db0fb1": 0.0259
+  },
+  "per_dataset_raw_delta": {
+    "44b6_0113de3b": 0.0962,
+    "44b6_0b24845f": 0.0348,
+    "6bba_05b6850b": 0.0056,
+    "6bba_05db0fb1": 0.0261
+  },
+  "improves_under_true_metric": true,
+  "adj_no_regression": true,
+  "raw_no_regression_guardrail": true
+}

@@ -12,6 +12,7 @@ import math
 
 from biohub_tracking.eval.transfer import (
     HISTORICAL_LINEAGE,
+    REANCHOR_GUARDRAIL,
     REANCHOR_PRIMARY,
     order_consistency,
     spearman,
@@ -110,10 +111,38 @@ def test_champion_is_cv_top_and_public_top_no_negative_transfer() -> None:
 
 def test_transfer_report_shape_and_reanchor_primary() -> None:
     report = transfer_report(list(HISTORICAL_LINEAGE))
-    assert report["reanchor_primary_kpi"] == REANCHOR_PRIMARY == "lineage_macro_raw"
+    # SOT-2903: re-anchored to the OFFICIAL full metric (micro-adjusted).
+    assert report["reanchor_primary_kpi"] == REANCHOR_PRIMARY == "micro_adj"
     assert len(report["ranking_table"]) == 4
     names = [r["name"] for r in report["ranking_table"]]
     assert names[0] == "detect-link-v1" and names[-1] == "detect-link-dog-v4-shorttrack"
     # Every anchored statistic is order-consistent (positive Spearman).
     for oc in report["order_consistency"].values():
         assert oc["spearman_vs_public"] is not None and oc["spearman_vs_public"] > 0
+
+
+def test_sot2903_adjusted_beats_penalty_free_on_transfer_trust() -> None:
+    """SOT-2903 audit: with the third public anchor (v3=0.557) the ADJUSTED
+    (official-metric) statistics track public strictly better than the
+    penalty-free ones — ρ=0.80 vs 0.40 — so the SOT-2894 penalty-free re-anchor
+    was the weaker proxy and is corrected to ``micro_adj``.
+    """
+    # Add the v3-adaptive same-metric anchor (01c2f3=0.557, SOT-2300).
+    lineage = [
+        c._replace(public_lb=0.557) if c.name == "detect-link-dog-v3-adaptive" else c
+        for c in HISTORICAL_LINEAGE
+    ]
+    stats = [transfer_stats(c) for c in lineage]
+    adjusted = {
+        stat: order_consistency(stats, stat)["spearman_vs_public"]
+        for stat in ("micro_adj", "macro_adj", "lineage_macro_adj")
+    }
+    penalty_free = {
+        stat: order_consistency(stats, stat)["spearman_vs_public"]
+        for stat in ("micro_raw", "lineage_macro_raw")
+    }
+    assert all(round(v, 4) == 0.8 for v in adjusted.values()), adjusted
+    assert all(round(v, 4) == 0.4 for v in penalty_free.values()), penalty_free
+    # The re-anchored primary is an adjusted (true-metric) statistic, the
+    # guardrail a raw one.
+    assert REANCHOR_PRIMARY in adjusted and REANCHOR_GUARDRAIL in penalty_free

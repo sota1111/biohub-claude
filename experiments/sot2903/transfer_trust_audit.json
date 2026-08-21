@@ -1,0 +1,365 @@
+{
+  "official_metric": {
+    "adjusted_edge_jaccard": "max(0, J*(1 - 0.1*(N_pred-N_true)/N_true)), alpha=0.1",
+    "score": "adjusted_edge_jaccard + 0.1*division_jaccard",
+    "matching": "7um one-to-one optimal (min-cost) bipartite assignment",
+    "aggregation": "micro-averaged (sum TP/FP/FN across the split, then Jaccard)",
+    "source": "https://github.com/royerlab/kaggle-cell-tracking-competition/blob/main/metrics.md"
+  },
+  "note": "The official metric is MICRO-averaged ADJUSTED (penalty a=0.1) edge Jaccard + 0.1*division. Among CV statistics, micro_adj is the official-metric-faithful proxy; lineage_macro_raw (SOT-2894 re-anchor) DROPS the penalty AND macro/lineage-parity-averages AND uses raw J, i.e. diverges from the true metric on all three axes.",
+  "with_v3_0557_anchor": {
+    "label": "4 anchors incl. v3=0.557 (byte-unconfirmed)",
+    "n_anchored": 4,
+    "anchors": [
+      {
+        "name": "detect-link-v1",
+        "public_lb": 0.509
+      },
+      {
+        "name": "detect-link-dog-v2",
+        "public_lb": 0.5
+      },
+      {
+        "name": "detect-link-dog-v3-adaptive",
+        "public_lb": 0.557
+      },
+      {
+        "name": "detect-link-dog-v4-shorttrack",
+        "public_lb": 0.624
+      }
+    ],
+    "order_consistency": {
+      "micro_adj": {
+        "statistic": "micro_adj",
+        "n_anchored": 4,
+        "pairs": [
+          {
+            "name": "detect-link-v1",
+            "cv": 0.3598,
+            "public_lb": 0.509
+          },
+          {
+            "name": "detect-link-dog-v2",
+            "cv": 0.5225,
+            "public_lb": 0.5
+          },
+          {
+            "name": "detect-link-dog-v3-adaptive",
+            "cv": 0.6232,
+            "public_lb": 0.557
+          },
+          {
+            "name": "detect-link-dog-v4-shorttrack",
+            "cv": 0.6649,
+            "public_lb": 0.624
+          }
+        ],
+        "spearman_vs_public": 0.8,
+        "cv_top_matches_public_top": true
+      },
+      "micro_raw": {
+        "statistic": "micro_raw",
+        "n_anchored": 4,
+        "pairs": [
+          {
+            "name": "detect-link-v1",
+            "cv": 0.3419,
+            "public_lb": 0.509
+          },
+          {
+            "name": "detect-link-dog-v2",
+            "cv": 0.6561,
+            "public_lb": 0.5
+          },
+          {
+            "name": "detect-link-dog-v3-adaptive",
+            "cv": 0.6531,
+            "public_lb": 0.557
+          },
+          {
+            "name": "detect-link-dog-v4-shorttrack",
+            "cv": 0.684,
+            "public_lb": 0.624
+          }
+        ],
+        "spearman_vs_public": 0.4,
+        "cv_top_matches_public_top": true
+      },
+      "macro_adj": {
+        "statistic": "macro_adj",
+        "n_anchored": 4,
+        "pairs": [
+          {
+            "name": "detect-link-v1",
+            "cv": 0.4501,
+            "public_lb": 0.509
+          },
+          {
+            "name": "detect-link-dog-v2",
+            "cv": 0.6312,
+            "public_lb": 0.5
+          },
+          {
+            "name": "detect-link-dog-v3-adaptive",
+            "cv": 0.6898,
+            "public_lb": 0.557
+          },
+          {
+            "name": "detect-link-dog-v4-shorttrack",
+            "cv": 0.718,
+            "public_lb": 0.624
+          }
+        ],
+        "spearman_vs_public": 0.8,
+        "cv_top_matches_public_top": true
+      },
+      "lineage_macro_adj": {
+        "statistic": "lineage_macro_adj",
+        "n_anchored": 4,
+        "pairs": [
+          {
+            "name": "detect-link-v1",
+            "cv": 0.4295,
+            "public_lb": 0.509
+          },
+          {
+            "name": "detect-link-dog-v2",
+            "cv": 0.6419,
+            "public_lb": 0.5
+          },
+          {
+            "name": "detect-link-dog-v3-adaptive",
+            "cv": 0.6942,
+            "public_lb": 0.557
+          },
+          {
+            "name": "detect-link-dog-v4-shorttrack",
+            "cv": 0.7216,
+            "public_lb": 0.624
+          }
+        ],
+        "spearman_vs_public": 0.8,
+        "cv_top_matches_public_top": true
+      },
+      "lineage_macro_raw": {
+        "statistic": "lineage_macro_raw",
+        "n_anchored": 4,
+        "pairs": [
+          {
+            "name": "detect-link-v1",
+            "cv": 0.4077,
+            "public_lb": 0.509
+          },
+          {
+            "name": "detect-link-dog-v2",
+            "cv": 0.7258,
+            "public_lb": 0.5
+          },
+          {
+            "name": "detect-link-dog-v3-adaptive",
+            "cv": 0.7198,
+            "public_lb": 0.557
+          },
+          {
+            "name": "detect-link-dog-v4-shorttrack",
+            "cv": 0.7358,
+            "public_lb": 0.624
+          }
+        ],
+        "spearman_vs_public": 0.4,
+        "cv_top_matches_public_top": true
+      }
+    },
+    "best_true_metric_proxy": "micro_adj",
+    "ranking_by_spearman": [
+      {
+        "stat": "micro_adj",
+        "spearman": 0.8,
+        "cv_top_is_public_top": true
+      },
+      {
+        "stat": "macro_adj",
+        "spearman": 0.8,
+        "cv_top_is_public_top": true
+      },
+      {
+        "stat": "lineage_macro_adj",
+        "spearman": 0.8,
+        "cv_top_is_public_top": true
+      },
+      {
+        "stat": "micro_raw",
+        "spearman": 0.4,
+        "cv_top_is_public_top": true
+      },
+      {
+        "stat": "lineage_macro_raw",
+        "spearman": 0.4,
+        "cv_top_is_public_top": true
+      }
+    ]
+  },
+  "without_v3_anchor": {
+    "label": "3 byte-anchored (v3 excluded, as SOT-2894)",
+    "n_anchored": 3,
+    "anchors": [
+      {
+        "name": "detect-link-v1",
+        "public_lb": 0.509
+      },
+      {
+        "name": "detect-link-dog-v2",
+        "public_lb": 0.5
+      },
+      {
+        "name": "detect-link-dog-v4-shorttrack",
+        "public_lb": 0.624
+      }
+    ],
+    "order_consistency": {
+      "micro_adj": {
+        "statistic": "micro_adj",
+        "n_anchored": 3,
+        "pairs": [
+          {
+            "name": "detect-link-v1",
+            "cv": 0.3598,
+            "public_lb": 0.509
+          },
+          {
+            "name": "detect-link-dog-v2",
+            "cv": 0.5225,
+            "public_lb": 0.5
+          },
+          {
+            "name": "detect-link-dog-v4-shorttrack",
+            "cv": 0.6649,
+            "public_lb": 0.624
+          }
+        ],
+        "spearman_vs_public": 0.5,
+        "cv_top_matches_public_top": true
+      },
+      "micro_raw": {
+        "statistic": "micro_raw",
+        "n_anchored": 3,
+        "pairs": [
+          {
+            "name": "detect-link-v1",
+            "cv": 0.3419,
+            "public_lb": 0.509
+          },
+          {
+            "name": "detect-link-dog-v2",
+            "cv": 0.6561,
+            "public_lb": 0.5
+          },
+          {
+            "name": "detect-link-dog-v4-shorttrack",
+            "cv": 0.684,
+            "public_lb": 0.624
+          }
+        ],
+        "spearman_vs_public": 0.5,
+        "cv_top_matches_public_top": true
+      },
+      "macro_adj": {
+        "statistic": "macro_adj",
+        "n_anchored": 3,
+        "pairs": [
+          {
+            "name": "detect-link-v1",
+            "cv": 0.4501,
+            "public_lb": 0.509
+          },
+          {
+            "name": "detect-link-dog-v2",
+            "cv": 0.6312,
+            "public_lb": 0.5
+          },
+          {
+            "name": "detect-link-dog-v4-shorttrack",
+            "cv": 0.718,
+            "public_lb": 0.624
+          }
+        ],
+        "spearman_vs_public": 0.5,
+        "cv_top_matches_public_top": true
+      },
+      "lineage_macro_adj": {
+        "statistic": "lineage_macro_adj",
+        "n_anchored": 3,
+        "pairs": [
+          {
+            "name": "detect-link-v1",
+            "cv": 0.4295,
+            "public_lb": 0.509
+          },
+          {
+            "name": "detect-link-dog-v2",
+            "cv": 0.6419,
+            "public_lb": 0.5
+          },
+          {
+            "name": "detect-link-dog-v4-shorttrack",
+            "cv": 0.7216,
+            "public_lb": 0.624
+          }
+        ],
+        "spearman_vs_public": 0.5,
+        "cv_top_matches_public_top": true
+      },
+      "lineage_macro_raw": {
+        "statistic": "lineage_macro_raw",
+        "n_anchored": 3,
+        "pairs": [
+          {
+            "name": "detect-link-v1",
+            "cv": 0.4077,
+            "public_lb": 0.509
+          },
+          {
+            "name": "detect-link-dog-v2",
+            "cv": 0.7258,
+            "public_lb": 0.5
+          },
+          {
+            "name": "detect-link-dog-v4-shorttrack",
+            "cv": 0.7358,
+            "public_lb": 0.624
+          }
+        ],
+        "spearman_vs_public": 0.5,
+        "cv_top_matches_public_top": true
+      }
+    },
+    "best_true_metric_proxy": "micro_adj",
+    "ranking_by_spearman": [
+      {
+        "stat": "micro_adj",
+        "spearman": 0.5,
+        "cv_top_is_public_top": true
+      },
+      {
+        "stat": "micro_raw",
+        "spearman": 0.5,
+        "cv_top_is_public_top": true
+      },
+      {
+        "stat": "macro_adj",
+        "spearman": 0.5,
+        "cv_top_is_public_top": true
+      },
+      {
+        "stat": "lineage_macro_adj",
+        "spearman": 0.5,
+        "cv_top_is_public_top": true
+      },
+      {
+        "stat": "lineage_macro_raw",
+        "spearman": 0.5,
+        "cv_top_is_public_top": true
+      }
+    ]
+  }
+}

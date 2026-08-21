@@ -1,0 +1,132 @@
+{
+  "recordedAt": "2026-08-21T06:17:49Z",
+  "issue": "SOT-2896",
+  "source_axis": "SOT-2864",
+  "candidate_config": "champion/candidates/sot2864-motion-model-link.json",
+  "candidate_kernel": "submit/kernel-candidate-motion/biohub-claude-candidate-motion.py",
+  "effective_config": {
+    "motion_model_link": true,
+    "motion_smooth_sigma": 15.0,
+    "motion_gain": 1.0,
+    "motion_gate_on_prediction": true,
+    "max_distance": 7.0,
+    "min_track_length": 4,
+    "allow_division": false,
+    "mad_k": 3.0,
+    "threshold_percentile": 92.0
+  },
+  "effective_config_ok": true,
+  "candidate_cv": {
+    "micro_adj_edge_jaccard": 0.676,
+    "micro_edge_jaccard": 0.696,
+    "macro_adj_edge_jaccard": 0.731,
+    "lineage_macro_adj": 0.7351,
+    "division_jaccard": 0.0,
+    "division_measurable": true,
+    "division_term": 0.0,
+    "score": 0.676,
+    "by_lineage": {
+      "44b6": 0.7998,
+      "6bba": 0.6705
+    },
+    "by_lineage_weight_share": {
+      "44b6": 0.0424,
+      "6bba": 0.9576
+    },
+    "representativeness": {
+      "dominant_lineage": "6bba",
+      "dominant_lineage_weight_share": 0.9576,
+      "micro_lineage_macro_gap": 0.0591,
+      "family_mix_sensitive": true,
+      "public_lb_best": 0.624,
+      "cv_public_order_consistent": true,
+      "cv_public_same_magnitude": true
+    },
+    "per_dataset": [
+      {
+        "name": "44b6_0113de3b",
+        "lineage": "44b6",
+        "edge_tp": 48,
+        "edge_fp": 2,
+        "edge_fn": 2,
+        "edge_jaccard": 0.9231,
+        "adjusted_edge_jaccard": 0.9078,
+        "division_tp": 0,
+        "division_fp": 0,
+        "division_fn": 0,
+        "pred_nodes": 30022,
+        "n_true": 25755.0,
+        "weight": 52
+      },
+      {
+        "name": "44b6_0b24845f",
+        "lineage": "44b6",
+        "edge_tp": 37,
+        "edge_fp": 4,
+        "edge_fn": 12,
+        "edge_jaccard": 0.6981,
+        "adjusted_edge_jaccard": 0.6938,
+        "division_tp": 0,
+        "division_fp": 0,
+        "division_fn": 0,
+        "pred_nodes": 34818,
+        "n_true": 32795.0,
+        "weight": 53
+      },
+      {
+        "name": "6bba_05b6850b",
+        "lineage": "6bba",
+        "edge_tp": 657,
+        "edge_fp": 214,
+        "edge_fn": 188,
+        "edge_jaccard": 0.6204,
+        "adjusted_edge_jaccard": 0.5748,
+        "division_tp": 0,
+        "division_fp": 0,
+        "division_fn": 0,
+        "pred_nodes": 11039,
+        "n_true": 6362.0,
+        "weight": 1059
+      },
+      {
+        "name": "6bba_05db0fb1",
+        "lineage": "6bba",
+        "edge_tp": 982,
+        "edge_fp": 130,
+        "edge_fn": 201,
+        "edge_jaccard": 0.7479,
+        "adjusted_edge_jaccard": 0.7477,
+        "division_tp": 0,
+        "division_fp": 0,
+        "division_fn": 3,
+        "pred_nodes": 69961,
+        "n_true": 69800.0,
+        "weight": 1313
+      }
+    ]
+  },
+  "expected_score": 0.676,
+  "score_reproduced": true,
+  "no_per_dataset_regression": true,
+  "all_aggregations_up": true,
+  "family_mix_sensitive_flag_absolute_gap": true,
+  "champion_also_family_mix_flagged": true,
+  "delta_family_robust_all_aggregations_up": true,
+  "champion_reference_micro_adj": 0.6649,
+  "champion_reference_score": 0.6649,
+  "champion_config_sha256": "42064648e612183e761bf9d40b70d3e8a2497453a878f1a44f5b52e410e01bdd",
+  "champion_config_byte_frozen": true,
+  "candidate_config_sha256": "ca4da1436a6bbed0af67f22caeec1d169a9e1f0d494cd22fe9d1a1a1354cf340",
+  "candidate_kernel_sha256": "e9de1f9c7b562c94ce61d70da320b12db1da512f68b5231034d3d76899ddeb49",
+  "champion_kernel_sha256": "48b1eaa2dfb63c8a31344c8e5695acb8c7d546ba696952ce317ed6471ee3a698",
+  "fingerprint_new_vs_last_submitted": true,
+  "per_dataset_adj": {
+    "44b6_0113de3b": 0.9078,
+    "44b6_0b24845f": 0.6938,
+    "6bba_05b6850b": 0.5748,
+    "6bba_05db0fb1": 0.7477
+  },
+  "kaggle_submitted": false,
+  "passed": true,
+  "note": "Candidate artifact for the parent resume run's reserve-slot LB probe. Live champion pointer (champion/config.json sha256 42064648...) stays BYTE-FROZEN. The absolute-gap family_mix_sensitive flag is True here AND for the champion itself (inherent to the 95.8%-6bba holdout weighting); SOT-2864's 'not family-mix-sensitive' is the DELTA notion (micro+macro+lineage-macro all rise together = delta_family_robust), which distinguishes it from the SOT-2840 candidate whose gain was 6bba-concentrated. Still not flipped without LB confirmation (SOT-2816 CV<->LB hazard)."
+}

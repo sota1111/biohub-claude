@@ -1,0 +1,18 @@
+{
+  "id": "sota1111/biohub-claude-candidate-motion",
+  "title": "Biohub Claude Candidate (SOT-2864 motion-link)",
+  "code_file": "biohub-claude-candidate-motion.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "keywords": [],
+  "dataset_sources": [],
+  "kernel_sources": [],
+  "competition_sources": [
+    "biohub-cell-tracking-during-development"
+  ],
+  "model_sources": []
+}

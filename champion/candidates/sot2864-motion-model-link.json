@@ -1,0 +1,23 @@
+{
+  "name": "candidate-motion-model-link-sigma15-gain1-gate",
+  "description": "SOT-2896 LB-probe CANDIDATE (NOT the live champion). Identical to the reigning detect-link-dog-v4-shorttrack champion (champion/config.json, sha256 42064648...) EXCEPT the linking stage runs SOT-2864's ARGUS-style motion-model predicted-position LAP linking: motion_model_link=true with motion_smooth_sigma=15.0 (um), motion_gain=1.0, motion_gate_on_prediction=true. Detection knobs are byte-identical to the champion (linking-only change). On the SOT-2817 re-anchored full-metric leak-free CV this raises the micro-adjusted edge Jaccard 0.6649->0.6760 (+0.0111, dTP+16/dFP-20/dFN-16) with 4/4 per-dataset NON-REGRESSION and micro/macro/lineage-macro all up (44b6_0113de3b 0.8895->0.9078, 44b6_0b24845f 0.6817->0.6938, 6bba_05b6850b 0.5700->0.5748, 6bba_05db0fb1 0.7310->0.7477; macro 0.7180->0.731, lineage-macro 0.7216->0.7351). Unlike the SOT-2840 global-MCF candidate (55af7cc..., +0.0022, family_mix_sensitive=True) this lever is NOT family-mix-sensitive (micro AND both family-mix-robust macro views rise together) and is the FIRST linking axis in the ledger to improve all four families with zero per-dataset regression, so it is the project's #1 reserve / final-window LB-probe candidate. Per the documented CV<->LB divergence (SOT-2816 CV +0.042 -> public -0.115) and the SOT-2817 representativeness guard, the live champion pointer stays BYTE-FROZEN until a real LB probe (reserve slot, parent resume run) resolves whether the CV gain transfers. This file is a candidate artifact ONLY; the live champion is never flipped to it without LB confirmation.",
+  "scale": [1.625, 0.40625, 0.40625],
+  "detect": {
+    "sigma_zyx": [1.0, 2.0, 2.0],
+    "background_sigma_zyx": [2.0, 6.0, 6.0],
+    "nms_size_zyx": [2, 5, 5],
+    "threshold_percentile": 92.0,
+    "mad_k": 3.0,
+    "min_threshold": 0.0
+  },
+  "link": {
+    "max_distance": 7.0,
+    "allow_division": false,
+    "division_distance": 7.0,
+    "min_track_length": 4,
+    "motion_model_link": true,
+    "motion_smooth_sigma": 15.0,
+    "motion_gain": 1.0,
+    "motion_gate_on_prediction": true
+  }
+}

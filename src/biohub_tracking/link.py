@@ -137,6 +137,56 @@ class LinkParams:
     displacement; ``0.0`` disables prediction (falling back to the raw-position
     assignment); values in between damp the extrapolation."""
 
+    link_consistency_gate: bool = False
+    """Ultrack-style bidirectional forward↔backward motion-consistency gate (SOT-2883).
+
+    ``False`` (default, absent key) reproduces the champion / SOT-2864 motion linker
+    **byte-for-byte**. When ``True`` (and :attr:`motion_model_link` is set — the gate
+    reuses the SOT-2864 global smoothed motion field, so it is inert without it), a
+    ``t -> t+1`` link ``i -> j`` is judged by *mutual* prediction agreement, the
+    portable point-detection surrogate for Ultrack's (Nature Methods 2025,
+    arXiv:2308.04526) adjacent-frame **overlap-maximization** selection principle:
+
+    * **forward residual** ``r_f`` — the SOT-2864 *forward* motion field predicts where
+      ``src[i]`` moves; ``r_f = || src_pred_fwd[i] - dst[j] ||`` (scaled microns).
+    * **backward residual** ``r_b`` — the SAME field estimated on the *reversed* frame
+      pair predicts where ``dst[j]`` came from; ``r_b = || dst_pred_bwd[j] - src[i] ||``.
+
+    A genuine cell has BOTH small (its forward flow lands on the target and the
+    target's backward flow lands back on it); an FP-prone link has a large residual in
+    at least one direction (the forward field can over-smooth a spurious near
+    neighbour, but the backward field disagrees). The gate therefore:
+
+    * **penalises/discounts** — adds :attr:`link_consistency_weight` ``* 0.5*(r_f+r_b)``
+      to the assignment cost, so among distance-feasible candidates a *bidirectionally*
+      consistent successor is preferred; and
+    * **rejects** — when :attr:`link_consistency_tol` is finite, drops any pair with
+      ``r_f > tol`` OR ``r_b > tol`` from the feasible set.
+
+    It is a pure **restriction** of the SOT-2864 feasible set (never admits a new pair),
+    so the ``<= max_distance`` cap is preserved by construction — a wild motion
+    prediction can never let it link an arbitrarily distant pair. **Mechanistically
+    distinct** from the rejected SOT-2871 windowed running-average velocity (a *carried*
+    single-direction trajectory, not forward↔backward agreement) and SOT-2870 learned
+    edge-gate (a *learned* one-direction p_edge, not a symmetric field cross-check)."""
+
+    link_consistency_tol: float = float("inf")
+    """Hard-gate tolerance (scaled microns) on the bidirectional residuals (SOT-2883).
+
+    Only consulted when :attr:`link_consistency_gate` is set. A ``t -> t+1`` pair is
+    rejected when EITHER its forward residual ``r_f`` or backward residual ``r_b``
+    exceeds this. ``inf`` (default) applies no hard rejection (soft penalty only);
+    tightening it below :attr:`max_distance` removes the motion-inconsistent (FP-prone)
+    links whose two direction predictions disagree."""
+
+    link_consistency_weight: float = 0.0
+    """Soft-penalty weight on the mean bidirectional residual (SOT-2883).
+
+    Only consulted when :attr:`link_consistency_gate` is set. Adds
+    ``link_consistency_weight * 0.5 * (r_f + r_b)`` to the assignment cost, so a
+    bidirectionally consistent successor is preferred among the distance-feasible
+    candidates. ``0.0`` (default) adds no penalty (hard gate only, if any)."""
+
     max_frame_gap: int = 1
     """Gap-closing 2nd linking step across missing detections (SOT-2763).
 
@@ -746,6 +796,10 @@ def _assign(
     edge_gate_expand: bool = False,
     edge_gate_admit_prob: float = 0.5,
     edge_gate_expand_ratio: float = 1.5,
+    dst_pred_bwd: np.ndarray | None = None,
+    consistency_gate: bool = False,
+    consistency_tol: float = float("inf"),
+    consistency_weight: float = 0.0,
 ) -> list[tuple[int, int]]:
     """Optimal one-to-one assignment of ``src`` rows to ``dst`` rows within range.
 
@@ -798,6 +852,23 @@ def _assign(
     # Base feasibility: the champion's raw (or, under gate_on_prediction, predicted)
     # distance gate.
     feasible = gate <= max_distance
+
+    # SOT-2883 Ultrack bidirectional motion-consistency gate. Requires the SOT-2864
+    # forward motion prediction (dist_pred = r_f, ``src_pred`` -> dst residual) and a
+    # backward-field prediction of dst (``dst_pred_bwd`` -> src residual r_b). A link
+    # is bidirectionally consistent only when BOTH direction residuals are small; the
+    # soft term discounts consistent pairs in the cost, the hard tol drops
+    # inconsistent ones from the feasible set (a pure restriction — never admits a new
+    # pair, so the max_distance cap is preserved). Off (or missing dst_pred_bwd) =>
+    # champion / SOT-2864 byte-for-byte.
+    if consistency_gate and dist_pred is not None and dst_pred_bwd is not None:
+        diff_bwd = (dst_pred_bwd[None, :, :] - src[:, None, :]) * scale
+        r_b = np.sqrt((diff_bwd**2).sum(axis=2))
+        r_f = dist_pred
+        if consistency_weight > 0.0:
+            cost_base = cost_base + consistency_weight * 0.5 * (r_f + r_b)
+        if np.isfinite(consistency_tol):
+            feasible = feasible & (r_f <= consistency_tol) & (r_b <= consistency_tol)
 
     # SOT-2870 learned gate EXPANSION (FN-edge recovery): additionally admit a
     # raw-far pair only when it is motion-corrected in-range, within the raw-distance
@@ -1254,6 +1325,16 @@ def link_centroids(
                 src, dst, scale_arr, params.max_distance,
                 params.motion_smooth_sigma, params.motion_gain,
             )
+            # SOT-2883 bidirectional gate: the SAME global smoothed motion field
+            # estimated on the *reversed* frame pair predicts where each dst came
+            # from (backward). Built only when link_consistency_gate is set, so the
+            # SOT-2864 path is byte-for-byte unchanged when off.
+            dst_pred_bwd = None
+            if params.link_consistency_gate and len(dst):
+                dst_pred_bwd = _motion_field_predict(
+                    dst, src, scale_arr, params.max_distance,
+                    params.motion_smooth_sigma, params.motion_gain,
+                )
             pairs = _assign(
                 src, dst, scale_arr, params.max_distance,
                 src_pred=src_pred, disp_weight=params.velocity_disp_weight,
@@ -1265,6 +1346,10 @@ def link_centroids(
                 edge_gate_expand=params.edge_gate_expand,
                 edge_gate_admit_prob=params.edge_gate_admit_prob,
                 edge_gate_expand_ratio=params.edge_gate_expand_ratio,
+                dst_pred_bwd=dst_pred_bwd,
+                consistency_gate=params.link_consistency_gate,
+                consistency_tol=params.link_consistency_tol,
+                consistency_weight=params.link_consistency_weight,
             )
         elif params.velocity_gain and len(src):
             src_pred = np.array(

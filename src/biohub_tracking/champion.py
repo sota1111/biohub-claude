@@ -249,6 +249,16 @@ def champion_params(
         motion_model_link=bool(l.get("motion_model_link", False)),
         motion_smooth_sigma=float(l.get("motion_smooth_sigma", 15.0)),
         motion_gain=float(l.get("motion_gain", 1.0)),
+        # Ultrack bidirectional motion-consistency gate (SOT-2883); absent keys keep
+        # the champion byte-identical (link_consistency_gate default off). JSON cannot
+        # hold inf, so an absent/null tol means "no hard rejection" (soft penalty only).
+        link_consistency_gate=bool(l.get("link_consistency_gate", False)),
+        link_consistency_tol=(
+            float("inf")
+            if l.get("link_consistency_tol") is None
+            else float(l["link_consistency_tol"])
+        ),
+        link_consistency_weight=float(l.get("link_consistency_weight", 0.0)),
         max_frame_gap=int(l.get("max_frame_gap", 1)),
         gap_distance=float(l.get("gap_distance", 7.0)),
         # Node-interpolation gap recovery (SOT-2849); absent keys keep the champion

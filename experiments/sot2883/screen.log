@@ -1,0 +1,21 @@
+[detect] 44b6_0113de3b: 28.1s dets=32147
+[detect] 44b6_0b24845f: 28.5s dets=42080
+[detect] 6bba_05b6850b: 28.7s dets=13376
+[detect] 6bba_05db0fb1: 28.5s dets=73953
+[baseline] champion micro_adj=0.6649 score=0.6649
+[ref:motion-only(SOT-2864,gate=True)] micro_adj=0.6760 score=0.6760 dChamp=+0.0111 dRef=+0.0000 dTP=+16 dFP=-20 dFN=-16 no_reg=True mix=True beats_ref=False
+[hard tol=1.5] micro_adj=0.3808 score=0.3808 dChamp=-0.2841 dRef=-0.2952 dTP=-899 dFP=-272 dFN=+899 no_reg=False mix=True beats_ref=False
+[hard tol=2.5] micro_adj=0.5975 score=0.5975 dChamp=-0.0674 dRef=-0.0785 dTP=-328 dFP=-184 dFN=+328 no_reg=False mix=False beats_ref=False
+[hard tol=4.0] micro_adj=0.6672 score=0.6672 dChamp=+0.0023 dRef=-0.0088 dTP=-75 dFP=-98 dFN=+75 no_reg=False mix=False beats_ref=False
+[hard tol=6.0] micro_adj=0.6798 score=0.6798 dChamp=+0.0149 dRef=+0.0038 dTP=+8 dFP=-41 dFN=-8 no_reg=True mix=True beats_ref=False
+[soft weight=0.25] micro_adj=0.6760 score=0.6760 dChamp=+0.0111 dRef=-0.0000 dTP=+16 dFP=-20 dFN=-16 no_reg=True mix=True beats_ref=False
+[soft weight=0.5] micro_adj=0.6760 score=0.6760 dChamp=+0.0111 dRef=-0.0000 dTP=+16 dFP=-20 dFN=-16 no_reg=True mix=True beats_ref=False
+[soft weight=1.0] micro_adj=0.6772 score=0.6772 dChamp=+0.0123 dRef=+0.0012 dTP=+17 dFP=-23 dFN=-17 no_reg=True mix=True beats_ref=True
+[combined tol=2.5 weight=0.5] micro_adj=0.5975 score=0.5975 dChamp=-0.0674 dRef=-0.0785 dTP=-328 dFP=-184 dFN=+328 no_reg=False mix=False beats_ref=False
+[combined tol=4.0 weight=0.5] micro_adj=0.6672 score=0.6672 dChamp=+0.0023 dRef=-0.0088 dTP=-75 dFP=-98 dFN=+75 no_reg=False mix=False beats_ref=False
+
+wrote /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2883/screen_consistency_gate.json
+baseline champion score=0.6649
+motion-only reference score=0.676 (delta +0.0111)
+n_promotable_vs_champion=4 n_beats_motion_reference=1
+TOP variant: hard tol=6.0 score=0.6798 (dChamp +0.0149, dRef +0.0038) no_reg=True mix=True beats_ref=False

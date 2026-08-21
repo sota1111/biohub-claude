@@ -267,6 +267,43 @@ class DetectParams:
     active (that early-returns first). ``None`` runs the plain NMS path unchanged —
     exact byte-identical reproduction of the pre-SOT-2792 detector (default-off)."""
 
+    recall_recovery: tuple[str, float, float] | None = None
+    """Optional **recall-oriented FN-edge-endpoint recovery** tier (SOT-2873).
+
+    The competition edge metric scores an edge TP only when **both** endpoints
+    match a GT node within 7 µm, but charges **no node FP** for a predicted node
+    that matches nothing (sparse GT) — only the mild *global* over-prediction
+    penalty ``J·(1 − 0.1·(N_pred − N_true)/N_true)``. So a predicted node added
+    below the champion's strict adaptive cutoff can only *help* (recover a
+    missed-detection FN-edge endpoint) or be *free* (unmatched ⇒ no node FP),
+    paying only the shared over-prediction penalty. This knob adds a **bounded,
+    strongest-first second tier** of sub-threshold local maxima to raise the
+    **GT-node recall @7 µm** — the objective this axis targets — while explicitly
+    controlling the over-prediction penalty (bounded add, never an unlimited
+    prediction increase).
+
+    New grounds vs the exhausted per-voxel operating-point ladder (SOT-2789 /
+    SOT-2848,2863): those searched for a *family-invariant* per-voxel
+    threshold/magnitude on the aggregate score and found none. This does **not**
+    move the champion's own operating point (the primary tier is byte-for-byte the
+    champion), and does not claim a global magnitude — it *adds* a capped recall
+    tier and reports the recall-vs-over-prediction-penalty tradeoff explicitly, so
+    a null result is a clean evidence-backed reject/inconclusive, not a false
+    promotion.
+
+    When set to ``("madk_tier", k_low, max_extra_frac)`` the detector keeps the
+    champion primary peaks (``response > threshold``, unchanged) and additionally
+    admits local maxima in the band ``median + k_low·1.4826·MAD < response <=
+    threshold`` (``k_low`` **below** the champion :attr:`mad_k`, so the tier is
+    strictly the peaks the strict cutoff dropped), capped to
+    ``floor(max_extra_frac · n_primary)`` of the **strongest** such peaks. The
+    added peaks are all dimmer than every primary peak, so the brightest-first
+    ordering is preserved. Requires :attr:`mad_k` (the adaptive-threshold champion
+    path) and the scalar-gate NMS path (no :attr:`local_threshold` surface). The
+    ``meta`` dict reports ``recall_primary`` / ``recall_extra_candidates`` /
+    ``recall_extra_kept``. ``None`` runs the champion NMS path unchanged — exact
+    byte-identical reproduction of the pre-SOT-2873 detector (default-off)."""
+
 
 def _hessian_blobness_mask(
     vol: np.ndarray,
@@ -625,6 +662,68 @@ def _density_gated_split_centroids(
     return out, int(dense_labels.size)
 
 
+def _recall_recovery_coords(
+    response: np.ndarray,
+    local_max: np.ndarray,
+    primary_coords: np.ndarray,
+    threshold: float,
+    spec: tuple[str, float, float],
+    meta: dict,
+) -> np.ndarray:
+    """Append a bounded, strongest-first sub-threshold recall tier (SOT-2873).
+
+    ``spec = ("madk_tier", k_low, max_extra_frac)``. ``primary_coords`` are the
+    champion NMS peaks (``response > threshold``), already ordered brightest-first.
+    Returns ``primary_coords`` with up to ``floor(max_extra_frac · n_primary)`` of
+    the strongest local maxima in the band ``median + k_low·1.4826·MAD < response
+    <= threshold`` appended (also brightest-first). Every appended peak is dimmer
+    than ``threshold`` and therefore dimmer than every primary peak, so the global
+    brightest-first order is preserved. Deterministic, numpy/scipy-only.
+
+    The band is strictly the peaks the champion's strict cutoff dropped, so the
+    primary tier is untouched: with ``max_extra_frac == 0`` or an empty band the
+    return is ``primary_coords`` byte-for-byte.
+    """
+    kind, k_low, max_extra_frac = spec
+    if kind != "madk_tier":
+        raise ValueError(f"unknown recall_recovery kind: {kind!r}")
+    k_low = float(k_low)
+    max_extra_frac = float(max_extra_frac)
+    n_primary = int(primary_coords.shape[0])
+    meta["recall_primary"] = n_primary
+    meta["recall_extra_candidates"] = 0
+    meta["recall_extra_kept"] = 0
+
+    cap = int(np.floor(max_extra_frac * n_primary))
+    if cap <= 0:
+        return primary_coords
+
+    # Lower tier gate: the same robust per-volume z-score as the champion
+    # (median + k·1.4826·MAD) but at k_low < mad_k, so the band sits strictly
+    # below the champion cutoff. Peaks in (low_gate, threshold] are the local
+    # maxima the strict cutoff dropped.
+    median = float(np.median(response))
+    mad = float(np.median(np.abs(response - median)))
+    low_gate = median + k_low * 1.4826 * mad
+    if not (low_gate < threshold):
+        return primary_coords  # empty band (k_low >= mad_k): champion recall
+
+    extra_mask = (response == local_max) & (response > low_gate) & (response <= threshold)
+    extra_coords = np.argwhere(extra_mask).astype(np.float64)
+    n_extra = int(extra_coords.shape[0])
+    meta["recall_extra_candidates"] = n_extra
+    if n_extra == 0:
+        return primary_coords
+
+    extra_int = response[extra_mask]
+    order = np.argsort(extra_int)[::-1]
+    extra_coords = extra_coords[order]
+    if n_extra > cap:
+        extra_coords = extra_coords[:cap]
+    meta["recall_extra_kept"] = int(extra_coords.shape[0])
+    return np.vstack([primary_coords, extra_coords])
+
+
 def detect_centroids(
     volume: np.ndarray, params: DetectParams | None = None
 ) -> np.ndarray:
@@ -739,6 +838,21 @@ def detect_centroids_with_meta(
     intensities = response[peak_mask]
     order = np.argsort(intensities)[::-1]
     coords = coords[order]
+
+    # Recall-oriented FN-edge-endpoint recovery (SOT-2873): admit a bounded,
+    # strongest-first tier of sub-threshold local maxima to raise GT-node recall
+    # @7 µm, exploiting the metric's no-node-FP property. Runs only on the scalar
+    # adaptive-threshold NMS path (the champion path); off by default → champion
+    # coords are byte-for-byte untouched. Applied before blobness/scorer/density so
+    # a promoted tier composes with them.
+    if params.recall_recovery is not None:
+        if params.mad_k is None:
+            raise ValueError("recall_recovery requires the adaptive mad_k threshold")
+        if not np.isscalar(peak_gate):
+            raise ValueError("recall_recovery is incompatible with local_threshold")
+        coords = _recall_recovery_coords(
+            response, local_max, coords, float(peak_gate), params.recall_recovery, meta
+        )
 
     # Hessian-eigenvalue blobness precision filter (SOT-2793): prune non-blob
     # (membrane/line/noise) candidates as a detection post-processing step. Runs

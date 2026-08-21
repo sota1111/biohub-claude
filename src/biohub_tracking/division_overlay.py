@@ -95,16 +95,33 @@ def apply_division_overlay(
     """Add high-precision second-daughter edges to *graph* in place; return it.
 
     ``params`` is ``None`` (or an empty tuple) to disable — the graph is returned
-    untouched, byte-for-byte. Otherwise it is
-    ``(kind, max_distance, sibling_ratio, min_daughter_len, require_parent_track)``
-    with ``kind == "nearest-head"`` (the only mechanism today; kept as a leading
-    tag so future overlay variants can be added without changing the config shape).
+    untouched, byte-for-byte. The leading element is a ``kind`` tag selecting the
+    overlay mechanism (the config shape can grow without breaking older configs):
+
+    * ``("nearest-head", max_distance, sibling_ratio, min_daughter_len,
+      require_parent_track)`` — SOT-2818: attach the nearest persistent head to a
+      parent whose second daughter the linker dropped.
+    * ``("mutual-nn", max_distance, sibling_ratio, min_daughter_len,
+      require_parent_track, require_primary_persist, mutual_margin)`` — SOT-2898:
+      the SOT-2818 gate PLUS a **mutual-nearest-neighbour** parent test and a
+      **symmetric daughter-persistence** test (see :func:`_apply_mutual_nn`).
     """
     if not params:
         return graph
     kind = str(params[0])
-    if kind != "nearest-head":
-        raise ValueError(f"unknown division_overlay kind: {kind!r}")
+    if kind == "nearest-head":
+        return _apply_nearest_head(graph, scale, params)
+    if kind == "mutual-nn":
+        return _apply_mutual_nn(graph, scale, params)
+    raise ValueError(f"unknown division_overlay kind: {kind!r}")
+
+
+def _apply_nearest_head(
+    graph: TrackingGraph,
+    scale: tuple[float, float, float],
+    params: DivisionOverlayParams,
+) -> TrackingGraph:
+    """SOT-2818 overlay: nearest persistent head becomes the second daughter."""
     max_distance = float(params[1])
     sibling_ratio = float(params[2])
     min_daughter_len = int(params[3])
@@ -165,6 +182,137 @@ def apply_division_overlay(
             head = best[1]
             consumed.add(head)
             additions.append((parent, head))
+
+    for parent, head in additions:
+        graph.add_edge(parent, head)
+    return graph
+
+
+def _apply_mutual_nn(
+    graph: TrackingGraph,
+    scale: tuple[float, float, float],
+    params: DivisionOverlayParams,
+) -> TrackingGraph:
+    """SOT-2898 precision-first overlay: mutual-NN + symmetric-persistence fork.
+
+    This shares SOT-2818's non-destructive contract (only *adds* one
+    ``parent -> nearby-head`` edge per fork; OFF / zero-fire ⇒ champion graph
+    byte-for-byte) but tightens the gate to fire only on **high-confidence** forks,
+    to buy division TP without spraying the fork FPs that sank SOT-2762 / SOT-2818
+    on the dense ``6bba`` families:
+
+    * **Mutual nearest neighbour (edge-FP explicit guard).** The candidate second
+      daughter ``D2`` (an unclaimed persistent head at ``t+1``) is attached to a
+      parent ``P`` only if ``P`` is the *nearest candidate parent* to ``D2`` among
+      all cells at ``t`` that could adopt it — i.e. ``P`` and ``D2`` are mutual
+      nearest neighbours. If some *other* established track sits closer to ``D2``,
+      ``D2`` more likely belongs to (or is a decoy near) that track, so attaching it
+      to ``P`` would be a division FP *and* an edge FP; the mutual test rejects it.
+    * **Unambiguous margin.** With ``mutual_margin > 0`` the runner-up parent must be
+      at least ``(1 + mutual_margin)`` times farther than ``P`` — the split must be
+      unambiguous, not a near-tie between two possible parents.
+    * **Symmetric daughter persistence (±1-window consistency).** The division
+      metric scores a fork inside a ``parent -> divider -> children -> grandchildren``
+      window, so a real split has *both* daughters continue. With
+      ``require_primary_persist`` the champion-assigned primary daughter ``C`` must
+      also reach ``min_daughter_len`` nodes, not just ``D2`` — a fork where one
+      "daughter" dies immediately is rejected.
+
+    Params:
+    ``("mutual-nn", max_distance, sibling_ratio, min_daughter_len,
+    require_parent_track, require_primary_persist, mutual_margin)``.
+    """
+    max_distance = float(params[1])
+    sibling_ratio = float(params[2])
+    min_daughter_len = int(params[3])
+    require_parent_track = bool(params[4])
+    require_primary_persist = bool(params[5]) if len(params) > 5 else True
+    mutual_margin = float(params[6]) if len(params) > 6 else 0.0
+
+    scale_arr = np.asarray(scale, dtype=float)
+    nodes_by_time = graph.nodes_by_time()
+
+    # Persistent unclaimed heads per timepoint (a credible daughter lineage): no
+    # predecessor and a forward track of >= min_daughter_len nodes.
+    heads_by_time: dict[int, list[int]] = {}
+    for t, ids in nodes_by_time.items():
+        heads = [
+            n
+            for n in ids
+            if graph.in_degree(n) == 0
+            and _forward_track_length(graph, n, min_daughter_len) >= min_daughter_len
+        ]
+        if heads:
+            heads_by_time[t] = sorted(heads)
+
+    # Candidate parents per timepoint: exactly one champion successor (so adding one
+    # edge makes a legal 1->2 fork) and — when required — a predecessor.
+    parents_by_time: dict[int, list[int]] = {}
+    for t, ids in nodes_by_time.items():
+        ps = [
+            n
+            for n in ids
+            if graph.out_degree(n) == 1
+            and not (require_parent_track and graph.in_degree(n) == 0)
+        ]
+        if ps:
+            parents_by_time[t] = sorted(ps)
+
+    def scaled_dist(a: int, b: int) -> float:
+        pa = graph.position(a) * scale_arr
+        pb = graph.position(b) * scale_arr
+        return float(np.sqrt(((pa - pb) ** 2).sum()))
+
+    consumed: set[int] = set()  # a head becomes at most one parent's daughter
+    additions: list[tuple[int, int]] = []
+
+    # Deterministic parent order (ascending id).
+    for parent in sorted(pid for pids in parents_by_time.values() for pid in pids):
+        t_parent = graph.t(parent)
+        heads = heads_by_time.get(t_parent + 1)
+        if not heads:
+            continue
+
+        primary = graph.successors(parent)[0]
+        if require_primary_persist and (
+            _forward_track_length(graph, primary, min_daughter_len)
+            < min_daughter_len
+        ):
+            continue  # a real split keeps BOTH daughters alive
+        d1 = scaled_dist(parent, primary)
+
+        # Nearest eligible head to this parent (P's side of the mutual test).
+        best: tuple[float, int] | None = None  # (d2, head id)
+        for h in heads:
+            if h in consumed or h == primary:
+                continue
+            d2 = scaled_dist(parent, h)
+            if d2 > max_distance:
+                continue
+            if sibling_ratio > 0.0 and d2 > sibling_ratio * d1:
+                continue  # sibling too far vs the primary daughter -> not a split
+            if best is None or (d2, h) < best:
+                best = (d2, h)
+        if best is None:
+            continue
+        d2, head = best
+
+        # Mutual-NN test: P must be the nearest candidate parent to `head`, by a
+        # clear margin. Scan sibling candidate parents at the same timepoint.
+        rivals = parents_by_time.get(t_parent, ())
+        mutual = True
+        for other in rivals:
+            if other == parent:
+                continue
+            do = scaled_dist(other, head)
+            if do <= d2 * (1.0 + mutual_margin):
+                mutual = False  # another parent is as close (or closer) -> ambiguous
+                break
+        if not mutual:
+            continue
+
+        consumed.add(head)
+        additions.append((parent, head))
 
     for parent, head in additions:
         graph.add_edge(parent, head)

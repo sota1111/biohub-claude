@@ -1,0 +1,237 @@
+{
+  "recordedAt": "2026-08-21T06:40:52Z",
+  "issue": "SOT-2895",
+  "axis": "post-hoc suspicious-tracking-event review gate (dalloliogm port)",
+  "candidate_config": "champion/candidates/sot2895-suspicious-edge-review.json",
+  "effective_config": {
+    "suspicious_review": true,
+    "suspicious_turn_cos": -0.5,
+    "suspicious_jump_ratio": 3.0,
+    "suspicious_jump_floor": 1.0,
+    "max_distance": 7.0,
+    "min_track_length": 4,
+    "allow_division": false,
+    "mad_k": 3.0,
+    "threshold_percentile": 92.0
+  },
+  "postprocessing_only_change": true,
+  "champion_cv": {
+    "micro_adj_edge_jaccard": 0.6649,
+    "micro_edge_jaccard": 0.684,
+    "macro_adj_edge_jaccard": 0.718,
+    "lineage_macro_adj": 0.7216,
+    "division_jaccard": 0.0,
+    "division_measurable": true,
+    "division_term": 0.0,
+    "score": 0.6649,
+    "by_lineage": {
+      "44b6": 0.7836,
+      "6bba": 0.6596
+    },
+    "by_lineage_weight_share": {
+      "44b6": 0.0425,
+      "6bba": 0.9575
+    },
+    "representativeness": {
+      "dominant_lineage": "6bba",
+      "dominant_lineage_weight_share": 0.9575,
+      "micro_lineage_macro_gap": 0.0567,
+      "family_mix_sensitive": true,
+      "public_lb_best": 0.624,
+      "cv_public_order_consistent": true,
+      "cv_public_same_magnitude": true
+    },
+    "per_dataset": [
+      {
+        "name": "44b6_0113de3b",
+        "lineage": "44b6",
+        "edge_tp": 47,
+        "edge_fp": 2,
+        "edge_fn": 3,
+        "edge_jaccard": 0.9038,
+        "adjusted_edge_jaccard": 0.8895,
+        "division_tp": 0,
+        "division_fp": 0,
+        "division_fn": 0,
+        "pred_nodes": 29844,
+        "n_true": 25755.0,
+        "weight": 52
+      },
+      {
+        "name": "44b6_0b24845f",
+        "lineage": "44b6",
+        "edge_tp": 37,
+        "edge_fp": 5,
+        "edge_fn": 12,
+        "edge_jaccard": 0.6852,
+        "adjusted_edge_jaccard": 0.6817,
+        "division_tp": 0,
+        "division_fp": 0,
+        "division_fn": 0,
+        "pred_nodes": 34485,
+        "n_true": 32795.0,
+        "weight": 54
+      },
+      {
+        "name": "6bba_05b6850b",
+        "lineage": "6bba",
+        "edge_tp": 651,
+        "edge_fp": 215,
+        "edge_fn": 194,
+        "edge_jaccard": 0.6142,
+        "adjusted_edge_jaccard": 0.57,
+        "division_tp": 0,
+        "division_fp": 0,
+        "division_fn": 0,
+        "pred_nodes": 10938,
+        "n_true": 6362.0,
+        "weight": 1060
+      },
+      {
+        "name": "6bba_05db0fb1",
+        "lineage": "6bba",
+        "edge_tp": 973,
+        "edge_fp": 148,
+        "edge_fn": 210,
+        "edge_jaccard": 0.731,
+        "adjusted_edge_jaccard": 0.731,
+        "division_tp": 0,
+        "division_fp": 0,
+        "division_fn": 3,
+        "pred_nodes": 69784,
+        "n_true": 69800.0,
+        "weight": 1331
+      }
+    ]
+  },
+  "candidate_cv": {
+    "micro_adj_edge_jaccard": 0.6644,
+    "micro_edge_jaccard": 0.6829,
+    "macro_adj_edge_jaccard": 0.7134,
+    "lineage_macro_adj": 0.7172,
+    "division_jaccard": 0.0,
+    "division_measurable": true,
+    "division_term": 0.0,
+    "score": 0.6644,
+    "by_lineage": {
+      "44b6": 0.775,
+      "6bba": 0.6595
+    },
+    "by_lineage_weight_share": {
+      "44b6": 0.0427,
+      "6bba": 0.9573
+    },
+    "representativeness": {
+      "dominant_lineage": "6bba",
+      "dominant_lineage_weight_share": 0.9573,
+      "micro_lineage_macro_gap": 0.0528,
+      "family_mix_sensitive": true,
+      "public_lb_best": 0.624,
+      "cv_public_order_consistent": true,
+      "cv_public_same_magnitude": true
+    },
+    "per_dataset": [
+      {
+        "name": "44b6_0113de3b",
+        "lineage": "44b6",
+        "edge_tp": 46,
+        "edge_fp": 2,
+        "edge_fn": 4,
+        "edge_jaccard": 0.8846,
+        "adjusted_edge_jaccard": 0.8712,
+        "division_tp": 0,
+        "division_fp": 0,
+        "division_fn": 0,
+        "pred_nodes": 29670,
+        "n_true": 25755.0,
+        "weight": 52
+      },
+      {
+        "name": "44b6_0b24845f",
+        "lineage": "44b6",
+        "edge_tp": 37,
+        "edge_fp": 5,
+        "edge_fn": 12,
+        "edge_jaccard": 0.6852,
+        "adjusted_edge_jaccard": 0.6824,
+        "division_tp": 0,
+        "division_fp": 0,
+        "division_fn": 0,
+        "pred_nodes": 34147,
+        "n_true": 32795.0,
+        "weight": 54
+      },
+      {
+        "name": "6bba_05b6850b",
+        "lineage": "6bba",
+        "edge_tp": 643,
+        "edge_fp": 208,
+        "edge_fn": 202,
+        "edge_jaccard": 0.6106,
+        "adjusted_edge_jaccard": 0.5675,
+        "division_tp": 0,
+        "division_fp": 0,
+        "division_fn": 0,
+        "pred_nodes": 10861,
+        "n_true": 6362.0,
+        "weight": 1053
+      },
+      {
+        "name": "6bba_05db0fb1",
+        "lineage": "6bba",
+        "edge_tp": 971,
+        "edge_fp": 143,
+        "edge_fn": 212,
+        "edge_jaccard": 0.7323,
+        "adjusted_edge_jaccard": 0.7326,
+        "division_tp": 0,
+        "division_fp": 0,
+        "division_fn": 3,
+        "pred_nodes": 69477,
+        "n_true": 69800.0,
+        "weight": 1326
+      }
+    ]
+  },
+  "champion_per_dataset_adj": {
+    "44b6_0113de3b": 0.8895,
+    "44b6_0b24845f": 0.6817,
+    "6bba_05b6850b": 0.57,
+    "6bba_05db0fb1": 0.731
+  },
+  "candidate_per_dataset_adj": {
+    "44b6_0113de3b": 0.8712,
+    "44b6_0b24845f": 0.6824,
+    "6bba_05b6850b": 0.5675,
+    "6bba_05db0fb1": 0.7326
+  },
+  "delta_per_dataset_adj": {
+    "44b6_0113de3b": -0.0183,
+    "44b6_0b24845f": 0.0007,
+    "6bba_05b6850b": -0.0025,
+    "6bba_05db0fb1": 0.0016
+  },
+  "delta_micro_adj": -0.0005,
+  "delta_macro_adj": -0.0046,
+  "delta_lineage_macro_adj": -0.0044,
+  "no_per_dataset_regression": false,
+  "all_aggregations_up": false,
+  "champion_cv_byte_identical": false,
+  "candidate_representativeness": {
+    "dominant_lineage": "6bba",
+    "dominant_lineage_weight_share": 0.9573,
+    "micro_lineage_macro_gap": 0.0528,
+    "family_mix_sensitive": true,
+    "public_lb_best": 0.624,
+    "cv_public_order_consistent": true,
+    "cv_public_same_magnitude": true
+  },
+  "champion_reference_micro_adj": 0.6649,
+  "champion_reference_score": 0.6649,
+  "champion_config_sha256": "42064648e612183e761bf9d40b70d3e8a2497453a878f1a44f5b52e410e01bdd",
+  "champion_config_byte_frozen": true,
+  "candidate_config_sha256": "7fe3088c51c63a10b3e533fd83ee305ce5581cd074a1a6df1dc182b689bc1273",
+  "result": "rejected",
+  "reason": "per-dataset regression (True) or micro -0.0005 below -0.005; gate removed real TP edges. Revert / keep off.",
+  "kaggle_submitted": false
+}

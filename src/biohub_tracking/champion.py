@@ -294,6 +294,12 @@ def champion_params(
         window_parental_softmax=bool(l.get("window_parental_softmax", False)),
         window_softmax_min_share=float(l.get("window_softmax_min_share", 0.3)),
         window_softmax_temp=float(l.get("window_softmax_temp", 1.0)),
+        # Post-hoc suspicious-tracking-event review gate (SOT-2895); absent keys keep
+        # the champion byte-identical (suspicious_review default off).
+        suspicious_review=bool(l.get("suspicious_review", False)),
+        suspicious_turn_cos=float(l.get("suspicious_turn_cos", -0.5)),
+        suspicious_jump_ratio=float(l.get("suspicious_jump_ratio", 3.0)),
+        suspicious_jump_floor=float(l.get("suspicious_jump_floor", 1.0)),
         min_track_length=int(l.get("min_track_length", 1)),
         division_overlay=(
             (

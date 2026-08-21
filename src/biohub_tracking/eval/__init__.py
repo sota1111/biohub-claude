@@ -13,6 +13,14 @@ from .cv import (
 )
 from .division_metric import DivisionCounts, division_counts, score_divisions
 from .edge_metric import EdgeCounts, edge_counts
+from .node_budget import (
+    OperatingPoint,
+    OperatingPointSelection,
+    gt_node_count,
+    node_budget_penalty,
+    penalty_free_pred_nodes,
+    select_adjusted_operating_point,
+)
 from .recall_metric import NodeRecall, gt_node_recall
 from .score import (
     ADJUSTMENT_ALPHA,
@@ -44,9 +52,15 @@ __all__ = [
     "NodeRecall",
     "gt_node_recall",
     "EvaluationResult",
+    "OperatingPoint",
+    "OperatingPointSelection",
     "adjusted_edge_jaccard",
     "division_counts",
     "edge_counts",
+    "gt_node_count",
+    "node_budget_penalty",
+    "penalty_free_pred_nodes",
+    "select_adjusted_operating_point",
     "evaluate",
     "evaluate_datasets",
     "inject_synthetic_division",

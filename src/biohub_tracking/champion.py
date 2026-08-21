@@ -163,6 +163,10 @@ def champion_params(
     lthr = d.get("local_threshold")
     dscorer = d.get("detect_scorer")
     rrec = d.get("recall_recovery")
+    hsel = d.get("detect_hypothesis_select")
+    hsel_low = d.get("hypothesis_mad_k_low")
+    hsel_min_track = d.get("hypothesis_min_track")
+    hsel_pool_cap = d.get("hypothesis_pool_cap")
     detect = DetectParams(
         sigma_zyx=tuple(d.get("sigma_zyx", (1.0, 3.0, 3.0))),
         nms_size_zyx=tuple(d.get("nms_size_zyx", (2, 5, 5))),
@@ -222,6 +226,14 @@ def champion_params(
             (str(rrec[0]), float(rrec[1]), float(rrec[2]))
             if rrec is not None
             else None
+        ),
+        # Ultrack multi-hypothesis detection selection by temporal support
+        # (SOT-2884); absent keys keep the champion byte-identical (flag off).
+        detect_hypothesis_select=bool(hsel) if hsel is not None else False,
+        hypothesis_mad_k_low=None if hsel_low is None else float(hsel_low),
+        hypothesis_min_track=(3 if hsel_min_track is None else int(hsel_min_track)),
+        hypothesis_pool_cap=(
+            20000 if hsel_pool_cap is None else int(hsel_pool_cap)
         ),
     )
     link = LinkParams(

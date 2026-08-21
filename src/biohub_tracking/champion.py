@@ -307,6 +307,10 @@ def champion_params(
         link_full_distance=float(
             l.get("link_full_distance", l.get("max_distance", 7.0))
         ),
+        # Bidirectional mutual-NN cycle-consistency edge gate (SOT-2910); absent
+        # keys keep the champion byte-identical (gate default off => no pruning).
+        cycle_consistency_gate=bool(l.get("cycle_consistency_gate", False)),
+        cycle_consistency_margin=float(l.get("cycle_consistency_margin", 0.0)),
         min_track_length=int(l.get("min_track_length", 1)),
         # The leading element is a ``kind`` tag; the trailing elements are the
         # kind's gate params (5 total for SOT-2818 ``nearest-head``, 7 for the

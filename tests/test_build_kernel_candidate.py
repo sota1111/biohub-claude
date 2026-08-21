@@ -8,6 +8,7 @@ via the same resolver the kernel uses — all without touching the live champion
 
 from __future__ import annotations
 
+import ast
 import importlib.util
 import json
 import shutil
@@ -68,6 +69,26 @@ def test_candidate_build_embeds_config_and_installs_it(bk, tmp_path):
         assert 'os.environ["BIOHUB_CHAMPION_CONFIG"]' in text
         # Still a valid, self-contained module.
         compile(text, str(kernel), "exec")
+        # Regression (Kaggle ERROR "name 'false' is not defined"): the embedded config
+        # must EXECUTE, not merely compile. json.dumps emits JSON booleans/null, which
+        # are NameErrors as a bare Python literal; compile() would not catch that because
+        # `false` is a syntactically valid identifier reference. Execute just the
+        # EMBEDDED_CANDIDATE_CONFIG assignment and assert real Python bools round-trip.
+        module = ast.parse(text)
+        assign = next(
+            node
+            for node in module.body
+            if isinstance(node, ast.Assign)
+            and any(
+                isinstance(t, ast.Name) and t.id == "EMBEDDED_CANDIDATE_CONFIG"
+                for t in node.targets
+            )
+        )
+        ns: dict = {}
+        exec(compile(ast.Module(body=[assign], type_ignores=[]), str(kernel), "exec"), ns)
+        embedded = ns["EMBEDDED_CANDIDATE_CONFIG"]
+        assert embedded == candidate_cfg
+        assert embedded["link"]["allow_division"] is False
         # Metadata points at a distinct (non-champion) kernel id.
         meta = json.loads((REPO_ROOT / "submit" / sub / "kernel-metadata.json").read_text())
         assert meta["id"] != bk.KERNEL_ID

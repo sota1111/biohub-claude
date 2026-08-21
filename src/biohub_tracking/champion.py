@@ -219,6 +219,39 @@ def regime_conditional_link_policy(config: dict | None = None):
     return ConditionalLinkPolicy.from_dict(block)
 
 
+def operating_point_mixture_policy(config: dict | None = None):
+    """Return the ``operating_point_mixture`` policy (SOT-2931), or ``None``.
+
+    The soft per-sequence operating-point *mixture* selects a **continuously
+    blended** linking operating point (a ``w``-weighted average of a conservative
+    and an aggressive endpoint, ``w`` a logistic function of the observable
+    density covariate) — the soft-mixture reformulation of the **hard** regime
+    label of :func:`regime_conditional_link_policy` (SOT-2922). Like the other
+    regime layers it is not a static :class:`LinkParams` knob: it is resolved
+    separately and read by the layer that has the per-sequence detection point
+    cloud in hand. The champion config carries no such block, so this returns
+    ``None`` and the champion linking path is byte-for-byte unchanged
+    (default-off). Accepts the block at the config top level or nested under
+    ``link``; an absent or non-dict value yields ``None``.
+
+    Returns a :class:`biohub_tracking.eval.regime_blend.SoftBlendPolicy` when the
+    block is present (imported lazily so the frozen champion path never pulls in
+    the eval stack).
+    """
+    if config is None:
+        config = load_champion_config()
+    block = config.get("operating_point_mixture")
+    if block is None:
+        link = config.get("link")
+        if isinstance(link, dict):
+            block = link.get("operating_point_mixture")
+    if not isinstance(block, dict):
+        return None
+    from .eval.regime_blend import SoftBlendPolicy
+
+    return SoftBlendPolicy.from_dict(block)
+
+
 def champion_params(
     config: dict | None = None,
 ) -> tuple[DetectParams, LinkParams, tuple[float, float, float]]:

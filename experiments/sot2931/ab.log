@@ -1,0 +1,29 @@
+{
+  "conditional_micro_adj": 0.6811,
+  "conditional_micro_raw": 0.7013,
+  "champion_micro_adj": 0.676,
+  "champion_micro_raw": 0.696,
+  "delta_micro_adj": 0.0051,
+  "delta_micro_raw": 0.0053,
+  "no_regression_adj": false,
+  "no_regression_raw": false,
+  "beats_champion_reference": true,
+  "per_dataset_delta_adj": {
+    "44b6_0113de3b": 0.0189,
+    "44b6_0b24845f": 0.0217,
+    "6bba_05b6850b": -0.0009,
+    "6bba_05db0fb1": 0.0091
+  }
+}
+{
+  "champion_micro_adj": 0.676,
+  "conditional_micro_adj": 0.6811,
+  "champion_macro_adj": 0.731,
+  "conditional_macro_adj": 0.7432,
+  "champion_lineage_macro_adj": 0.7351,
+  "conditional_lineage_macro_adj": 0.7491,
+  "macro_and_lineage_both_up": true
+}
+VERDICT=inconclusive conditional_micro_adj=0.6811 champion=0.676 delta_adj=0.0051 no_reg_adj=False no_reg_raw=False oracle_upper=0.6938 oracle_no_reg=True
+champion_byte_frozen=True
+wrote /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2931/ab_soft_oppoint_mixture.json

@@ -209,3 +209,82 @@ def test_champion_params_preserves_mutual_nn_seven_tuple() -> None:
     _detect, link, _scale = champion_params(cfg)
     assert link.division_overlay == MUTUAL
     assert len(link.division_overlay) == 7
+
+
+# --- SOT-2932: decoupled split-signature detector overlay ------------------
+# ("split-signature", max_distance, sibling_ratio, min_daughter_len,
+#  require_parent_track, require_primary_persist, mutual_margin,
+#  straddle_max, parent_bright_pct, daughter_bright_pct)
+SPLIT_GEOM = ("split-signature", 7.0, 2.0, 2, True, True, 0.0, 1.0, 0.0, 0.0)
+
+
+def test_split_signature_off_is_a_no_op_byte_for_byte() -> None:
+    g = _division_scenario()
+    before_edges = list(g.edges)
+    out = apply_division_overlay(g, SCALE, None, node_response={})
+    assert out is g
+    assert g.edges == before_edges
+
+
+def test_split_signature_fires_on_a_bipolar_split_geometry_only() -> None:
+    # The primary (y=-1) and dropped head (y=+1) straddle the parent: |u1+u2|=0,
+    # well under straddle_max. With no intensity gate (bright_pct=0) it fires.
+    g = _division_scenario()
+    apply_division_overlay(g, SCALE, SPLIT_GEOM, node_response=None)
+    assert g.out_degree(2) == 2
+    assert (2, 6) in g.edges
+
+
+def test_split_signature_straddle_gate_rejects_a_same_side_head() -> None:
+    # Move the second daughter to the SAME side as the primary (both y=-1): the
+    # daughters no longer straddle the parent (|u1+u2|~2), so a tight straddle_max
+    # rejects the fork even though the distance/sibling gates would accept it.
+    g = _division_scenario()
+    for nid in (6, 7, 8):
+        t, z, _y, x = g.coords[nid]
+        g.coords[nid] = (t, z, -1.0, x + 0.5)  # co-linear with the primary daughter
+    apply_division_overlay(
+        g, SCALE, ("split-signature", 7.0, 2.0, 2, True, True, 0.0, 0.5, 0.0, 0.0)
+    )
+    assert g.out_degree(2) == 1  # not bipolar -> rejected
+
+
+def test_split_signature_intensity_gate_rejects_a_dim_daughter() -> None:
+    # Bipolar geometry passes, but the dropped head is DIM in its frame (low
+    # response percentile), so a positive daughter_bright_pct rejects it.
+    g = _division_scenario()
+    # Add a bright decoy at t=3 so head 6 ranks at the bottom of its frame.
+    g.add_node(20, 3, 0, 5, 0)
+    resp = {n: 10.0 for n in g.node_ids()}
+    resp[6] = 0.0  # dropped head is the dimmest node at t=3
+    params = ("split-signature", 7.0, 2.0, 2, True, True, 0.0, 1.0, 0.0, 0.5)
+    apply_division_overlay(g, SCALE, params, node_response=resp)
+    assert g.out_degree(2) == 1  # dim head is not a credible daughter blob
+    # ...and with the response gate disabled (pct=0) the same head fires.
+    g2 = _division_scenario()
+    apply_division_overlay(
+        g2, SCALE, ("split-signature", 7.0, 2.0, 2, True, True, 0.0, 1.0, 0.0, 0.0),
+        node_response=resp,
+    )
+    assert g2.out_degree(2) == 2
+
+
+def test_split_signature_none_response_skips_intensity_gate() -> None:
+    # A positive bright_pct with node_response=None must NOT crash and must simply
+    # skip the intensity gate (pipeline path supplies no image features).
+    g = _division_scenario()
+    apply_division_overlay(
+        g, SCALE, ("split-signature", 7.0, 2.0, 2, True, True, 0.0, 1.0, 0.9, 0.9),
+        node_response=None,
+    )
+    assert g.out_degree(2) == 2  # geometry-only fallback still fires
+
+
+def test_champion_params_preserves_split_signature_ten_tuple() -> None:
+    from biohub_tracking.champion import champion_params, load_champion_config
+
+    cfg = load_champion_config()
+    cfg = {**cfg, "link": {**cfg["link"], "division_overlay": list(SPLIT_GEOM)}}
+    _detect, link, _scale = champion_params(cfg)
+    assert link.division_overlay == SPLIT_GEOM
+    assert len(link.division_overlay) == 10

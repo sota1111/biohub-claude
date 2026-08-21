@@ -1,0 +1,57 @@
+01:15:22 champion CV (classical DoG+NMS, harness evaluate_cv)...
+01:17:20 champion micro_adj=0.6649 (ref 0.6649)
+01:17:20 naive CV at committed threshold=0.5 (weights /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2848/weights)...
+01:17:35   [naive|44b6_0113de3b] thr=0.5 det=0 pred_nodes=0 tp=0 fp=0 fn=50 adj=0.0000 (15.5s)
+01:17:51   [naive|44b6_0b24845f] thr=0.5 det=614 pred_nodes=133 tp=0 fp=0 fn=49 adj=0.0000 (15.3s)
+01:18:06   [naive|6bba_05b6850b] thr=0.5 det=94 pred_nodes=41 tp=0 fp=0 fn=845 adj=0.0000 (15.4s)
+01:18:22   [naive|6bba_05db0fb1] thr=0.5 det=13 pred_nodes=0 tp=0 fp=0 fn=1183 adj=0.0000 (15.7s)
+01:18:22 naive micro_adj=0.0
+01:18:22 naive diagnostic sweep threshold=0.3...
+01:18:37   [naive|44b6_0113de3b] thr=0.3 det=14827 pred_nodes=13110 tp=41 fp=2 fn=9 adj=0.8272 (15.6s)
+01:18:53   [naive|44b6_0b24845f] thr=0.3 det=8062 pred_nodes=3809 tp=9 fp=0 fn=40 adj=0.1999 (15.3s)
+01:19:08   [naive|6bba_05b6850b] thr=0.3 det=493 pred_nodes=327 tp=34 fp=0 fn=811 adj=0.0441 (15.5s)
+01:19:24   [naive|6bba_05db0fb1] thr=0.3 det=427 pred_nodes=179 tp=0 fp=0 fn=1183 adj=0.0000 (15.7s)
+01:19:24 naive diagnostic sweep threshold=0.7...
+01:19:39   [naive|44b6_0113de3b] thr=0.7 det=0 pred_nodes=0 tp=0 fp=0 fn=50 adj=0.0000 (15.5s)
+01:19:55   [naive|44b6_0b24845f] thr=0.7 det=0 pred_nodes=0 tp=0 fp=0 fn=49 adj=0.0000 (15.3s)
+01:20:10   [naive|6bba_05b6850b] thr=0.7 det=0 pred_nodes=0 tp=0 fp=0 fn=845 adj=0.0000 (15.5s)
+01:20:26   [naive|6bba_05db0fb1] thr=0.7 det=0 pred_nodes=0 tp=0 fp=0 fn=1183 adj=0.0000 (15.7s)
+01:20:26 nnpu CV at committed threshold=0.5 (weights /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2862a/weights/nnpu)...
+01:20:41   [nnpu|44b6_0113de3b] thr=0.5 det=11784 pred_nodes=10025 tp=36 fp=2 fn=14 adj=0.7346 (15.2s)
+01:20:57   [nnpu|44b6_0b24845f] thr=0.5 det=4490 pred_nodes=2629 tp=12 fp=3 fn=37 adj=0.2520 (15.7s)
+01:21:12   [nnpu|6bba_05b6850b] thr=0.5 det=2622 pred_nodes=2247 tp=138 fp=18 fn=707 adj=0.1703 (15.1s)
+01:21:28   [nnpu|6bba_05db0fb1] thr=0.5 det=4179 pred_nodes=2723 tp=51 fp=17 fn=1132 adj=0.0466 (15.6s)
+01:21:28 nnpu micro_adj=0.1173
+01:21:28 nnpu diagnostic sweep threshold=0.3...
+01:21:43   [nnpu|44b6_0113de3b] thr=0.3 det=16098 pred_nodes=14666 tp=43 fp=5 fn=7 adj=0.8155 (15.3s)
+01:21:59   [nnpu|44b6_0b24845f] thr=0.3 det=7620 pred_nodes=4660 tp=23 fp=3 fn=26 adj=0.4803 (15.7s)
+01:22:14   [nnpu|6bba_05b6850b] thr=0.3 det=3635 pred_nodes=3206 tp=238 fp=38 fn=607 adj=0.2829 (15.1s)
+01:22:29   [nnpu|6bba_05db0fb1] thr=0.3 det=6681 pred_nodes=4462 tp=93 fp=28 fn=1090 adj=0.0840 (15.6s)
+01:22:29 nnpu diagnostic sweep threshold=0.7...
+01:22:45   [nnpu|44b6_0113de3b] thr=0.7 det=7519 pred_nodes=5767 tp=22 fp=1 fn=28 adj=0.4649 (15.2s)
+01:23:00   [nnpu|44b6_0b24845f] thr=0.7 det=2453 pred_nodes=1349 tp=3 fp=0 fn=46 adj=0.0671 (15.7s)
+01:23:15   [nnpu|6bba_05b6850b] thr=0.7 det=1801 pred_nodes=1456 tp=71 fp=7 fn=774 adj=0.0898 (15.1s)
+01:23:31   [nnpu|6bba_05db0fb1] thr=0.7 det=2573 pred_nodes=1660 tp=19 fp=10 fn=1164 adj=0.0175 (15.7s)
+01:23:31 cellsparse CV at committed threshold=0.5 (weights /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2862a/weights/cellsparse)...
+01:23:47   [cellsparse|44b6_0113de3b] thr=0.5 det=16218 pred_nodes=14493 tp=38 fp=2 fn=12 adj=0.7627 (15.8s)
+01:24:02   [cellsparse|44b6_0b24845f] thr=0.5 det=3693 pred_nodes=1447 tp=0 fp=0 fn=49 adj=0.0000 (15.4s)
+01:24:19   [cellsparse|6bba_05b6850b] thr=0.5 det=4423 pred_nodes=4043 tp=534 fp=72 fn=311 adj=0.6036 (16.1s)
+01:24:34   [cellsparse|6bba_05db0fb1] thr=0.5 det=1518 pred_nodes=671 tp=12 fp=1 fn=1171 adj=0.0111 (15.7s)
+01:24:34 cellsparse micro_adj=0.2753
+01:24:34 cellsparse diagnostic sweep threshold=0.3...
+01:24:50   [cellsparse|44b6_0113de3b] thr=0.3 det=23724 pred_nodes=22963 tp=46 fp=2 fn=4 adj=0.8942 (16.0s)
+01:25:07   [cellsparse|44b6_0b24845f] thr=0.3 det=33135 pred_nodes=24693 tp=13 fp=1 fn=36 adj=0.2664 (16.6s)
+01:25:24   [cellsparse|6bba_05b6850b] thr=0.3 det=6240 pred_nodes=5680 tp=684 fp=179 fn=161 adj=0.6751 (16.9s)
+01:25:40   [cellsparse|6bba_05db0fb1] thr=0.3 det=25112 pred_nodes=18932 tp=286 fp=67 fn=897 adj=0.2455 (16.7s)
+01:25:40 cellsparse diagnostic sweep threshold=0.7...
+01:25:56   [cellsparse|44b6_0113de3b] thr=0.7 det=0 pred_nodes=0 tp=0 fp=0 fn=50 adj=0.0000 (15.7s)
+01:26:12   [cellsparse|44b6_0b24845f] thr=0.7 det=20 pred_nodes=4 tp=0 fp=0 fn=49 adj=0.0000 (15.4s)
+01:26:28   [cellsparse|6bba_05b6850b] thr=0.7 det=2129 pred_nodes=1863 tp=163 fp=8 fn=682 adj=0.2046 (16.1s)
+01:26:43   [cellsparse|6bba_05db0fb1] thr=0.7 det=1 pred_nodes=0 tp=0 fp=0 fn=1183 adj=0.0000 (15.6s)
+01:26:43 [naive] decision=REJECT micro_delta=-0.6649 no_regression=False
+01:26:43 [nnpu] decision=REJECT micro_delta=-0.5476 no_regression=False
+01:26:43 [cellsparse] decision=REJECT micro_delta=-0.3896 no_regression=False
+01:26:43 nnpu_vs_naive micro_delta=+0.1173
+01:26:43 OVERALL=REJECT
+01:26:43 wrote /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2862a/screen_pu_ab.json
+=== AB_DONE ===

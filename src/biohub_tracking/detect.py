@@ -304,6 +304,103 @@ class DetectParams:
     ``recall_extra_kept``. ``None`` runs the champion NMS path unchanged — exact
     byte-identical reproduction of the pre-SOT-2873 detector (default-off)."""
 
+    detect_hypothesis_select: bool = False
+    """Optional **Ultrack-style multi-hypothesis detection selection by temporal
+    support** (SOT-2884). A *series-level* detection re-anchor (wired in
+    :func:`biohub_tracking.pipeline.run_pipeline`, not in the per-volume
+    :func:`detect_centroids`, so with the flag off every per-frame call is
+    byte-for-byte the champion).
+
+    Ultrack's core principle is *not to commit early to one segmentation*: keep a
+    pool of candidate hypotheses and let **temporal consistency** choose the final
+    mutually-exclusive detection set. This knob ports that to the point-detector's
+    **detection stage**. Instead of the champion's single strict robust-z cutoff
+    (``median + mad_k·1.4826·MAD``), it builds a **threshold-ladder candidate pool**
+    per frame (local maxima above the *lower* gate
+    ``median + hypothesis_mad_k_low·1.4826·MAD``, a superset of the champion peaks —
+    see :func:`candidate_pool`), links the whole pool across frames with the
+    champion motion cost, and keeps only candidates whose linked track (weakly-
+    connected component) spans at least :attr:`hypothesis_min_track` nodes. The
+    surviving disjoint detections are then re-linked with the champion linker.
+
+    **Mechanism distinct from the rejected detection axes:** unlike SOT-2774
+    (multi-scale DoG, one operating point via a per-voxel scale-union max) this is a
+    *threshold ladder* resolved by cross-frame consistency, not a single fused
+    threshold; unlike SOT-2873 (``recall_recovery``, a *bounded unconditional*
+    strongest-first sub-threshold tier) a sub-threshold candidate is admitted **only
+    when it earns temporal support** (links into a length-≥L track), and unsupported
+    sub-threshold peaks are dropped rather than blindly added. ``False`` (default,
+    absent config key) keeps the champion detect-per-frame path byte-for-byte."""
+
+    hypothesis_mad_k_low: float | None = None
+    """Lower robust-z gate for the multi-hypothesis candidate pool (SOT-2884).
+
+    The pool keeps local maxima with ``response > median + hypothesis_mad_k_low ·
+    1.4826 · MAD`` — with ``hypothesis_mad_k_low < mad_k`` the pool is strictly a
+    superset of the champion's strict-cutoff peaks (the extra, dimmer candidates are
+    exactly the ones temporal support then accepts or rejects). ``None`` defaults to
+    ``mad_k - 1.0``. Only consulted when :attr:`detect_hypothesis_select` is set."""
+
+    hypothesis_min_track: int = 3
+    """Temporal-support threshold ``L`` (SOT-2884): a pool candidate survives only if
+    its linked track (weakly-connected component of the pool linking) spans at least
+    this many nodes. Only consulted when :attr:`detect_hypothesis_select` is set."""
+
+    hypothesis_pool_cap: int = 20000
+    """Safety cap on the per-frame pool size (SOT-2884): keep at most this many
+    strongest (brightest-first) candidates per frame so the dense-family pool linking
+    stays within the LAP's dense-cost-matrix budget. Only consulted when
+    :attr:`detect_hypothesis_select` is set."""
+
+
+def candidate_pool(
+    volume: np.ndarray, params: "DetectParams"
+) -> tuple[np.ndarray, np.ndarray]:
+    """Multi-hypothesis candidate pool for one ``(Z, Y, X)`` volume (SOT-2884).
+
+    Returns ``(coords, response_values)`` — the NMS local maxima of the champion
+    detection **response** above the *lower* robust-z gate ``median +
+    hypothesis_mad_k_low · 1.4826 · MAD`` (a superset of the champion's strict
+    ``mad_k`` peaks), ordered brightest-first and capped to
+    :attr:`DetectParams.hypothesis_pool_cap`. This is the Ultrack "do not commit to
+    one threshold" hypothesis pool from which
+    :func:`biohub_tracking.pipeline.run_pipeline` selects the final detections by
+    temporal support. Requires the adaptive ``mad_k`` path (raises otherwise);
+    deterministic and numpy/scipy-only (Kaggle-kernel safe).
+    """
+    if params.mad_k is None:
+        raise ValueError("detect_hypothesis_select requires the adaptive mad_k threshold")
+    vol = np.asarray(volume, dtype=np.float32)
+    vol = _normalize_intensity(vol, params.intensity_norm)
+    response = _compute_response(vol, params)
+
+    median = float(np.median(response))
+    mad = float(np.median(np.abs(response - median)))
+    robust_sigma = 1.4826 * mad
+    mad_k_low = (
+        float(params.hypothesis_mad_k_low)
+        if params.hypothesis_mad_k_low is not None
+        else float(params.mad_k) - 1.0
+    )
+    low_gate = max(median + mad_k_low * robust_sigma, params.min_threshold)
+
+    footprint = np.ones([2 * s + 1 for s in params.nms_size_zyx], dtype=bool)
+    local_max = ndi.maximum_filter(response, footprint=footprint)
+    peak_mask = (response == local_max) & (response > low_gate)
+
+    coords = np.argwhere(peak_mask).astype(np.float64)
+    if coords.size == 0:
+        return coords.reshape(0, 3), np.zeros(0, dtype=np.float64)
+    strengths = response[peak_mask]
+    order = np.argsort(strengths)[::-1]
+    coords = coords[order]
+    strengths = strengths[order]
+    cap = int(params.hypothesis_pool_cap)
+    if cap > 0 and coords.shape[0] > cap:
+        coords = coords[:cap]
+        strengths = strengths[:cap]
+    return coords, strengths.astype(np.float64, copy=False)
+
 
 def _hessian_blobness_mask(
     vol: np.ndarray,

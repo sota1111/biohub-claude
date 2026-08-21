@@ -1,0 +1,11 @@
+BASELINE micro_adj=0.6649
+  44b6_0113de3b    TP=   47 FP=    2 FN=    3 adj=0.8895 pred_nodes=29844
+  44b6_0b24845f    TP=   37 FP=    5 FN=   12 adj=0.6817 pred_nodes=34485
+  6bba_05b6850b    TP=  651 FP=  215 FN=  194 adj=0.5700 pred_nodes=10938
+  6bba_05db0fb1    TP=  973 FP=  148 FN=  210 adj=0.7310 pred_nodes=69784
+
+VARIANT low=2.5 L=3  micro_adj=0.6652 (base 0.6649, +0.0003)  [REGRESSED:['44b6_0113de3b', '6bba_05b6850b']]  (121s)
+  44b6_0113de3b    TP=   47(+0) FP=    2(+0) FN=    3(+0) adj=0.8842(-0.0053) pred_nodes=31344(+1500)  <-- REGRESS
+  44b6_0b24845f    TP=   38(+1) FP=    5(+0) FN=   11(-1) adj=0.6883(+0.0066) pred_nodes=39985(+5500)
+  6bba_05b6850b    TP=  651(+0) FP=  215(+0) FN=  194(+0) adj=0.5531(-0.0169) pred_nodes=12687(+1749)  <-- REGRESS
+  6bba_05db0fb1    TP=  995(+22) FP=  147(-1) FN=  188(-22) adj=0.7450(+0.0140) pred_nodes=72686(+2902)

@@ -1,0 +1,94 @@
+<frozen runpy>:128: RuntimeWarning: 'biohub_tracking.eval.cv' found in sys.modules after import of package 'biohub_tracking.eval', but prior to execution of 'biohub_tracking.eval.cv'; this may result in unpredictable behaviour
+{
+  "micro_adj_edge_jaccard": 0.6649,
+  "micro_edge_jaccard": 0.684,
+  "macro_adj_edge_jaccard": 0.718,
+  "lineage_macro_adj": 0.7216,
+  "division_jaccard": 0.0,
+  "division_measurable": true,
+  "division_term": 0.0,
+  "score": 0.6649,
+  "by_lineage": {
+    "44b6": 0.7836,
+    "6bba": 0.6596
+  },
+  "by_lineage_weight_share": {
+    "44b6": 0.0425,
+    "6bba": 0.9575
+  },
+  "representativeness": {
+    "dominant_lineage": "6bba",
+    "dominant_lineage_weight_share": 0.9575,
+    "micro_lineage_macro_gap": 0.0567,
+    "family_mix_sensitive": true,
+    "public_lb_best": 0.624,
+    "cv_public_order_consistent": true,
+    "cv_public_same_magnitude": true
+  },
+  "per_dataset": [
+    {
+      "name": "44b6_0113de3b",
+      "lineage": "44b6",
+      "edge_tp": 47,
+      "edge_fp": 2,
+      "edge_fn": 3,
+      "edge_jaccard": 0.9038,
+      "adjusted_edge_jaccard": 0.8895,
+      "division_tp": 0,
+      "division_fp": 0,
+      "division_fn": 0,
+      "pred_nodes": 29844,
+      "n_true": 25755.0,
+      "weight": 52
+    },
+    {
+      "name": "44b6_0b24845f",
+      "lineage": "44b6",
+      "edge_tp": 37,
+      "edge_fp": 5,
+      "edge_fn": 12,
+      "edge_jaccard": 0.6852,
+      "adjusted_edge_jaccard": 0.6817,
+      "division_tp": 0,
+      "division_fp": 0,
+      "division_fn": 0,
+      "pred_nodes": 34485,
+      "n_true": 32795.0,
+      "weight": 54
+    },
+    {
+      "name": "6bba_05b6850b",
+      "lineage": "6bba",
+      "edge_tp": 651,
+      "edge_fp": 215,
+      "edge_fn": 194,
+      "edge_jaccard": 0.6142,
+      "adjusted_edge_jaccard": 0.57,
+      "division_tp": 0,
+      "division_fp": 0,
+      "division_fn": 0,
+      "pred_nodes": 10938,
+      "n_true": 6362.0,
+      "weight": 1060
+    },
+    {
+      "name": "6bba_05db0fb1",
+      "lineage": "6bba",
+      "edge_tp": 973,
+      "edge_fp": 148,
+      "edge_fn": 210,
+      "edge_jaccard": 0.731,
+      "adjusted_edge_jaccard": 0.731,
+      "division_tp": 0,
+      "division_fp": 0,
+      "division_fn": 3,
+      "pred_nodes": 69784,
+      "n_true": 69800.0,
+      "weight": 1331
+    }
+  ],
+  "champion_reference_micro_adj": 0.6649,
+  "champion_reference_score": 0.6649
+}
+wrote docs/ai/sot2884/champion_baseline.json
+champion CV reproduced: micro-adj 0.6649 == 0.6649 (delta 0.0000); full score 0.6649 == 0.6649 (delta 0.0000, division_term 0.0000)

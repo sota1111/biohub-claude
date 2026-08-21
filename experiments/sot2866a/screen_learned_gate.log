@@ -1,0 +1,18 @@
+[detect] 44b6_0113de3b: 29.9s dets=32147 train_pairs=76 pos=49 expanded_pos(raw>max)=1
+[detect] 44b6_0b24845f: 32.7s dets=42080 train_pairs=48 pos=37 expanded_pos(raw>max)=0
+[detect] 6bba_05b6850b: 29.8s dets=13376 train_pairs=1046 pos=710 expanded_pos(raw>max)=8
+[detect] 6bba_05db0fb1: 42.2s dets=73953 train_pairs=1668 pos=1020 expanded_pos(raw>max)=10
+[champion] micro_adj=0.6649 score=0.6649
+[motion_rerank] score=0.6670 d=+0.0021
+[motion_gate] score=0.6760 d=+0.0111 no_reg=True
+[lofo] mean held-out p_edge gap=0.4928
+[learned_gate@0.5] score=0.6684 d=+0.0035 dTP=+5 dFP=-7 dFN=-5 no_reg=False promotable=False
+[learned_gate@0.6] score=0.6677 d=+0.0028 dTP=+2 dFP=-8 dFN=-2 no_reg=False promotable=False
+[learned_gate@0.7] score=0.6670 d=+0.0021 dTP=+0 dFP=-8 dFN=+0 no_reg=False promotable=False
+[learned_gate@0.8] score=0.6670 d=+0.0021 dTP=+0 dFP=-8 dFN=+0 no_reg=False promotable=False
+[learned_gate@0.9] score=0.6670 d=+0.0021 dTP=+0 dFP=-8 dFN=+0 no_reg=False promotable=False
+
+wrote /workspaces/ai-dev-control-plane/.targets/biohub-claude/experiments/sot2866a/screen_learned_gate.json
+champion score=0.6649 sanity_reproduced=True
+mean held-out p_edge gap=0.4928
+NO PROMOTABLE learned_gate. Best learned_gate by score: learned_gate@0.5 score=0.6684 (delta +0.0035) no_reg=False edge_delta={'d_tp': 5, 'd_fp': -7, 'd_fn': -5}

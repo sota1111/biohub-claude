@@ -537,6 +537,47 @@ class LinkParams:
     is ``max(|d1|, suspicious_jump_floor)``. Only used when
     :attr:`suspicious_review` is set."""
 
+    link_two_pass: bool = False
+    """Two-pass tight-then-full-gate Hungarian linking (SOT-2899, default-off).
+
+    Ported from the genuine public **classical baseline** (xiaoleilian, LB 0.720,
+    https://www.kaggle.com/code/xiaoleilian/biohub-cell-tracking-classical-baseline,
+    which links "v4: two-pass — tight gate first, then full gate for leftovers"):
+    a single global optimal assignment commits early to a *distractor steal* — in a
+    dense volume it may assign a source to a merely-near wrong neighbour, then have
+    no successor left for the cell that truly moved there. The two-pass structure
+    instead solves the assignment in **two stages**:
+
+    * **Pass 1 (tight gate).** An optimal one-to-one assignment within the champion's
+      :attr:`max_distance` (the tight gate — cells move ``<= 7 µm`` at p99 while
+      neighbours are ``>= 12 µm`` apart, so this pass makes only high-confidence
+      links and cannot steal across the neighbour spacing).
+    * **Pass 2 (full gate).** The still-**unmatched** sources and destinations only
+      are re-linked with an optimal assignment out to :attr:`link_full_distance`
+      (``>= max_distance``), recovering the rare fast-moving cell whose real
+      successor sits just beyond the tight gate (an FN edge) — without ever letting
+      the wider gate perturb a Pass-1 high-confidence link.
+
+    This is a pure **feasibility-structure** change to the primary ``t -> t+1``
+    assignment, mechanistically distinct from every rejected linking axis: it is
+    not a cost re-rank (appearance SOT-2829 / learned-edge SOT-2841), not a
+    cross-frame bridge (gap-closing SOT-2763 / gap-recover SOT-2849), not a global
+    birth/death flow (SOT-2830), not a post-hoc cut (suspicious-review SOT-2895),
+    and not motion prediction (SOT-2864). ``False`` (default), or
+    ``link_full_distance <= max_distance`` (Pass 2 is then a no-op), reproduces the
+    memoryless single-pass champion **byte-for-byte**. Active only on the per-frame
+    champion path (ignored when a motion / appearance / learned-edge / windowed /
+    global-flow lever is engaged, whose own feasible sets already differ)."""
+
+    link_full_distance: float = DEFAULT_MAX_DISTANCE
+    """Pass-2 (leftover-recovery) gate for :attr:`link_two_pass`, in microns.
+
+    Only used when :attr:`link_two_pass` is set. The second assignment re-links the
+    Pass-1 leftovers out to this scaled distance; it must be ``> max_distance`` to
+    have any effect (``<= max_distance`` makes Pass 2 a strict no-op, reproducing
+    the champion byte-for-byte). The classical baseline used a full gate ``~1.3×`` its
+    tight gate (11 µm over 7 µm)."""
+
     min_track_length: int = 1
     """Drop weakly-connected track fragments with fewer than this many nodes
     (SOT-2369, ported from the reference tracker's ``FILTER_SHORT_TRACKS``).
@@ -990,6 +1031,40 @@ def _assign(
     cost = np.where(feasible, cost_base, big)
     rows, cols = linear_sum_assignment(cost)
     return [(int(r), int(c)) for r, c in zip(rows, cols) if bool(feasible[r, c])]
+
+
+def _two_pass_assign(
+    src: np.ndarray,
+    dst: np.ndarray,
+    scale: np.ndarray,
+    tight_gate: float,
+    full_gate: float,
+) -> list[tuple[int, int]]:
+    """Classical-baseline two-pass Hungarian assignment (SOT-2899).
+
+    Pass 1 solves the optimal one-to-one assignment within ``tight_gate`` microns
+    (the champion :attr:`~LinkParams.max_distance`), making only high-confidence
+    links. Pass 2 re-solves an optimal assignment on the **still-unmatched** sources
+    and destinations only, out to ``full_gate`` microns, recovering a fast cell whose
+    real successor sits just beyond the tight gate without perturbing any Pass-1 link.
+
+    Returns ``(src_index, dst_index)`` pairs in the original array indexing. With
+    ``full_gate <= tight_gate`` (or no leftovers) Pass 2 adds nothing, so the result
+    equals the single-pass :func:`_assign` at ``tight_gate`` — byte-for-byte champion.
+    """
+    pairs = _assign(src, dst, scale, tight_gate)
+    if full_gate <= tight_gate or len(src) == 0 or len(dst) == 0:
+        return pairs
+    matched_src = {i for i, _ in pairs}
+    matched_dst = {j for _, j in pairs}
+    free_src = [i for i in range(len(src)) if i not in matched_src]
+    free_dst = [j for j in range(len(dst)) if j not in matched_dst]
+    if not free_src or not free_dst:
+        return pairs
+    sub = _assign(src[free_src], dst[free_dst], scale, full_gate)
+    for a, b in sub:
+        pairs.append((free_src[a], free_dst[b]))
+    return pairs
 
 
 def _motion_field_predict(
@@ -1480,6 +1555,15 @@ def link_centroids(
                 edge_gate_expand=params.edge_gate_expand,
                 edge_gate_admit_prob=params.edge_gate_admit_prob,
                 edge_gate_expand_ratio=params.edge_gate_expand_ratio,
+            )
+        elif params.link_two_pass and not use_desc:
+            # Classical-baseline two-pass tight-then-full-gate assignment (SOT-2899):
+            # a pure feasibility-structure change on the memoryless champion path.
+            # Pass 1 = the champion's tight max_distance assignment; Pass 2 recovers
+            # leftovers out to link_full_distance. link_full_distance <= max_distance
+            # (default) makes Pass 2 a no-op => champion byte-for-byte.
+            pairs = _two_pass_assign(
+                src, dst, scale_arr, params.max_distance, params.link_full_distance
             )
         else:
             pairs = _assign(

@@ -187,6 +187,38 @@ def regime_conditional_policy(config: dict | None = None):
     return ConditionalPolicy.from_dict(block)
 
 
+def regime_conditional_link_policy(config: dict | None = None):
+    """Return the ``regime_conditional_link`` policy (SOT-2922), or ``None``.
+
+    The regime-conditional *linking* operating point selects the linking levers
+    (``motion_gain`` + mutual-NN ``cycle_consistency_gate``/``margin``) **per
+    sequence** from the observable density covariate (SOT-2921), so — like
+    :func:`regime_conditional_policy` (detection side, SOT-2923) — it is not a
+    static :class:`LinkParams` knob. It is resolved separately and read by the
+    submission/pipeline layer that has the per-sequence detection point cloud in
+    hand. The champion config carries no such block, so this returns ``None`` and
+    the classical champion linking path is byte-for-byte unchanged (default-off).
+    Accepts the block at the config top level or nested under ``link``; an absent
+    or non-dict value yields ``None``.
+
+    Returns a :class:`biohub_tracking.eval.regime_link.ConditionalLinkPolicy` when
+    the block is present (imported lazily so the frozen champion path never pulls
+    in the eval stack).
+    """
+    if config is None:
+        config = load_champion_config()
+    block = config.get("regime_conditional_link")
+    if block is None:
+        link = config.get("link")
+        if isinstance(link, dict):
+            block = link.get("regime_conditional_link")
+    if not isinstance(block, dict):
+        return None
+    from .eval.regime_link import ConditionalLinkPolicy
+
+    return ConditionalLinkPolicy.from_dict(block)
+
+
 def champion_params(
     config: dict | None = None,
 ) -> tuple[DetectParams, LinkParams, tuple[float, float, float]]:

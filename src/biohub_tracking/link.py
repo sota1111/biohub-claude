@@ -188,6 +188,80 @@ class LinkParams:
     posed on nearly-collinear neighbourhoods; larger values shrink the fit toward the
     local mean translation."""
 
+    kalman_gate: bool = False
+    """Per-track constant-velocity Kalman state + Mahalanobis LAP gate (SOT-2920).
+
+    ``False`` (default, absent key) reproduces the memoryless nearest-neighbour /
+    motion-field champion **byte-for-byte**. When set, the ``t -> t+1`` linking runs a
+    dedicated sequential path (:func:`_kalman_link`) that keeps, **per track**, a
+    constant-velocity Kalman filter (state ``[z, y, x, vz, vy, vx]`` in scaled microns).
+    Each track predicts its next position ``mu = H·F·state`` and the *innovation
+    covariance* ``S = H·(F·P·Fᵀ + Q)·Hᵀ + R``; the assignment cost is the
+    **Mahalanobis** distance ``d_M(z, mu, S) = sqrt((z-mu)ᵀ S⁻¹ (z-mu))`` and the gate is
+    ``d_M² <= :attr:`kalman_gate_chi2``` **intersected** with the champion's raw
+    ``<= :attr:`max_distance``` Euclidean cap (so the gate can only *tighten/re-weight*
+    the champion feasible set — never admit a new long-range, metric-invalid edge).
+
+    **Adaptivity — the genuinely new signal.** The 7 µm Euclidean gate is a single
+    fixed radius for every track. Here the gate is normalised by each track's own
+    innovation covariance ``S``: a track with a well-established velocity has small ``S``
+    and so tightly prefers the detection it is predicted to drift toward (rejecting a
+    merely-near distractor), while a fresh / history-less track has an inflated ``S``
+    (:attr:`kalman_init_vel_var`) and so gates ~isotropically like the Euclidean champion.
+
+    **Distinct mechanism** from every prior linking axis (evaluated as a **single axis**,
+    with :attr:`motion_model_link` **OFF**, so its contribution is separated from the
+    champion's global smoothed motion field): the SOT-2864 field
+    (:attr:`motion_model_link`) diffuses a *single global* Gaussian-smoothed translation
+    estimated within the frame pair, and the rejected SOT-2911 local-affine
+    (:attr:`local_affine_predict`) fits a spatial *velocity gradient* from neighbour
+    displacements — **both are spatial, history-free** fields shared across cells. This
+    instead carries each track's **own temporal (z,y,x,v) state** across frames and, uniquely
+    among these axes, forms an *anisotropic, uncertainty-normalised* Mahalanobis gate from
+    the propagated covariance rather than a fixed Euclidean radius. It is also richer than
+    the memoryless-cell :attr:`velocity_gain` damped extrapolation (SOT-2369), which has no
+    covariance and no per-track gate. Pure numpy/scipy, CPU, offline, deterministic."""
+
+    kalman_process_noise: float = 1.0
+    """Process-noise scale ``q`` (scaled microns) of the CV Kalman filter (SOT-2920).
+
+    Only used when :attr:`kalman_gate` is set. Builds the discrete white-noise-
+    acceleration ``Q = q² · [[¼I, ½I],[½I, I]]`` (dt=1). Larger ``q`` inflates the
+    predicted covariance ``S`` → a wider, softer Mahalanobis gate that trusts the
+    constant-velocity prediction less (approaching the Euclidean champion); smaller ``q``
+    trusts the motion model more (a tighter, more selective gate)."""
+
+    kalman_obs_noise: float = 1.0
+    """Observation-noise std ``r`` (scaled microns) of the CV Kalman filter (SOT-2920).
+
+    Only used when :attr:`kalman_gate` is set. Sets the measurement covariance
+    ``R = r²·I`` added to the innovation covariance ``S`` and used in the Kalman update
+    gain. Larger ``r`` down-weights each detection (smoother velocity estimate, wider
+    gate); must be ``> 0`` so ``S`` is always positive-definite / invertible."""
+
+    kalman_gate_chi2: float = float("inf")
+    """Mahalanobis² gate threshold (χ², 3 DOF) for the CV Kalman path (SOT-2920).
+
+    Only consulted when :attr:`kalman_gate` is set. A ``t -> t+1`` pair is admitted only
+    when its squared Mahalanobis distance ``d_M² <= kalman_gate_chi2`` **and** its raw
+    scaled distance ``<= :attr:`max_distance``` (the intersection keeps the champion's
+    hard 7 µm cap, so this can only restrict/re-rank, never admit a long-range edge).
+    ``inf`` (default) applies no hard Mahalanobis rejection — the covariance only
+    *re-weights* the cost within the Euclidean feasible set. Finite values near the χ²
+    quantiles (e.g. ``7.815`` = 0.95, ``11.345`` = 0.99) additionally drop
+    motion-inconsistent (FP-prone) successors."""
+
+    kalman_init_pos_var: float = 1.0
+    """Initial position variance (scaled microns²) for a fresh track's Kalman state
+    (SOT-2920). Only used when :attr:`kalman_gate` is set."""
+
+    kalman_init_vel_var: float = 100.0
+    """Initial *velocity* variance (scaled microns²) for a fresh track's Kalman state
+    (SOT-2920). Only used when :attr:`kalman_gate` is set. Large by default so a
+    history-less track's first-step innovation covariance is dominated by position/obs
+    noise and its Mahalanobis gate is ~isotropic (≈ the Euclidean champion) until the
+    filter has seen enough steps to estimate a confident velocity."""
+
     link_consistency_gate: bool = False
     """Ultrack-style bidirectional forward↔backward motion-consistency gate (SOT-2883).
 
@@ -1611,6 +1685,98 @@ def _window_link(
             )
 
 
+def _kalman_link(
+    graph: TrackingGraph,
+    detections: dict[int, np.ndarray],
+    ids_by_t: dict[int, list[int]],
+    scale_arr: np.ndarray,
+    params: LinkParams,
+) -> None:
+    """Per-track constant-velocity Kalman gating for the ``t -> t+1`` link (SOT-2920).
+
+    Sequentially over consecutive-frame transitions, each track carries a
+    constant-velocity Kalman filter (state ``[z, y, x, vz, vy, vx]`` in **scaled
+    microns**). For the current source frame every track predicts its next position
+    ``mu`` and *innovation covariance* ``S`` (a history-less source is initialised with a
+    large :attr:`~LinkParams.kalman_init_vel_var`, so its gate is ~isotropic like the
+    Euclidean champion). The assignment cost is the **Mahalanobis** distance
+    ``sqrt((z-mu)ᵀ S⁻¹ (z-mu))`` and the feasibility gate is
+    ``d_M² <= kalman_gate_chi2`` **intersected** with the champion's raw
+    ``<= max_distance`` Euclidean cap — a pure restriction/re-rank of the champion
+    feasible set (never admits a new long-range edge). Matched tracks are Kalman-updated
+    and carried to the destination frame; unmatched destinations start fresh tracks.
+
+    Adds only consecutive ``t -> t+1`` edges (division / gap knobs are inactive on this
+    path, matching the champion's ``allow_division=false``); short-track pruning, the
+    suspicious-review gate and the division overlay run afterwards in
+    :func:`link_centroids` exactly as on the global/window paths. Pure numpy/scipy, CPU,
+    offline, deterministic; mutates *graph* in place.
+    """
+    times = sorted(detections)
+    F = np.eye(6)
+    F[0, 3] = F[1, 4] = F[2, 5] = 1.0  # dt = 1 constant-velocity transition
+    I3 = np.eye(3)
+    I6 = np.eye(6)
+    H = np.zeros((3, 6))
+    H[0, 0] = H[1, 1] = H[2, 2] = 1.0  # observe position only
+    q = float(params.kalman_process_noise)
+    r = max(float(params.kalman_obs_noise), 1e-9)
+    Q = q * q * np.block([[0.25 * I3, 0.5 * I3], [0.5 * I3, I3]])
+    R = r * r * I3
+    P0 = np.zeros((6, 6))
+    P0[:3, :3] = float(params.kalman_init_pos_var) * I3
+    P0[3:, 3:] = float(params.kalman_init_vel_var) * I3
+    chi2 = float(params.kalman_gate_chi2)
+    max_d = float(params.max_distance)
+
+    # carried[i] = (x[6], P[6,6]) for the track occupying source-index i of THIS frame.
+    carried: dict[int, tuple[np.ndarray, np.ndarray]] = {}
+    for t_a, t_b in zip(times, times[1:]):
+        src = np.asarray(detections[t_a], dtype=float)
+        dst = np.asarray(detections[t_b], dtype=float)
+        ns, nd = len(src), len(dst)
+        if t_b != t_a + 1 or ns == 0 or nd == 0:
+            carried = {}  # temporal break: next consecutive frame starts fresh tracks
+            continue
+        src_s = src * scale_arr
+        dst_s = dst * scale_arr
+        # Assemble per-source Kalman state: fresh init (zero velocity, inflated P0)
+        # overwritten by any track carried in from the previous transition.
+        x = np.zeros((ns, 6))
+        x[:, :3] = src_s
+        P = np.repeat(P0[None, :, :], ns, axis=0)
+        for i, (xi, Pi) in carried.items():
+            if i < ns:
+                x[i] = xi
+                P[i] = Pi
+        # Predict: xp = F x ; Pp = F P Fᵀ + Q  (batched over sources).
+        xp = x @ F.T
+        Pp = np.einsum("ab,ibc,dc->iad", F, P, F) + Q
+        mu = xp[:, :3]  # (ns, 3) predicted positions
+        S = Pp[:, :3, :3] + R  # (ns, 3, 3) innovation covariance
+        Sinv = np.linalg.inv(S)
+        diff = dst_s[None, :, :] - mu[:, None, :]  # (ns, nd, 3)
+        maha2 = np.einsum("ijk,ikl,ijl->ij", diff, Sinv, diff)  # (ns, nd)
+        raw = np.sqrt(((src_s[:, None, :] - dst_s[None, :, :]) ** 2).sum(axis=2))
+        feasible = (raw <= max_d) & (maha2 <= chi2)
+        maha = np.sqrt(np.maximum(maha2, 0.0))
+        big = float(maha.max()) * 1000.0 + max_d * 1000.0 + 1.0
+        cost = np.where(feasible, maha, big)
+        rows, cols = linear_sum_assignment(cost)
+        new_carried: dict[int, tuple[np.ndarray, np.ndarray]] = {}
+        for a, b in zip(rows, cols):
+            if not feasible[a, b]:
+                continue
+            # Kalman update of track ``a`` with observation ``dst_s[b]``.
+            K = Pp[a] @ H.T @ Sinv[a]  # (6, 3) gain
+            innov = dst_s[b] - mu[a]
+            x_upd = xp[a] + K @ innov
+            P_upd = (I6 - K @ H) @ Pp[a]
+            new_carried[int(b)] = (x_upd, P_upd)
+            graph.add_edge(ids_by_t[t_a][int(a)], ids_by_t[t_b][int(b)])
+        carried = new_carried
+
+
 def link_centroids(
     detections: dict[int, np.ndarray],
     scale: tuple[float, float, float] = DEFAULT_SCALE,
@@ -1668,6 +1834,30 @@ def link_centroids(
             graph, detections, ids_by_t, scale_arr, params,
             descriptors, edge_model, use_edge_model,
         )
+        if params.suspicious_review:
+            graph = _suspicious_edge_review(
+                graph, scale_arr, params.suspicious_turn_cos,
+                params.suspicious_jump_ratio, params.suspicious_jump_floor,
+            )
+        if params.min_track_length > 1:
+            graph = _prune_short_tracks(graph, params.min_track_length)
+        if params.division_overlay:
+            from .division_overlay import apply_division_overlay
+
+            graph = apply_division_overlay(
+                graph, tuple(scale_arr), params.division_overlay
+            )
+        return graph
+
+    # Per-track constant-velocity Kalman gating (SOT-2920): each track carries its own
+    # (position, velocity) state and forms an innovation-covariance-normalised
+    # Mahalanobis gate, replacing/augmenting the fixed 7 µm Euclidean gate with a
+    # per-track adaptive one. A dedicated sequential path; emits only ``t -> t+1``
+    # metric-valid edges, then the shared post-processing (suspicious-review, short-track
+    # prune, division overlay) runs exactly as on the global/window paths. Off (default)
+    # falls through to the champion path below, byte-for-byte.
+    if params.kalman_gate:
+        _kalman_link(graph, detections, ids_by_t, scale_arr, params)
         if params.suspicious_review:
             graph = _suspicious_edge_review(
                 graph, scale_arr, params.suspicious_turn_cos,

@@ -196,3 +196,78 @@ def test_global_path_emits_only_consecutive_edges():
         params=LinkParams(max_distance=5.0, global_window=3, birth_cost=10.0, death_cost=10.0),
     )
     assert g.num_edges == 0
+
+
+# --- SOT-2920: per-track constant-velocity Kalman Mahalanobis LAP gate ---
+
+def test_kalman_gate_default_off_is_byte_invariant():
+    # kalman_gate defaults False => the champion path is reproduced edge-for-edge.
+    dets = {
+        0: np.array([[0.0, 0.0, 0.0], [0.0, 0.0, 10.0]]),
+        1: np.array([[0.0, 0.0, 1.0], [0.0, 0.0, 11.0]]),
+        2: np.array([[0.0, 0.0, 2.0], [0.0, 0.0, 12.0]]),
+    }
+    assert LinkParams().kalman_gate is False
+    assert LinkParams().kalman_gate_chi2 == float("inf")
+    base = link_centroids(dets, scale=ISO, params=LinkParams(max_distance=3.0))
+    off = link_centroids(
+        dets, scale=ISO, params=LinkParams(max_distance=3.0, kalman_gate=False)
+    )
+    assert _sorted_edges(off) == _sorted_edges(base)
+
+
+def test_kalman_gate_tracks_constant_velocity_cells():
+    # three constant-velocity cells; the Kalman path links each into a full chain.
+    base = np.array([[10.0, 10.0, 10.0], [10.0, 10.0, 30.0], [10.0, 30.0, 10.0]])
+    vel = np.array([[0.0, 0.0, 2.0], [0.0, 0.0, 2.0], [0.0, 1.0, 0.0]])
+    dets = {t: base + vel * t for t in range(6)}
+    g = link_centroids(
+        dets, scale=ISO,
+        params=LinkParams(max_distance=7.0, kalman_gate=True, min_track_length=1),
+    )
+    assert g.num_edges == 3 * 5  # 3 tracks, 5 transitions each
+    assert all(g.out_degree(n) <= 1 for n in g.node_ids())
+
+
+def test_kalman_gate_is_deterministic():
+    base = np.array([[10.0, 10.0, 10.0], [10.0, 10.0, 30.0]])
+    vel = np.array([[0.0, 0.0, 2.0], [0.0, 1.0, 0.0]])
+    dets = {t: base + vel * t for t in range(5)}
+    p = LinkParams(max_distance=7.0, kalman_gate=True, min_track_length=1)
+    a = link_centroids(dets, scale=ISO, params=p)
+    b = link_centroids(dets, scale=ISO, params=p)
+    assert _sorted_edges(a) == _sorted_edges(b)
+
+
+def test_kalman_gate_respects_euclidean_cap():
+    # a jump beyond max_distance is never admitted (the raw 7 µm cap is preserved
+    # by construction, intersected with the Mahalanobis gate).
+    dets = {0: np.array([[0.0, 0.0, 0.0]]), 1: np.array([[0.0, 0.0, 100.0]])}
+    g = link_centroids(
+        dets, scale=ISO, params=LinkParams(max_distance=5.0, kalman_gate=True)
+    )
+    assert g.num_edges == 0
+
+
+def test_kalman_gate_chi2_rejects_off_prediction_distractor():
+    # a well-established track predicts forward; a finite chi2 gate on a low-noise
+    # filter prefers the predicted successor over an equally-near lateral distractor.
+    dets = {
+        0: np.array([[0.0, 0.0, 0.0]]),
+        1: np.array([[0.0, 0.0, 2.0]]),
+        2: np.array([[0.0, 0.0, 4.0]]),
+        # frame 3: the true forward continuation AND a lateral decoy at equal raw dist
+        3: np.array([[0.0, 0.0, 6.0], [0.0, 2.0, 4.0]]),
+    }
+    g = link_centroids(
+        dets, scale=ISO,
+        params=LinkParams(
+            max_distance=7.0, kalman_gate=True, kalman_process_noise=0.2,
+            kalman_gate_chi2=9.0, min_track_length=1,
+        ),
+    )
+    # the track (node 2) must continue to the forward-predicted node, not the decoy
+    succ = g.successors(2)
+    assert len(succ) == 1
+    # node ids: t3 has ids 3 (forward [0,0,6]) and 4 (decoy [0,2,4])
+    assert succ[0] == 3

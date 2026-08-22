@@ -1,0 +1,340 @@
+{
+  "issue": "SOT-2995",
+  "title": "Official evaluate.py ported to the CV scorer + transfer-trust re-anchor",
+  "official_scorer": "royerlab/kaggle-cell-tracking-competition tracking_cellmot.metrics (tracksdata+polars)",
+  "adjustment_alpha": 0.1,
+  "division_weight": 0.1,
+  "divergence": {
+    "families_scored": 8,
+    "max_abs_count_delta": 0,
+    "clean_room_is_faithful": true,
+    "per_label": {
+      "champion": {
+        "clean_micro_adj": 0.676,
+        "official_micro_adj": 0.676,
+        "micro_adj_divergence": 0.0,
+        "clean_score": 0.676,
+        "official_score": 0.676,
+        "public_lb": 0.626
+      },
+      "v1": {
+        "clean_micro_adj": 0.3598,
+        "official_micro_adj": 0.3598,
+        "micro_adj_divergence": 0.0,
+        "clean_score": 0.3598,
+        "official_score": 0.3598,
+        "public_lb": 0.509
+      }
+    }
+  },
+  "transfer_trust": {
+    "public_anchors": {
+      "v1": 0.509,
+      "champion": 0.626
+    },
+    "official_scorer_order": {
+      "n_anchored": 2,
+      "spearman_vs_public": 1.0,
+      "cv_top_matches_public_top": true,
+      "pairs": [
+        {
+          "label": "champion",
+          "cv": 0.676,
+          "public_lb": 0.626
+        },
+        {
+          "label": "v1",
+          "cv": 0.3598,
+          "public_lb": 0.509
+        }
+      ]
+    },
+    "clean_room_order": {
+      "n_anchored": 2,
+      "spearman_vs_public": 1.0,
+      "cv_top_matches_public_top": true,
+      "pairs": [
+        {
+          "label": "champion",
+          "cv": 0.676,
+          "public_lb": 0.626
+        },
+        {
+          "label": "v1",
+          "cv": 0.3598,
+          "public_lb": 0.509
+        }
+      ]
+    }
+  },
+  "per_family_divergence": {
+    "champion": [
+      {
+        "name": "44b6_0113de3b",
+        "counts_match": true,
+        "clean_room": {
+          "edge_tp": 48,
+          "edge_fp": 2,
+          "edge_fn": 2,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0,
+          "num_pred_nodes": 30022
+        },
+        "official": {
+          "edge_tp": 48,
+          "edge_fp": 2,
+          "edge_fn": 2,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0,
+          "num_pred_nodes": 30022
+        },
+        "delta": {
+          "edge_tp": 0,
+          "edge_fp": 0,
+          "edge_fn": 0,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0
+        },
+        "clean_edge_jaccard": 0.923077,
+        "official_edge_jaccard": 0.923077,
+        "d_edge_jaccard": 0.0
+      },
+      {
+        "name": "44b6_0b24845f",
+        "counts_match": true,
+        "clean_room": {
+          "edge_tp": 37,
+          "edge_fp": 4,
+          "edge_fn": 12,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0,
+          "num_pred_nodes": 34818
+        },
+        "official": {
+          "edge_tp": 37,
+          "edge_fp": 4,
+          "edge_fn": 12,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0,
+          "num_pred_nodes": 34818
+        },
+        "delta": {
+          "edge_tp": 0,
+          "edge_fp": 0,
+          "edge_fn": 0,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0
+        },
+        "clean_edge_jaccard": 0.698113,
+        "official_edge_jaccard": 0.698113,
+        "d_edge_jaccard": 0.0
+      },
+      {
+        "name": "6bba_05b6850b",
+        "counts_match": true,
+        "clean_room": {
+          "edge_tp": 657,
+          "edge_fp": 214,
+          "edge_fn": 188,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0,
+          "num_pred_nodes": 11039
+        },
+        "official": {
+          "edge_tp": 657,
+          "edge_fp": 214,
+          "edge_fn": 188,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0,
+          "num_pred_nodes": 11039
+        },
+        "delta": {
+          "edge_tp": 0,
+          "edge_fp": 0,
+          "edge_fn": 0,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0
+        },
+        "clean_edge_jaccard": 0.620397,
+        "official_edge_jaccard": 0.620397,
+        "d_edge_jaccard": 0.0
+      },
+      {
+        "name": "6bba_05db0fb1",
+        "counts_match": true,
+        "clean_room": {
+          "edge_tp": 982,
+          "edge_fp": 130,
+          "edge_fn": 201,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 3,
+          "num_pred_nodes": 69961
+        },
+        "official": {
+          "edge_tp": 982,
+          "edge_fp": 130,
+          "edge_fn": 201,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 3,
+          "num_pred_nodes": 69961
+        },
+        "delta": {
+          "edge_tp": 0,
+          "edge_fp": 0,
+          "edge_fn": 0,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0
+        },
+        "clean_edge_jaccard": 0.747906,
+        "official_edge_jaccard": 0.747906,
+        "d_edge_jaccard": 0.0
+      }
+    ],
+    "v1": [
+      {
+        "name": "44b6_0113de3b",
+        "counts_match": true,
+        "clean_room": {
+          "edge_tp": 47,
+          "edge_fp": 2,
+          "edge_fn": 3,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0,
+          "num_pred_nodes": 12269
+        },
+        "official": {
+          "edge_tp": 47,
+          "edge_fp": 2,
+          "edge_fn": 3,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0,
+          "num_pred_nodes": 12269
+        },
+        "delta": {
+          "edge_tp": 0,
+          "edge_fp": 0,
+          "edge_fn": 0,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0
+        },
+        "clean_edge_jaccard": 0.903846,
+        "official_edge_jaccard": 0.903846,
+        "d_edge_jaccard": 0.0
+      },
+      {
+        "name": "44b6_0b24845f",
+        "counts_match": true,
+        "clean_room": {
+          "edge_tp": 2,
+          "edge_fp": 1,
+          "edge_fn": 47,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0,
+          "num_pred_nodes": 3599
+        },
+        "official": {
+          "edge_tp": 2,
+          "edge_fp": 1,
+          "edge_fn": 47,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0,
+          "num_pred_nodes": 3599
+        },
+        "delta": {
+          "edge_tp": 0,
+          "edge_fp": 0,
+          "edge_fn": 0,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0
+        },
+        "clean_edge_jaccard": 0.04,
+        "official_edge_jaccard": 0.04,
+        "d_edge_jaccard": 0.0
+      },
+      {
+        "name": "6bba_05b6850b",
+        "counts_match": true,
+        "clean_room": {
+          "edge_tp": 597,
+          "edge_fp": 29,
+          "edge_fn": 248,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0,
+          "num_pred_nodes": 3405
+        },
+        "official": {
+          "edge_tp": 597,
+          "edge_fp": 29,
+          "edge_fn": 248,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0,
+          "num_pred_nodes": 3405
+        },
+        "delta": {
+          "edge_tp": 0,
+          "edge_fp": 0,
+          "edge_fn": 0,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0
+        },
+        "clean_edge_jaccard": 0.683066,
+        "official_edge_jaccard": 0.683066,
+        "d_edge_jaccard": 0.0
+      },
+      {
+        "name": "6bba_05db0fb1",
+        "counts_match": true,
+        "clean_room": {
+          "edge_tp": 101,
+          "edge_fp": 26,
+          "edge_fn": 1082,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 3,
+          "num_pred_nodes": 8867
+        },
+        "official": {
+          "edge_tp": 101,
+          "edge_fp": 26,
+          "edge_fn": 1082,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 3,
+          "num_pred_nodes": 8867
+        },
+        "delta": {
+          "edge_tp": 0,
+          "edge_fp": 0,
+          "edge_fn": 0,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0
+        },
+        "clean_edge_jaccard": 0.08354,
+        "official_edge_jaccard": 0.08354,
+        "d_edge_jaccard": 0.0
+      }
+    ]
+  }
+}

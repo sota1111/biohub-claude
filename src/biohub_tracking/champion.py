@@ -411,6 +411,14 @@ def champion_params(
         edge_cost_model=(
             dict(l["edge_cost_model"]) if l.get("edge_cost_model") is not None else None
         ),
+        # Learned cross-attention edge-linking cost (SOT-2994): the embedded-coefficient
+        # dict passes through as-is; LinkParams.xattn_edge_model=None (absent) keeps the
+        # champion byte-identical.
+        xattn_edge_model=(
+            dict(l["xattn_edge_model"])
+            if l.get("xattn_edge_model") is not None
+            else None
+        ),
         # Whole-sequence Viterbi global track-linking with swaps (SOT-2918); absent
         # keys keep the champion byte-identical (viterbi_link default off). JSON cannot
         # hold inf, so an absent/null viterbi_theta means "unbounded" (accept every

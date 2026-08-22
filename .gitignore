@@ -19,3 +19,7 @@ submission*.csv
 # Experiment scratch
 .worktrees/
 experiments/**/*.csv
+
+# SOT-2994 detection cache (regenerable, large)
+experiments/sot2994/cache/
+experiments/**/*.log

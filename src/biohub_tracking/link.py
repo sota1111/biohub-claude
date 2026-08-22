@@ -527,6 +527,22 @@ class LinkParams:
     :attr:`max_distance` (SOT-2870). Bounds the expansion so a spurious motion
     prediction can never admit an arbitrarily far (metric-invalid) edge."""
 
+    xattn_edge_model: dict | None = None
+    """Learned CROSS-ATTENTION edge-linking cost (SOT-2994, SimpleNodeTransformer port).
+
+    The embedded-coefficient config block of a
+    :class:`biohub_tracking.xattn_edge.CrossAttentionEdgeCost`. Unlike the per-edge
+    logistic :attr:`edge_cost_model` (SOT-2841, REJECTED), each edge embedding is
+    contextualised by attention over its source's competing successors and its
+    destination's competing predecessors before being scored, so the assignment sees
+    the whole candidate set (the official ``SimpleNodeTransformer`` idea) rather than
+    one pair in isolation. Its ``weight * (1 - p_edge)`` penalty is **added to the
+    cost only** exactly like :attr:`edge_cost_model` — the ``<= max_distance``
+    feasibility gate stays on the raw/motion distance, so it re-ranks the champion's
+    feasible set and never admits an out-of-range edge (metric-valid). Inference is
+    pure numpy (exec-compat). ``None`` (default) or an embedded ``weight == 0`` or no
+    descriptors drops the term and reproduces the champion **byte-for-byte**."""
+
     window_assoc: int = 1
     """Portable Trackastra-style windowed global association (SOT-2871, default-off).
 
@@ -1186,6 +1202,7 @@ def _assign(
     edge_gate_expand: bool = False,
     edge_gate_admit_prob: float = 0.5,
     edge_gate_expand_ratio: float = 1.5,
+    xattn_model=None,
     dst_pred_bwd: np.ndarray | None = None,
     consistency_gate: bool = False,
     consistency_tol: float = float("inf"),
@@ -1236,6 +1253,15 @@ def _assign(
         # dist_pred (when a motion prediction is active) threads the motion-residual
         # feature into the joint edge vector, matching how the model was trained.
         cost_base = cost_base + edge_model.penalty(
+            dist, src_desc, dst_desc, max_distance, dist_pred=dist_pred
+        )
+    # Learned CROSS-ATTENTION edge cost (SOT-2994): a sibling re-rank term whose
+    # p_edge is contextualised by attention over the candidate set. Added to the cost
+    # only (feasibility gate unchanged) exactly like the SOT-2841 edge_model, so it is
+    # metric-valid and byte-for-byte inert at weight 0 / no model / no descriptors.
+    xattn_active = xattn_model is not None and xattn_model.weight != 0.0 and has_desc
+    if xattn_active:
+        cost_base = cost_base + xattn_model.penalty(
             dist, src_desc, dst_desc, max_distance, dist_pred=dist_pred
         )
 
@@ -2020,7 +2046,19 @@ def link_centroids(
 
         edge_model = LearnedEdgeCost.from_dict(params.edge_cost_model)
         use_edge_model = edge_model.weight != 0.0
-    use_desc = use_appearance or use_edge_model
+
+    # Learned cross-attention edge-linking cost (SOT-2994): built once from the
+    # embedded config. Inactive (byte-for-byte champion) when no model, weight 0, or
+    # no descriptors. Inference is pure numpy (no torch at link time).
+    xattn_model = None
+    use_xattn_model = False
+    if params.xattn_edge_model is not None and descriptors is not None:
+        from .xattn_edge import CrossAttentionEdgeCost
+
+        xattn_model = CrossAttentionEdgeCost.from_dict(params.xattn_edge_model)
+        use_xattn_model = xattn_model.weight != 0.0
+
+    use_desc = use_appearance or use_edge_model or use_xattn_model
 
     graph = TrackingGraph()
     ids_by_t: dict[int, list[int]] = {}
@@ -2164,6 +2202,7 @@ def link_centroids(
                 edge_gate_expand=params.edge_gate_expand,
                 edge_gate_admit_prob=params.edge_gate_admit_prob,
                 edge_gate_expand_ratio=params.edge_gate_expand_ratio,
+                xattn_model=xattn_model if use_xattn_model else None,
             )
         elif params.motion_model_link and len(src):
             # ARGUS-style global-motion-field prediction (SOT-2864): predict every
@@ -2195,6 +2234,7 @@ def link_centroids(
                 edge_gate_expand=params.edge_gate_expand,
                 edge_gate_admit_prob=params.edge_gate_admit_prob,
                 edge_gate_expand_ratio=params.edge_gate_expand_ratio,
+                xattn_model=xattn_model if use_xattn_model else None,
                 dst_pred_bwd=dst_pred_bwd,
                 consistency_gate=params.link_consistency_gate,
                 consistency_tol=params.link_consistency_tol,
@@ -2219,6 +2259,7 @@ def link_centroids(
                 edge_gate_expand=params.edge_gate_expand,
                 edge_gate_admit_prob=params.edge_gate_admit_prob,
                 edge_gate_expand_ratio=params.edge_gate_expand_ratio,
+                xattn_model=xattn_model if use_xattn_model else None,
             )
         elif params.link_two_pass and not use_desc:
             # Classical-baseline two-pass tight-then-full-gate assignment (SOT-2899):
@@ -2239,6 +2280,7 @@ def link_centroids(
                 edge_gate_expand=params.edge_gate_expand,
                 edge_gate_admit_prob=params.edge_gate_admit_prob,
                 edge_gate_expand_ratio=params.edge_gate_expand_ratio,
+                xattn_model=xattn_model if use_xattn_model else None,
             )
         # Bidirectional mutual-NN cycle-consistency gate (SOT-2910): a pure
         # FP-edge suppressor that keeps only links agreeing in BOTH directions,

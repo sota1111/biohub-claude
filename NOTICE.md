@@ -21,3 +21,11 @@ check that this reimplementation matches the official metric.
 This repository does **not** vendor that project's code (which depends on
 `torch` / `tracksdata`); the evaluator here is an independent, dependency-light
 (numpy + scipy) implementation.
+
+`src/biohub_tracking/eval/official.py` (SOT-2995) is a **dev-only bridge** that
+runs the genuine organiser scorer (`tracking_cellmot.metrics` /
+`division_metrics`, via `tracksdata` + `polars`) on this repo's predictions to
+measure fidelity against the clean-room implementation. It imports those heavy
+deps lazily, so it is never pulled into the light Kaggle-kernel path; it does not
+vendor their source. The measured divergence is zero on all golden topologies and
+real holdout predictions (`docs/ai/sot-2995-oracle-fidelity.md`).

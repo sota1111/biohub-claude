@@ -49,6 +49,16 @@ matching going backwards (SOT-2894's one legitimate concern). This does not
 change the live gate — cv.py/``--check-champion`` already gate on
 ``micro_adj``/``score`` — it corrects the *recommended* KPI this module reports.
 
+**SOT-2995 confirmation (official-scorer fidelity).** The genuine organiser
+scorer (``tracking_cellmot.metrics``/``division_metrics`` via ``tracksdata``) was
+run on the same predictions through :mod:`biohub_tracking.eval.official`; the
+divergence from this clean-room implementation is **zero** on all 8 golden
+topologies and all 8 real holdout predictions (champion 0.6760 / v1 0.3598,
+``docs/ai/sot-2995-oracle-fidelity.md``). So the ``micro_adj`` ↔ public order
+consistency recorded here (Spearman ρ = 1.0 over the two known anchors 0.626 /
+0.509) holds under the OFFICIAL metric, not merely the reimplementation — the
+self-made ``micro_adj`` is not a generalization-gap culprit.
+
 Everything here is a pure function of already-computed :class:`FamilyResult`
 rows, so it unit-tests without the (gitignored) competition data. The historical
 per-family counts are reconstructed from the single leak-free harness

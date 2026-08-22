@@ -401,6 +401,133 @@ def build_learned_detector(block: dict | None) -> LearnedDetector | None:
 
 
 # ---------------------------------------------------------------------------
+# Masked sparse supervision (SOT-2993) — target + loss-mask builders for a
+# self-trained 3D U-Net detector that CURES the sparse-GT Positive-Unlabeled (PU)
+# contamination which sank the earlier learned detectors.
+#
+# Why a *mask*, not a re-weighting
+# --------------------------------
+# This competition's train split ships **sparse** tracking GT: only ~1-12 of the
+# thousands of real cells per frame are annotated. SOT-2848 trained the detector
+# with a naive foreground-weighted MSE that regressed EVERY non-blob voxel toward
+# 0, so the majority of genuine but *unannotated* cells were taught as background
+# (PU contamination) and the detector degenerated (leak-free micro-adj 0.0).
+# SOT-2863's PU losses (nnPU / Cellsparse soft down-weight to 0.05) cured the
+# degeneracy but still supervised the whole background, so no family-invariant
+# operating point emerged (both << classical champion 0.6649/0.6760).
+#
+# Masked sparse supervision takes the annotation sparsity literally: the loss is
+# computed ONLY inside a bounded neighbourhood of each GT annotation (the
+# "supervised field of view") and is EXACTLY ZERO everywhere else. Near an
+# annotated cell we are confident about both signals — the cell (a positive blob)
+# and its immediate surround (true local background) — so both are supervised.
+# Far from any annotation we make NO claim: an unannotated real cell there
+# contributes zero gradient and is never pushed toward background. This is the
+# exact mechanism the issue names ("GT 注釈のある領域のみ backprop、未注釈セル/
+# 背景は損失から除外") and the distinguishing new grounds vs the rejected SOT-2828/
+# SOT-2848/SOT-2863 (which all supervised the full unlabeled background).
+#
+# All three builders are pure numpy so they are unit-testable in the torch-free
+# environment; the torch trainer (``experiments/sot2993/train_lofo.py``) multiplies
+# per-voxel squared error by :func:`masked_sparse_loss_weights` and reduces over
+# the mask (weight 0 ⇒ no gradient ⇒ excluded).
+# ---------------------------------------------------------------------------
+def gaussian_heatmap_target(
+    shape: tuple[int, int, int],
+    points_zyx,
+    sigma_zyx: tuple[float, float, float] = (1.0, 3.0, 3.0),
+) -> np.ndarray:
+    """Sum-of-Gaussians detection target (peak 1.0) at each ``(z, y, x)`` point.
+
+    Rendered per point inside a ``±3σ`` bounding box (elementwise max where blobs
+    overlap), matching the classical detector's blob scale. Returns a
+    ``(Z, Y, X)`` float32 array; an empty point set yields all zeros.
+    """
+    target = np.zeros(tuple(int(s) for s in shape), dtype=np.float32)
+    pts = np.asarray(points_zyx, dtype=np.float64).reshape(-1, 3)
+    if pts.size == 0:
+        return target
+    sz, sy, sx = (float(s) for s in sigma_zyx)
+    rz, ry, rx = int(3 * sz) + 1, int(3 * sy) + 1, int(3 * sx) + 1
+    Z, Y, X = target.shape
+    for pz, py, px in pts:
+        cz, cy, cx = int(round(pz)), int(round(py)), int(round(px))
+        z0, z1 = max(0, cz - rz), min(Z, cz + rz + 1)
+        y0, y1 = max(0, cy - ry), min(Y, cy + ry + 1)
+        x0, x1 = max(0, cx - rx), min(X, cx + rx + 1)
+        if z0 >= z1 or y0 >= y1 or x0 >= x1:
+            continue
+        zz, yy, xx = np.ogrid[z0:z1, y0:y1, x0:x1]
+        g = np.exp(
+            -(((zz - pz) ** 2) / (2 * sz**2)
+              + ((yy - py) ** 2) / (2 * sy**2)
+              + ((xx - px) ** 2) / (2 * sx**2))
+        ).astype(np.float32)
+        block = target[z0:z1, y0:y1, x0:x1]
+        np.maximum(block, g, out=block)
+    return target
+
+
+def annotation_supervision_mask(
+    shape: tuple[int, int, int],
+    points_zyx,
+    radius_zyx: tuple[float, float, float] = (4.0, 12.0, 12.0),
+) -> np.ndarray:
+    """Boolean supervised-field-of-view mask (``True`` within an anisotropic
+    ellipsoid of half-axes *radius_zyx* voxels of ANY GT point).
+
+    This is the crux of masked sparse supervision: loss is computed only where
+    this mask is ``True``; unannotated regions (mask ``False``) are excluded from
+    the loss entirely, so a real-but-unannotated cell there is never taught as
+    background (the PU-contamination cure). An empty point set yields all-``False``
+    (nothing supervised).
+    """
+    mask = np.zeros(tuple(int(s) for s in shape), dtype=bool)
+    pts = np.asarray(points_zyx, dtype=np.float64).reshape(-1, 3)
+    if pts.size == 0:
+        return mask
+    rz, ry, rx = (float(r) for r in radius_zyx)
+    Z, Y, X = mask.shape
+    for pz, py, px in pts:
+        z0, z1 = max(0, int(np.floor(pz - rz))), min(Z, int(np.ceil(pz + rz)) + 1)
+        y0, y1 = max(0, int(np.floor(py - ry))), min(Y, int(np.ceil(py + ry)) + 1)
+        x0, x1 = max(0, int(np.floor(px - rx))), min(X, int(np.ceil(px + rx)) + 1)
+        if z0 >= z1 or y0 >= y1 or x0 >= x1:
+            continue
+        zz, yy, xx = np.ogrid[z0:z1, y0:y1, x0:x1]
+        ellip = (
+            ((zz - pz) / rz) ** 2 + ((yy - py) / ry) ** 2 + ((xx - px) / rx) ** 2
+        )
+        mask[z0:z1, y0:y1, x0:x1] |= ellip <= 1.0
+    return mask
+
+
+def masked_sparse_loss_weights(
+    shape: tuple[int, int, int],
+    points_zyx,
+    *,
+    sigma_zyx: tuple[float, float, float] = (1.0, 3.0, 3.0),
+    radius_zyx: tuple[float, float, float] = (4.0, 12.0, 12.0),
+    fg_weight: float = 50.0,
+    pos_core: float = 0.5,
+) -> np.ndarray:
+    """Per-voxel loss weights for masked sparse supervision.
+
+    Zero **outside** the annotation mask (excluded from the loss); inside the
+    mask, ``fg_weight`` at blob cores (heatmap target ``>= pos_core``) else ``1.0``
+    (local true background). The training loss is
+    ``(w * (sigmoid(logit) - target)**2).sum() / w.sum()`` — voxels with ``w == 0``
+    produce no gradient, which is precisely how unannotated cells/background are
+    kept out of backprop.
+    """
+    target = gaussian_heatmap_target(shape, points_zyx, sigma_zyx)
+    mask = annotation_supervision_mask(shape, points_zyx, radius_zyx)
+    w = np.where(target >= float(pos_core), np.float32(fg_weight), np.float32(1.0))
+    w = np.where(mask, w, np.float32(0.0))
+    return w.astype(np.float32)
+
+
+# ---------------------------------------------------------------------------
 # Offline weights-attach smoke test (SOT-2847 acceptance): construct a tiny
 # model, save its weights, simulate a Kaggle Dataset mount, load the weights back
 # **offline**, and run a forward pass end to end. Measures whether the

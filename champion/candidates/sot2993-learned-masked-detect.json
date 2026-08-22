@@ -1,0 +1,25 @@
+{
+  "name": "learned-masked-sparse-unet-detect-sot2993",
+  "description": "SOT-2993 candidate (NOT promoted; champion byte-frozen, default-off hedge preserved). Self-trained 3D U-Net detector (temporal_unet3d) whose detection stage REPLACES the classical DoG+NMS, trained with MASKED SPARSE supervision: the loss is computed only inside a bounded anisotropic ellipsoid (radius_zyx=[4,12,12] voxels = 4*sigma) around each sparse GT annotation and is EXACTLY ZERO everywhere else (biohub_tracking.learned_detect.masked_sparse_loss_weights), so an unannotated real cell contributes no gradient and is never taught as background. This is the new-grounds cure for the sparse-GT Positive-Unlabeled contamination that made the earlier learned detectors fail (SOT-2828 numpy scorer / SOT-2848 naive-MSE degenerate 0.0 / SOT-2863 nnPU 0.1173 + Cellsparse soft-downweight 0.2753). The linking stage is the champion linker unchanged, so the leak-free CV A/B (experiments/sot2993/run_ab.py) isolates the detector. Weights are per-LOFO-fold artifacts (experiments/sot2993/weights/masked/<family>.pt), attachable offline as a Kaggle Dataset at /kaggle/input/biohub-claude-weights-sot2993/detector.pt (SOT-2847 offline attach->load->forward verdict FEASIBLE); no Kaggle submission from this child. See docs/ai/sot-2993-masked-sparse-unet-detector.md for the same-seed A/B evidence and promotion decision.",
+  "scale": [1.625, 0.40625, 0.40625],
+  "detect": {
+    "learned_detector": {
+      "enabled": true,
+      "arch": "temporal_unet3d",
+      "weights": "biohub-claude-weights-sot2993/detector.pt",
+      "threshold": 0.5,
+      "nms_size_zyx": [2, 5, 5],
+      "device": "auto"
+    }
+  },
+  "link": {
+    "max_distance": 7.0,
+    "allow_division": false,
+    "division_distance": 7.0,
+    "min_track_length": 4,
+    "motion_model_link": true,
+    "motion_smooth_sigma": 15.0,
+    "motion_gain": 1.0,
+    "motion_gate_on_prediction": true
+  }
+}

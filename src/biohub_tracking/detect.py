@@ -352,6 +352,73 @@ class DetectParams:
     stays within the LAP's dense-cost-matrix budget. Only consulted when
     :attr:`detect_hypothesis_select` is set."""
 
+    subvoxel_refine: tuple[int, int, int] | None = None
+    """Optional **intensity-weighted sub-voxel centroid refinement** (SOT-3014).
+
+    Every prior detection lever (multiscale DoG SOT-2774, quantile-norm SOT-2776,
+    watershed SOT-2775, hessian-blobness SOT-2793, local-MAD SOT-2791, learned
+    scorer SOT-2828, density-split SOT-2792, recall-recovery SOT-2873,
+    hypothesis-select SOT-2884) changes *which / how many* detections the champion
+    reports — none refine *where* an accepted detection sits. The champion emits
+    the **integer voxel** coordinate of each NMS local maximum (``np.argwhere``), so
+    a nucleus whose intensity centroid falls between voxels is quantized by up to
+    ½ voxel per axis (Z = 0.8125 µm, XY = 0.203 µm). This knob is the portable lever
+    distilled from the public *xiaoleilian* classical baseline's ``_refine`` step:
+    after all count-changing stages, each surviving centroid is replaced by the
+    **intensity-weighted centre-of-mass** of the (background-subtracted) raw
+    normalized volume inside an anisotropic ``(rz, ry, rx)`` half-window around it.
+
+    Because it moves centroids **without adding or removing any**, the node-count
+    penalty and detection recall are untouched by construction — the only thing that
+    can change is the ≤7 µm node matching (a sub-voxel-accurate centre is likelier to
+    fall within 7 µm of its GT node) and, downstream, the motion-model linking
+    (smoother per-node velocity from continuous positions). New mechanism vs every
+    rejected axis; a null result is a clean count-neutral reject.
+
+    When set to ``(rz, ry, rx)`` (voxel half-widths; ``ry``/``rx`` typically several
+    voxels, ``rz`` small because Z is ~4× coarser) the refined ``(z, y, x)`` of each
+    kept centroid is ``Σ w·p / Σ w`` with ``w = max(vol_norm − window_min, 0)`` over
+    the window; a degenerate (all-equal) window keeps the original integer centroid.
+    Applied on the **NMS path only** (after blobness / scorer / density-split, so it
+    composes with any promoted count lever); the watershed path already returns
+    basin centroids and is unaffected. ``None`` keeps the integer NMS centroids —
+    exact byte-identical reproduction of the pre-SOT-3014 detector (default-off).
+    Pure numpy, deterministic, Kaggle-kernel-safe."""
+
+
+def _subvoxel_refine_coords(
+    vol: np.ndarray, coords: np.ndarray, half_widths: tuple[int, int, int]
+) -> np.ndarray:
+    """Intensity-weighted sub-voxel centroid refinement (SOT-3014).
+
+    ``vol`` is the (already intensity-normalized) raw ``(Z, Y, X)`` volume; ``coords``
+    the ``(N, 3)`` integer NMS centroids. For each centroid the centre-of-mass of the
+    background-subtracted intensity inside the ``(rz, ry, rx)`` half-window is
+    returned, leaving the point count and ordering unchanged. A window with zero total
+    weight (flat patch) falls back to the original integer centroid. Ported from the
+    public *xiaoleilian* biohub classical baseline ``_refine``.
+    """
+    if coords.shape[0] == 0:
+        return coords
+    rz, ry, rx = (int(h) for h in half_widths)
+    Z, Y, X = vol.shape
+    refined = coords.astype(np.float64, copy=True)
+    for i, (zc, yc, xc) in enumerate(coords):
+        z, y, x = int(round(zc)), int(round(yc)), int(round(xc))
+        z0, z1 = max(0, z - rz), min(Z, z + rz + 1)
+        y0, y1 = max(0, y - ry), min(Y, y + ry + 1)
+        x0, x1 = max(0, x - rx), min(X, x + rx + 1)
+        crop = vol[z0:z1, y0:y1, x0:x1].astype(np.float64, copy=False)
+        w = np.clip(crop - float(crop.min()), 0.0, None)
+        s = float(w.sum())
+        if s <= 0.0:
+            continue
+        zz, yy, xx = np.mgrid[z0:z1, y0:y1, x0:x1]
+        refined[i, 0] = float((zz * w).sum()) / s
+        refined[i, 1] = float((yy * w).sum()) / s
+        refined[i, 2] = float((xx * w).sum()) / s
+    return refined
+
 
 def candidate_pool(
     volume: np.ndarray, params: "DetectParams"
@@ -983,6 +1050,13 @@ def detect_centroids_with_meta(
             response, threshold, coords, params.density_gated_split
         )
         meta["split_fired"] = split_fired
+
+    # Intensity-weighted sub-voxel centroid refinement (SOT-3014): move each kept
+    # centroid to the centre-of-mass of the local normalized intensity, without
+    # adding/removing any point (count-neutral). Off by default → integer NMS
+    # centroids untouched (byte-identical champion path).
+    if params.subvoxel_refine is not None and coords.shape[0]:
+        coords = _subvoxel_refine_coords(vol, coords, params.subvoxel_refine)
 
     return coords, meta
 

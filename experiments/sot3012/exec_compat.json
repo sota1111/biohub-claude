@@ -1,0 +1,23 @@
+{
+  "issue": "SOT-3012",
+  "hybrid": "learned DETECTION substrate (TemporalUNet3D, released split_0 weights) -> CHAMPION classical ARGUS motion-model LAP linking (pure numpy/scipy)",
+  "detection_stack": {
+    "torch_version": "2.5.1+cu121",
+    "cuda_available": true,
+    "weights_only_load_ok": true,
+    "forward_ok": true,
+    "offline": true,
+    "note": "identical detection stack to SOT-3011 (same clone + released weights, reused from experiments/sot3011/_ext); SOT-3011 already proved offline attach->load->forward on the Kaggle GPU base image with enable_internet=false"
+  },
+  "linking_stack": {
+    "engine": "biohub_tracking.link.link_centroids + champion LinkParams",
+    "deps": "pure numpy/scipy (no torch at link time, no tracksdata, no pyscipopt/SCIP ILP)",
+    "note": "STRICTLY MORE portable than SOT-3011 wholesale: the learned-linking / ILP solver stack is dropped entirely; linking is the byte-identical classical champion"
+  },
+  "kernel_meta": {
+    "enable_internet": false,
+    "enable_gpu": true,
+    "dataset_sources": ["thibautgoldsborough/cellmot-baseline-artifacts"]
+  },
+  "verdict": "PORTABLE — detection runs offline via torch + released weights on GPU (SOT-3011-verified), and linking is the pure-numpy classical champion (no ILP). The offline kernel is realisable: a GPU no-internet kernel that attaches the released-weights dataset for detection and links with the repo's numpy champion. NOT PROMOTED regardless (fails the 4/4 leak-free-CV non-regression gate at every global detection threshold; see screen_hybrid_ab.json), and the detector weights are train-contaminated (optimistic upper bound)."
+}

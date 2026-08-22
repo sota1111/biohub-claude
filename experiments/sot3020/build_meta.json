@@ -1,0 +1,45 @@
+{
+  "issue": "SOT-3020",
+  "candidate": "SOT-3012 role A' hybrid \u2014 learned DETECTION substrate (TemporalUNet3D released split_0) -> CHAMPION classical ARGUS motion-model link (ILP-free, PORTABLE)",
+  "det_threshold": 0.99,
+  "champion_link_params": {
+    "max_distance": 7.0,
+    "min_track_length": 4,
+    "motion_model_link": true,
+    "motion_smooth_sigma": 15.0,
+    "motion_gain": 1.0,
+    "motion_gate_on_prediction": true
+  },
+  "weights": "experiments/sot3011/_ext/artifacts/cellmot-baseline-artifacts/weights/unet_transformer/split_0/edge_predictor_best.pth",
+  "device": "cuda",
+  "internal_micro_adj_at_0.99": 0.8344,
+  "leak_caveat": "released split_0 weights trained on the labelled train videos INCLUDING these 4 test families -> internal CV is a train-contaminated optimistic upper bound (SOT-3015).",
+  "datasets": [
+    {
+      "name": "44b6_0113de3b",
+      "n_det_learned": 26888,
+      "pred_nodes": 26221,
+      "pred_edges": 25192
+    },
+    {
+      "name": "44b6_0b24845f",
+      "n_det_learned": 66844,
+      "pred_nodes": 58040,
+      "pred_edges": 52649
+    },
+    {
+      "name": "6bba_05b6850b",
+      "n_det_learned": 8018,
+      "pred_nodes": 7341,
+      "pred_edges": 6892
+    },
+    {
+      "name": "6bba_05db0fb1",
+      "n_det_learned": 80517,
+      "pred_nodes": 77028,
+      "pred_edges": 73282
+    }
+  ],
+  "total_nodes": 168630,
+  "total_edges": 158015
+}

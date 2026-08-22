@@ -1,0 +1,9 @@
+# External sources (git clone of royerlab repo + Kaggle released-weights dataset:
+# offline wheels + .pth weights). Fetched at run time; NOT committed (per-dir
+# weights/large-artifact convention, SOT-2848/2993). Reproduce with:
+#   git clone --depth 1 https://github.com/royerlab/kaggle-cell-tracking-competition _ext/royerlab
+#   kaggle datasets download thibautgoldsborough/cellmot-baseline-artifacts -p _ext/artifacts --unzip
+#   kaggle kernels pull thibautgoldsborough/unet-baseline-inference-submission -p _ext/nb -m
+_ext/
+__pycache__/
+pred/

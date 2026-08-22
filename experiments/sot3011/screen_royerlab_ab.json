@@ -1,0 +1,333 @@
+{
+  "issue": "SOT-3011",
+  "axis": "role A' wholesale \u2014 official royerlab released-weights pipeline",
+  "sources": {
+    "repo": "https://github.com/royerlab/kaggle-cell-tracking-competition",
+    "weights_dataset": "thibautgoldsborough/cellmot-baseline-artifacts",
+    "notebook": "thibautgoldsborough/unet-baseline-inference-submission"
+  },
+  "leak_caveat": "released split_0 weights trained on the labelled train videos INCLUDING these 4 CV families -> learned CV is an optimistic (train-contaminated) upper bound",
+  "det_threshold": 0.99,
+  "noise_band": 0.003,
+  "effective_config": {
+    "unet_out_channels": 32,
+    "unet_layers": [
+      32,
+      64,
+      128
+    ],
+    "downsample": [
+      1,
+      4,
+      4
+    ],
+    "window_size": 2,
+    "det_tta": true,
+    "edge_activation": "softmax",
+    "edge_threshold": 0.5,
+    "ilp": {
+      "edge_weight": -1.0,
+      "appearance_weight": 0.1,
+      "disappearance_weight": 0.1,
+      "division_weight": 1.0
+    }
+  },
+  "champion_cv": {
+    "micro_adj_edge_jaccard": 0.676,
+    "micro_edge_jaccard": 0.696,
+    "macro_adj_edge_jaccard": 0.731,
+    "lineage_macro_adj": 0.7351,
+    "division_jaccard": 0.0,
+    "division_measurable": true,
+    "division_term": 0.0,
+    "score": 0.676,
+    "by_lineage": {
+      "44b6": 0.7998,
+      "6bba": 0.6705
+    },
+    "by_lineage_weight_share": {
+      "44b6": 0.0424,
+      "6bba": 0.9576
+    },
+    "representativeness": {
+      "dominant_lineage": "6bba",
+      "dominant_lineage_weight_share": 0.9576,
+      "micro_lineage_macro_gap": 0.0591,
+      "family_mix_sensitive": true,
+      "public_lb_best": 0.624,
+      "cv_public_order_consistent": true,
+      "cv_public_same_magnitude": true
+    },
+    "per_dataset": [
+      {
+        "name": "44b6_0113de3b",
+        "lineage": "44b6",
+        "edge_tp": 48,
+        "edge_fp": 2,
+        "edge_fn": 2,
+        "edge_jaccard": 0.9231,
+        "adjusted_edge_jaccard": 0.9078,
+        "division_tp": 0,
+        "division_fp": 0,
+        "division_fn": 0,
+        "pred_nodes": 30022,
+        "n_true": 25755.0,
+        "weight": 52
+      },
+      {
+        "name": "44b6_0b24845f",
+        "lineage": "44b6",
+        "edge_tp": 37,
+        "edge_fp": 4,
+        "edge_fn": 12,
+        "edge_jaccard": 0.6981,
+        "adjusted_edge_jaccard": 0.6938,
+        "division_tp": 0,
+        "division_fp": 0,
+        "division_fn": 0,
+        "pred_nodes": 34818,
+        "n_true": 32795.0,
+        "weight": 53
+      },
+      {
+        "name": "6bba_05b6850b",
+        "lineage": "6bba",
+        "edge_tp": 657,
+        "edge_fp": 214,
+        "edge_fn": 188,
+        "edge_jaccard": 0.6204,
+        "adjusted_edge_jaccard": 0.5748,
+        "division_tp": 0,
+        "division_fp": 0,
+        "division_fn": 0,
+        "pred_nodes": 11039,
+        "n_true": 6362.0,
+        "weight": 1059
+      },
+      {
+        "name": "6bba_05db0fb1",
+        "lineage": "6bba",
+        "edge_tp": 982,
+        "edge_fp": 130,
+        "edge_fn": 201,
+        "edge_jaccard": 0.7479,
+        "adjusted_edge_jaccard": 0.7477,
+        "division_tp": 0,
+        "division_fp": 0,
+        "division_fn": 3,
+        "pred_nodes": 69961,
+        "n_true": 69800.0,
+        "weight": 1313
+      }
+    ]
+  },
+  "learned_cv": {
+    "greedy": {
+      "micro_adj_edge_jaccard": 0.7705,
+      "micro_edge_jaccard": 0.7873,
+      "macro_adj_edge_jaccard": 0.7493,
+      "lineage_macro_adj": 0.744,
+      "division_jaccard": 0.0,
+      "division_measurable": true,
+      "division_term": 0.0,
+      "score": 0.7705,
+      "by_lineage": {
+        "44b6": 0.7146,
+        "6bba": 0.7733
+      },
+      "by_lineage_weight_share": {
+        "44b6": 0.0481,
+        "6bba": 0.9519
+      },
+      "representativeness": {
+        "dominant_lineage": "6bba",
+        "dominant_lineage_weight_share": 0.9519,
+        "micro_lineage_macro_gap": 0.0266,
+        "family_mix_sensitive": false,
+        "public_lb_best": 0.624,
+        "cv_public_order_consistent": true,
+        "cv_public_same_magnitude": true
+      },
+      "per_dataset": [
+        {
+          "name": "44b6_0113de3b",
+          "lineage": "44b6",
+          "edge_tp": 46,
+          "edge_fp": 3,
+          "edge_fn": 4,
+          "edge_jaccard": 0.8679,
+          "adjusted_edge_jaccard": 0.8641,
+          "division_tp": 0,
+          "division_fp": 1,
+          "division_fn": 0,
+          "pred_nodes": 26888,
+          "n_true": 25755.0,
+          "weight": 53
+        },
+        {
+          "name": "44b6_0b24845f",
+          "lineage": "44b6",
+          "edge_tp": 39,
+          "edge_fp": 11,
+          "edge_fn": 10,
+          "edge_jaccard": 0.65,
+          "adjusted_edge_jaccard": 0.5825,
+          "division_tp": 0,
+          "division_fp": 3,
+          "division_fn": 0,
+          "pred_nodes": 66844,
+          "n_true": 32795.0,
+          "weight": 60
+        },
+        {
+          "name": "6bba_05b6850b",
+          "lineage": "6bba",
+          "edge_tp": 764,
+          "edge_fp": 100,
+          "edge_fn": 81,
+          "edge_jaccard": 0.8085,
+          "adjusted_edge_jaccard": 0.7874,
+          "division_tp": 0,
+          "division_fp": 44,
+          "division_fn": 0,
+          "pred_nodes": 8018,
+          "n_true": 6362.0,
+          "weight": 945
+        },
+        {
+          "name": "6bba_05db0fb1",
+          "lineage": "6bba",
+          "edge_tp": 1002,
+          "edge_fp": 110,
+          "edge_fn": 181,
+          "edge_jaccard": 0.7749,
+          "adjusted_edge_jaccard": 0.763,
+          "division_tp": 0,
+          "division_fp": 28,
+          "division_fn": 3,
+          "pred_nodes": 80517,
+          "n_true": 69800.0,
+          "weight": 1293
+        }
+      ]
+    },
+    "ilp": {
+      "micro_adj_edge_jaccard": 0.8081,
+      "micro_edge_jaccard": 0.8197,
+      "macro_adj_edge_jaccard": 0.7849,
+      "lineage_macro_adj": 0.7796,
+      "division_jaccard": 0.0,
+      "division_measurable": true,
+      "division_term": 0.0,
+      "score": 0.8081,
+      "by_lineage": {
+        "44b6": 0.748,
+        "6bba": 0.8112
+      },
+      "by_lineage_weight_share": {
+        "44b6": 0.0484,
+        "6bba": 0.9516
+      },
+      "representativeness": {
+        "dominant_lineage": "6bba",
+        "dominant_lineage_weight_share": 0.9516,
+        "micro_lineage_macro_gap": 0.0285,
+        "family_mix_sensitive": false,
+        "public_lb_best": 0.624,
+        "cv_public_order_consistent": true,
+        "cv_public_same_magnitude": true
+      },
+      "per_dataset": [
+        {
+          "name": "44b6_0113de3b",
+          "lineage": "44b6",
+          "edge_tp": 46,
+          "edge_fp": 2,
+          "edge_fn": 4,
+          "edge_jaccard": 0.8846,
+          "adjusted_edge_jaccard": 0.8838,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0,
+          "pred_nodes": 25995,
+          "n_true": 25755.0,
+          "weight": 52
+        },
+        {
+          "name": "44b6_0b24845f",
+          "lineage": "44b6",
+          "edge_tp": 39,
+          "edge_fp": 9,
+          "edge_fn": 10,
+          "edge_jaccard": 0.6724,
+          "adjusted_edge_jaccard": 0.6262,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0,
+          "pred_nodes": 55316,
+          "n_true": 32795.0,
+          "weight": 58
+        },
+        {
+          "name": "6bba_05b6850b",
+          "lineage": "6bba",
+          "edge_tp": 769,
+          "edge_fp": 56,
+          "edge_fn": 76,
+          "edge_jaccard": 0.8535,
+          "adjusted_edge_jaccard": 0.8368,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 0,
+          "pred_nodes": 7605,
+          "n_true": 6362.0,
+          "weight": 901
+        },
+        {
+          "name": "6bba_05db0fb1",
+          "lineage": "6bba",
+          "edge_tp": 1010,
+          "edge_fp": 80,
+          "edge_fn": 173,
+          "edge_jaccard": 0.7997,
+          "adjusted_edge_jaccard": 0.7929,
+          "division_tp": 0,
+          "division_fp": 0,
+          "division_fn": 3,
+          "pred_nodes": 75755,
+          "n_true": 69800.0,
+          "weight": 1263
+        }
+      ]
+    }
+  },
+  "gates": {
+    "greedy": {
+      "micro_adj_arm": 0.7705,
+      "micro_adj_champion": 0.676,
+      "micro_adj_delta": 0.0945,
+      "no_regression": false,
+      "per_family_delta": {
+        "44b6_0113de3b": -0.0437,
+        "44b6_0b24845f": -0.1113,
+        "6bba_05b6850b": 0.2126,
+        "6bba_05db0fb1": 0.0153
+      },
+      "decision": "REJECT"
+    },
+    "ilp": {
+      "micro_adj_arm": 0.8081,
+      "micro_adj_champion": 0.676,
+      "micro_adj_delta": 0.1321,
+      "no_regression": false,
+      "per_family_delta": {
+        "44b6_0113de3b": -0.024,
+        "44b6_0b24845f": -0.0676,
+        "6bba_05b6850b": 0.262,
+        "6bba_05db0fb1": 0.0452
+      },
+      "decision": "REJECT"
+    }
+  },
+  "overall_decision": "REJECT"
+}

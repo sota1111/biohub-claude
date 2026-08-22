@@ -1,0 +1,22 @@
+{
+  "torch_version": "2.5.1+cu121",
+  "cuda_available": true,
+  "weights_only_load_ok": true,
+  "state_dict_tensors": 136,
+  "model_rebuilt_from_config": true,
+  "forward_ok": true,
+  "det_logits_frames": 2,
+  "tracksdata_version": "0.1.0rc6.dev3+g980c2d30a",
+  "pyscipopt_version": "6.2.1",
+  "ilp_solver": "SCIP (offline; Gurobi license NOT required \u2014 SCIP fallback used in the A/B)",
+  "offline_install": "pip install --no-index --find-links <bundled wheels: 62> tracksdata \"zarr>=3.0.10\" pyscipopt",
+  "kernel_meta": {
+    "enable_internet": false,
+    "enable_gpu": true,
+    "dataset_sources": [
+      "thibautgoldsborough/cellmot-baseline-artifacts"
+    ]
+  },
+  "torch_source": "kaggle GPU base image (no torch wheel bundled \u2014 provided by the kernel image)",
+  "verdict": "PORTABLE \u2014 offline attach->load->forward (torch) + tracksdata graph + SCIP ILP all run with NO internet; full 4-family GPU A/B completed offline"
+}

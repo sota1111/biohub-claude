@@ -61,5 +61,23 @@ champion kernel after the probe submission.
 
 ## Live result
 
-<!-- filled in after the submission scores -->
-- Public LB: _pending_
+- Kaggle submission ref **55694001** (`2026-08-22 15:21 UTC`), submitted through the
+  deterministic gate only (kernel `sota1111/biohub-claude-learned-probe-sot-3020` v1,
+  output `submission.csv`).
+- Public LB: **PENDING** at run time. The submission stayed `PENDING` for >2.5h on
+  Kaggle's side — the CTC-style tracking metric over the learned pipeline's
+  **over-detected ~168 630-node / 15.5 MB** submission scores very slowly (the
+  champion's sparse classical CSV scores far faster). The gate's designed idempotent
+  deferred-capture (the next improve slot's `collectImproveContext` re-runs the same
+  score sync and records the public score the moment the submission turns COMPLETE)
+  will capture the numeric value. It is logged as `inconclusive` (observation probe)
+  in `docs/ai/experiment_ledger.jsonl` with the full comparison table (champion CV
+  0.6760 / public 0.626 · internal contaminated 0.8081–0.8344 · true leak-free 0.6217
+  · leader 0.958) and the reading rule for the next cycle.
+
+## Champion invariant (verified)
+
+- `champion/config.json` sha256 = `f2b107674d870cfd8e1b667a5d487b15b994382f9de0e9c3bc66a0c05b6522fc`
+  (unchanged; matches the reigning champion). Probe **not** promoted.
+- Registry submit pointer restored to `sota1111/biohub-claude-champion` v4 (control-plane
+  `scripts/ai/kaggle_targets_registry.json`).

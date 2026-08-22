@@ -1,0 +1,156 @@
+{
+  "purpose": "Harden the leak-free CV for judging learned candidates (SOT-3010 directions 1-2): the cv.py leak-free guarantee protects the scorer, not a learner \u2014 a learned candidate needs training-side holdout too.",
+  "scorer_untouched": true,
+  "known_leak_checklist": [
+    {
+      "id": "entity-holdout",
+      "name": "Frame/cell/track straddles the train\u2194score boundary",
+      "external_source": "official evaluate.py per-video scoring; whole-.geff units",
+      "severity": "hard",
+      "applies_to": "both",
+      "our_status": "covered",
+      "cure": "Score whole embryo videos (cv.CV_HOLDOUT is a strict per-video partition); never split a cell/track/frame across a bucket."
+    },
+    {
+      "id": "temporal-causality",
+      "name": "A future frame informs an earlier prediction",
+      "external_source": "official forward-only linking; causal detection",
+      "severity": "hard",
+      "applies_to": "both",
+      "our_status": "covered",
+      "cure": "Detection is per-timepoint; linking is forward-only (t\u2192t+1); no parameter is fit across time in the classical pipeline."
+    },
+    {
+      "id": "scorer-fidelity",
+      "name": "Local scorer diverges from the organiser metric",
+      "external_source": "official metrics.md (a=0.1, w=0.1, 7\u00b5m one-to-one, micro-avg)",
+      "severity": "hard",
+      "applies_to": "scorer",
+      "our_status": "covered",
+      "cure": "SOT-2995 confirmed eval/official.py reproduces the genuine tracksdata scorer byte-exact (divergence 0 on 8 golden + 8 real)."
+    },
+    {
+      "id": "train-on-scored-video",
+      "name": "A learner is trained on the very video it is then scored on",
+      "external_source": "official split_0 weights: fit on train split, validate on held-out videos",
+      "severity": "hard",
+      "applies_to": "learner",
+      "our_status": "covered_for_scorer_only",
+      "cure": "Train each learned candidate on a fold that EXCLUDES the scored video (leave-one-out); the classical champion needs no fit, so cv.py did not have to enforce this \u2014 a learned candidate does."
+    },
+    {
+      "id": "same-lineage-sibling",
+      "name": "Learner trains on the same-embryo sibling of the scored video",
+      "external_source": "public EDA notebooks: same-embryo videos share appearance/illumination/lineage",
+      "severity": "soft",
+      "applies_to": "learner",
+      "our_status": "action_required",
+      "cure": "Train leave-one-LINEAGE-out (hold out ALL 44b6 or ALL 6bba), not leave-one-video-out, so no video of the scored embryo lineage is in the training set. SOT-2993's per-video LOFO leaves the sibling in \u2192 soft leak."
+    },
+    {
+      "id": "released-weights-provenance",
+      "name": "Released weights trained on unconfirmed data that may include our holdout",
+      "external_source": "thibautgoldsborough/cellmot-baseline-artifacts split_0 (membership not independently confirmable)",
+      "severity": "soft",
+      "applies_to": "learner",
+      "our_status": "action_required",
+      "cure": "Treat released-weights CV as an OPTIMISTIC train-contaminated upper bound, never a leak-free estimate (SOT-3011 0.81 vs leak-free retrain SOT-2993 0.62). A promotable learned number needs leak-free retraining."
+    }
+  ],
+  "recommended_learned_fold": "leave-one-lineage-out",
+  "leave_one_lineage_out": [
+    {
+      "key": "44b6",
+      "held_out": [
+        "44b6_0113de3b",
+        "44b6_0b24845f"
+      ],
+      "train": [
+        "6bba_05b6850b",
+        "6bba_05db0fb1"
+      ],
+      "residual_lineage_leak": false
+    },
+    {
+      "key": "6bba",
+      "held_out": [
+        "6bba_05b6850b",
+        "6bba_05db0fb1"
+      ],
+      "train": [
+        "44b6_0113de3b",
+        "44b6_0b24845f"
+      ],
+      "residual_lineage_leak": false
+    }
+  ],
+  "leave_one_video_out": [
+    {
+      "key": "44b6_0113de3b",
+      "held_out": [
+        "44b6_0113de3b"
+      ],
+      "train": [
+        "44b6_0b24845f",
+        "6bba_05b6850b",
+        "6bba_05db0fb1"
+      ],
+      "residual_lineage_leak": true
+    },
+    {
+      "key": "44b6_0b24845f",
+      "held_out": [
+        "44b6_0b24845f"
+      ],
+      "train": [
+        "44b6_0113de3b",
+        "6bba_05b6850b",
+        "6bba_05db0fb1"
+      ],
+      "residual_lineage_leak": true
+    },
+    {
+      "key": "6bba_05b6850b",
+      "held_out": [
+        "6bba_05b6850b"
+      ],
+      "train": [
+        "44b6_0113de3b",
+        "44b6_0b24845f",
+        "6bba_05db0fb1"
+      ],
+      "residual_lineage_leak": true
+    },
+    {
+      "key": "6bba_05db0fb1",
+      "held_out": [
+        "6bba_05db0fb1"
+      ],
+      "train": [
+        "44b6_0113de3b",
+        "44b6_0b24845f",
+        "6bba_05b6850b"
+      ],
+      "residual_lineage_leak": true
+    }
+  ],
+  "leave_one_video_out_has_residual_leak": true,
+  "leave_one_lineage_out_has_residual_leak": false,
+  "candidate_provenance_examples": {
+    "SOT-3011 released royerlab weights (ILP 0.8081)": {
+      "verdict": "optimistic_upper_bound",
+      "cv_trustworthy_for_promotion": false,
+      "rationale": "External/released weights; training-data membership vs the holdout is not independently confirmable \u2192 treat CV as an optimistic upper bound."
+    },
+    "SOT-2993 self-trained UNet, leave-one-VIDEO-out (0.6217)": {
+      "verdict": "optimistic_upper_bound",
+      "cv_trustworthy_for_promotion": false,
+      "rationale": "Leave-one-video-out: the same-embryo sibling stayed in training (soft same-lineage leak) \u2192 still an upper bound, weaker than leave-one-lineage."
+    },
+    "hypothetical leave-one-LINEAGE-out retrain (leak-free target)": {
+      "verdict": "leak_free_retrained",
+      "cv_trustworthy_for_promotion": true,
+      "rationale": "Leave-one-lineage-out: no video of the scored embryo lineage was in training \u2192 leak-free CV, promotable evidence under the two-signal gate."
+    }
+  }
+}
